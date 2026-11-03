@@ -1,0 +1,51 @@
+# Local integration only: docker compose -f docker-compose.s7.yml up --build
+services:
+  postgres:
+    image: postgres:17.6
+    environment:
+      POSTGRES_DB: mealflow_demo
+      POSTGRES_USER: mealflow
+      POSTGRES_PASSWORD: ${MEALFLOW_LOCAL_DB_PASSWORD:?Set MEALFLOW_LOCAL_DB_PASSWORD}
+    ports:
+      - "127.0.0.1:5435:5432"
+    volumes:
+      - s7-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mealflow -d mealflow_demo"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  migrate:
+    build: ./apps/api
+    environment: &runtime
+      DATABASE_URL: postgresql+psycopg://mealflow:${MEALFLOW_LOCAL_DB_PASSWORD}@postgres:5432/mealflow_demo
+      APP_ENV: development
+      CORS_ORIGINS: http://localhost:5176,http://127.0.0.1:5176
+      DEMO_MODE: "true"
+    command: ["alembic", "upgrade", "head"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+  api:
+    build: ./apps/api
+    environment: *runtime
+    ports:
+      - "127.0.0.1:8003:8000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+  worker:
+    build: ./apps/api
+    environment: *runtime
+    command: ["python", "-m", "app.worker"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+  web:
+    build: ./apps/web
+    ports:
+      - "127.0.0.1:5176:80"
+    depends_on:
+      - api
+volumes:
+  s7-postgres:

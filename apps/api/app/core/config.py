@@ -1,8 +1,8 @@
 from functools import lru_cache
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Literal
 
-from pydantic import field_validator
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 # 仓库根目录（apps/api/app/core/config.py -> 上五级，与 seed.py 的 parents[4] 一致）。
@@ -21,7 +21,9 @@ class Settings(BaseSettings):
     app_env: str = "development"
     app_name: str = "MealFlow API"
     api_v1_prefix: str = "/api/v1"
-    database_url: str = "sqlite:///./data/local/mealflow.sqlite3"
+    database_url: str = (
+        "postgresql+psycopg://mealflow@127.0.0.1:5434/mealflow_s7?gssencmode=disable"
+    )
     cors_origins: Annotated[list[str], NoDecode] = ["http://localhost:5173"]
     demo_mode: bool = True
 
@@ -42,15 +44,21 @@ class Settings(BaseSettings):
     bigmodel_vision_model: str = "glm-4.6v"
     # 仅用于对话 Agent 的只读工具循环；正式配餐图不受该值影响。
     agent_max_steps: int = 6
+    runtime_household_active_limit: int = Field(default=2, ge=1)
+    runtime_queue_capacity: int = Field(default=100, ge=1)
+    retrieval_mode: Literal["demo", "native"] = "demo"
+    retrieval_embedding_model: str = "fake"
+    retrieval_embedding_dimensions: int = Field(default=64, ge=1)
+    retrieval_template_version: str = "v1"
+    retrieval_tokenizer_version: str = "v1"
     kiosk_token_secret: str = "replace-in-real-environment"
 
     @field_validator("database_url", mode="after")
     @classmethod
-    def anchor_sqlite_path(cls, value: str) -> str:
-        """把 sqlite:///./xxx 形式的相对路径锚定到仓库根目录，保证只有一个共享库。"""
-        prefix = "sqlite:///./"
-        if value.startswith(prefix):
-            return f"sqlite:///{(REPO_ROOT / value.removeprefix(prefix)).as_posix()}"
+    def require_postgresql(cls, value: str) -> str:
+        """The application runtime is PostgreSQL-only; SQLite remains a read-only import format."""
+        if not value.startswith(("postgresql://", "postgresql+psycopg://")):
+            raise ValueError("DATABASE_URL must use PostgreSQL; SQLite is no longer supported")
         return value
 
     @field_validator("cors_origins", mode="before")

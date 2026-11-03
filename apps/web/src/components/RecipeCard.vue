@@ -1,47 +1,47 @@
-<script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+<script lang="ts">
+import { defineComponent } from 'vue'
 import { MagicStick, VideoPlay } from '@element-plus/icons-vue'
 import type { Recipe } from '../types/recipe'
 
-defineOptions({ name: 'RecipeCard' })
-
-const props = defineProps<{ recipe: Recipe }>()
-const emit = defineEmits<{
-  (e: 'agent', recipe: Recipe): void
-  (e: 'open', recipe: Recipe): void
-}>()
-
-const difficultyClass = computed(() => {
-  const map: Record<string, string> = { 简单: 'easy', 中等: 'medium', 困难: 'hard' }
-  return map[props.recipe.difficulty] ?? 'easy'
-})
-
-// 做法形式徽标:图文步骤优先展示,无步骤但有视频的引导去看视频教程
-const howtoLabel = computed(() => {
-  if (props.recipe.steps.length) return `📄 图文 ${props.recipe.steps.length} 步`
-  if (props.recipe.videoUrl) return '▶ 视频教程'
-  return ''
-})
-
-// CDN 图偶发加载失败时回退到占位块;翻页复用组件换菜谱时重置
-const imageFailed = ref(false)
-watch(
-  () => props.recipe.id,
-  () => {
-    imageFailed.value = false
+export default defineComponent({
+  name: 'RecipeCard',
+  props: { recipe: { type: Object as () => Recipe, required: true } },
+  emits: ['agent', 'open'],
+  data() {
+    return { imageFailed: false, MagicStick, VideoPlay }
   },
-)
-const showImage = computed(() => props.recipe.image !== null && !imageFailed.value)
-
-function openVideo() {
-  if (props.recipe.videoUrl) {
-    window.open(props.recipe.videoUrl, '_blank', 'noopener')
-  }
-}
+  computed: {
+    difficultyClass(): string {
+      return (
+        ({ 简单: 'easy', 中等: 'medium', 困难: 'hard' } as Record<string, string>)[
+          this.recipe.difficulty
+        ] ?? 'easy'
+      )
+    },
+    howtoLabel(): string {
+      if (this.recipe.steps.length) return `📄 图文 ${this.recipe.steps.length} 步`
+      if (this.recipe.videoUrl) return '▶ 视频教程'
+      return ''
+    },
+    showImage(): boolean {
+      return this.recipe.image !== null && !this.imageFailed
+    },
+  },
+  watch: {
+    'recipe.id'() {
+      this.imageFailed = false
+    },
+  },
+  methods: {
+    openVideo() {
+      if (this.recipe.videoUrl) window.open(this.recipe.videoUrl, '_blank', 'noopener')
+    },
+  },
+})
 </script>
 
 <template>
-  <article class="recipe-card" @click="emit('open', props.recipe)">
+  <article class="recipe-card" @click="$emit('open', recipe)">
     <div class="card-media">
       <img
         v-if="showImage"
@@ -71,14 +71,19 @@ function openVideo() {
       <span v-for="tag in recipe.tags" :key="tag">{{ tag }}</span>
     </div>
     <div class="card-actions">
-      <el-button size="small" :disabled="!recipe.videoUrl" :icon="VideoPlay" @click.stop="openVideo">
+      <el-button
+        size="small"
+        :disabled="!recipe.videoUrl"
+        :icon="VideoPlay"
+        @click.stop="openVideo"
+      >
         查看原版视频
       </el-button>
       <el-button
         size="small"
         type="primary"
         :icon="MagicStick"
-        @click.stop="emit('agent', props.recipe)"
+        @click.stop="$emit('agent', recipe)"
       >
         交给Agent生成定制菜谱
       </el-button>
@@ -96,7 +101,10 @@ function openVideo() {
   border: 1px solid var(--border);
   border-radius: 14px;
   box-shadow: 0 4px 18px rgba(33, 60, 54, 0.04);
-  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease;
   cursor: pointer;
 }
 .recipe-card:hover {
@@ -162,9 +170,18 @@ function openVideo() {
   font-size: 11px;
   font-weight: 650;
 }
-.difficulty-chip.easy { background: #e7f2ee; color: #0f6b4f; }
-.difficulty-chip.medium { background: #fdf3e0; color: #a2701d; }
-.difficulty-chip.hard { background: #fdece7; color: #a4442c; }
+.difficulty-chip.easy {
+  background: #e7f2ee;
+  color: #0f6b4f;
+}
+.difficulty-chip.medium {
+  background: #fdf3e0;
+  color: #a2701d;
+}
+.difficulty-chip.hard {
+  background: #fdece7;
+  color: #a4442c;
+}
 .heat-chip {
   color: var(--muted);
   font-size: 12px;
@@ -224,5 +241,7 @@ function openVideo() {
   gap: 8px;
   padding-top: 4px;
 }
-.card-actions .el-button { flex: 1; }
+.card-actions .el-button {
+  flex: 1;
+}
 </style>

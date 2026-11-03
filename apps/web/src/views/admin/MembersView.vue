@@ -1,8 +1,7 @@
-<script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+<script lang="ts">
+import { defineComponent, markRaw } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Delete, Edit, Plus, Search } from '@element-plus/icons-vue'
-
 import {
   createMember as createMemberApi,
   createMemberEvent,
@@ -26,48 +25,7 @@ import {
   type PantryConfig,
 } from '../../api/chat'
 import { fetchIngredients, type IngredientOption } from '../../api/inventory'
-
-defineOptions({ name: 'MembersView' })
-
-const household = ref<Household | null>(null)
-const ingredients = ref<IngredientOption[]>([])
-const loading = ref(true)
-const activeFilter = ref<'all' | 'resident' | 'guest'>('all')
-const searchText = ref('')
-const pantryConfig = ref<PantryConfig | null>(null)
-const pantryDraft = ref('')
-
-const dialogVisible = ref(false)
-const editingId = ref<string | null>(null)
-const submitting = ref(false)
-const editTab = ref('profile')
-
-const form = reactive({
-  display_name: '',
-  gender: '保密',
-  residency: 'resident' as 'resident' | 'guest',
-  taboo: '',
-  note: '',
-})
-
 const GENDERS = ['男', '女', '保密']
-
-// 三层记忆第二层 / 第三层:编辑态下待提交项
-const restrictionDraft = reactive({ type: 'allergy' as RestrictionType, ingredient_key: '' })
-const eventDraft = reactive({
-  event_type: '感冒',
-  constraint_tags: [] as string[],
-  range: [] as string[],
-  note: '',
-})
-const pendingRestrictions = ref<Array<{ type: RestrictionType; ingredient_key: string; name: string }>>([])
-const pendingEvents = ref<Array<{ event_type: string; constraint_tags: string[]; start: string; end: string; note: string }>>([])
-const existingRestrictions = ref<HouseholdRestriction[]>([])
-const existingEvents = ref<HouseholdEvent[]>([])
-const originalRestrictionIds = ref<string[]>([])
-const originalEventIds = ref<string[]>([])
-
-// 特殊事件类型 → 默认约束(与后端 EVENT_DEFAULT_TAGS 对齐)
 const EVENT_PRESETS: Array<{ type: string; tags: string[]; hint: string }> = [
   { type: '感冒', tags: ['忌辛辣', '忌油腻', '宜清淡'], hint: '清淡少油,忌辛辣油腻' },
   { type: '例假', tags: ['忌辛辣', '忌生冷'], hint: '忌辛辣生冷,宜温补' },
@@ -81,302 +39,363 @@ const EVENT_PRESETS: Array<{ type: string; tags: string[]; hint: string }> = [
   { type: '过敏期', tags: ['忌发物'], hint: '忌发物' },
   { type: '其他', tags: [], hint: '自定义约束' },
 ]
+const TAG_OPTIONS = [
+  '忌辛辣',
+  '忌生冷',
+  '忌油腻',
+  '忌油炸',
+  '忌发物',
+  '忌甜',
+  '宜清淡',
+  '宜温补',
+  '宜软烂',
+]
 
-const TAG_OPTIONS = ['忌辛辣', '忌生冷', '忌油腻', '忌油炸', '忌发物', '忌甜', '宜清淡', '宜温补', '宜软烂']
-
-const today = () => new Date().toISOString().slice(0, 10)
-
-const ingredientName = (key: string) =>
-  ingredients.value.find((item) => item.key === key)?.name ?? key
-
-const groupedIngredients = computed(() => {
-  const groups = new Map<string, IngredientOption[]>()
-  for (const ingredient of ingredients.value) {
-    const list = groups.get(ingredient.category) ?? []
-    list.push(ingredient)
-    groups.set(ingredient.category, list)
-  }
-  return [...groups.entries()]
-})
-
-const activeEvents = computed(() =>
-  (household.value?.events ?? []).filter((event) => event.end_date >= today()),
-)
-
-const stats = computed(() => {
-  const members = household.value?.members ?? []
-  return {
-    total: members.length,
-    residents: members.filter((member) => member.residency === 'resident').length,
-    guests: members.filter((member) => member.residency === 'guest').length,
-    allergies: members.reduce(
-      (sum, member) => sum + member.restrictions.filter((r) => r.type === 'allergy').length,
-      0,
-    ),
-    events: activeEvents.value.length,
-  }
-})
-
-const filteredMembers = computed(() => {
-  const keyword = searchText.value.trim().toLowerCase()
-  return (household.value?.members ?? [])
-    .filter((member) => {
-      if (activeFilter.value === 'resident') return member.residency === 'resident'
-      if (activeFilter.value === 'guest') return member.residency === 'guest'
-      return true
-    })
-    .filter((member) =>
-      !keyword
-        ? true
-        : `${member.display_name}${member.taboo ?? ''}${member.note ?? ''}`
-            .toLowerCase()
-            .includes(keyword),
-    )
-})
-
-function memberEvents(userId: string) {
-  return (household.value?.events ?? [])
-    .filter((event) => event.user_id === userId)
-    .sort((a, b) => a.start_date.localeCompare(b.start_date))
-}
-
-function eventState(event: { start_date: string; end_date: string }) {
-  if (event.start_date > today()) return 'future'
-  if (event.end_date < today()) return 'expired'
-  return 'active'
-}
-
-function restrictionLabel(type: string) {
-  return type === 'allergy' ? '过敏' : '忌口'
-}
-
-function resetDrafts() {
-  restrictionDraft.type = 'allergy'
-  restrictionDraft.ingredient_key = ''
-  eventDraft.event_type = '感冒'
-  eventDraft.constraint_tags = [...EVENT_PRESETS[0].tags]
-  eventDraft.range = [today(), today()]
-  eventDraft.note = ''
-  pendingRestrictions.value = []
-  pendingEvents.value = []
-  existingRestrictions.value = []
-  existingEvents.value = []
-  originalRestrictionIds.value = []
-  originalEventIds.value = []
-  editTab.value = 'profile'
-}
-
-function openCreate() {
-  editingId.value = null
-  Object.assign(form, {
-    display_name: '',
-    gender: '保密',
-    residency: 'resident',
-    taboo: '',
-    note: '',
-  })
-  resetDrafts()
-  dialogVisible.value = true
-}
-
-function openEdit(member: HouseholdMember) {
-  resetDrafts()
-  editingId.value = member.user_id
-  Object.assign(form, {
-    display_name: member.display_name,
-    gender: member.gender ?? '保密',
-    residency: member.residency as 'resident' | 'guest',
-    taboo: member.taboo ?? '',
-    note: member.note ?? '',
-  })
-  existingRestrictions.value = member.restrictions.map((item) => ({ ...item }))
-  existingEvents.value = memberEvents(member.user_id).map((item) => ({
-    ...item,
-    constraint_tags: [...item.constraint_tags],
-  }))
-  originalRestrictionIds.value = existingRestrictions.value.map((item) => item.id)
-  originalEventIds.value = existingEvents.value.map((item) => item.id)
-  dialogVisible.value = true
-}
-
-function onEventTypeChange(type: string) {
-  const preset = EVENT_PRESETS.find((item) => item.type === type)
-  eventDraft.constraint_tags = preset ? [...preset.tags] : []
-}
-
-async function stageRestriction() {
-  if (!restrictionDraft.ingredient_key) {
-    ElMessage.warning('请先选择食材')
-    return
-  }
-  const exists =
-    existingRestrictions.value.some(
-      (item) =>
-        item.type === restrictionDraft.type &&
-        item.ingredient_key === restrictionDraft.ingredient_key,
-    ) ||
-    pendingRestrictions.value.some(
-      (item) =>
-        item.type === restrictionDraft.type &&
-        item.ingredient_key === restrictionDraft.ingredient_key,
-    )
-  if (exists) {
-    ElMessage.info('这条限制已经在档案里了')
-    return
-  }
-  const payload = {
-    type: restrictionDraft.type,
-    ingredient_key: restrictionDraft.ingredient_key,
-    name: ingredientName(restrictionDraft.ingredient_key),
-  }
-  pendingRestrictions.value.push(payload)
-  ElMessage.success(`已暂存${restrictionLabel(payload.type)}：${payload.name}，保存后生效`)
-  restrictionDraft.ingredient_key = ''
-}
-
-function removeRestriction(restrictionId: string) {
-  existingRestrictions.value = existingRestrictions.value.filter((item) => item.id !== restrictionId)
-}
-
-async function removeFoodPreference(preferenceId: string) {
-  try {
-    household.value = await deleteFoodPreference(preferenceId)
-    ElMessage.success('长期菜品偏好已删除')
-  } catch {
-    ElMessage.error('删除长期菜品偏好失败')
-  }
-}
-
-async function stageEvent() {
-  if (!eventDraft.range || eventDraft.range.length < 2) {
-    ElMessage.warning('请选择生效日期')
-    return
-  }
-  const payload = {
-    event_type: eventDraft.event_type,
-    constraint_tags: [...eventDraft.constraint_tags],
-    start: eventDraft.range[0],
-    end: eventDraft.range[1],
-    note: eventDraft.note,
-  }
-  pendingEvents.value.push(payload)
-  ElMessage.success(`已暂存「${payload.event_type}」，保存后生效`)
-}
-
-function removeEvent(eventId: string) {
-  existingEvents.value = existingEvents.value.filter((item) => item.id !== eventId)
-}
-
-function removePendingRestriction(index: number) {
-  pendingRestrictions.value.splice(index, 1)
-}
-
-function removePendingEvent(index: number) {
-  pendingEvents.value.splice(index, 1)
-}
-
-async function submit() {
-  if (!form.display_name.trim()) {
-    ElMessage.warning('请填写名字')
-    return
-  }
-  submitting.value = true
-  const payload: MemberPayload = {
-    display_name: form.display_name.trim(),
-    gender: form.gender,
-    residency: form.residency,
-    taboo: form.taboo || null,
-    note: form.note || null,
-  }
-  try {
-    let targetUserId = editingId.value
-    if (editingId.value) {
-      household.value = await updateMember(editingId.value, payload)
-    } else {
-      household.value = await createMemberApi(payload)
-      const created = household.value.members.find(
-        (member) => member.display_name === payload.display_name,
+export default defineComponent({
+  name: 'MembersView',
+  components: { Delete, Edit, Plus, Search },
+  data() {
+    return {
+      GENDERS,
+      EVENT_PRESETS,
+      TAG_OPTIONS,
+      household: null as Household | null,
+      ingredients: [] as IngredientOption[],
+      loading: true,
+      activeFilter: 'all' as 'all' | 'resident' | 'guest',
+      searchText: '',
+      pantryConfig: null as PantryConfig | null,
+      pantryDraft: '',
+      dialogVisible: false,
+      editingId: null as string | null,
+      submitting: false,
+      editTab: 'profile',
+      form: {
+        display_name: '',
+        gender: '保密',
+        residency: 'resident' as 'resident' | 'guest',
+        taboo: '',
+        note: '',
+      },
+      restrictionDraft: { type: 'allergy' as RestrictionType, ingredient_key: '' },
+      eventDraft: {
+        event_type: '感冒',
+        constraint_tags: [] as string[],
+        range: [] as string[],
+        note: '',
+      },
+      pendingRestrictions: [] as Array<{
+        type: RestrictionType
+        ingredient_key: string
+        name: string
+      }>,
+      pendingEvents: [] as Array<{
+        event_type: string
+        constraint_tags: string[]
+        start: string
+        end: string
+        note: string
+      }>,
+      existingRestrictions: [] as HouseholdRestriction[],
+      existingEvents: [] as HouseholdEvent[],
+      originalRestrictionIds: [] as string[],
+      originalEventIds: [] as string[],
+      Delete: markRaw(Delete),
+      Edit: markRaw(Edit),
+      Plus: markRaw(Plus),
+      Search: markRaw(Search),
+    }
+  },
+  computed: {
+    groupedIngredients() {
+      const groups = new Map<string, IngredientOption[]>()
+      for (const ingredient of this.ingredients) {
+        const list = groups.get(ingredient.category) ?? []
+        list.push(ingredient)
+        groups.set(ingredient.category, list)
+      }
+      return [...groups.entries()]
+    },
+    activeEvents() {
+      return (this.household?.events ?? []).filter((event) => event.end_date >= this.today())
+    },
+    stats() {
+      const members = this.household?.members ?? []
+      return {
+        total: members.length,
+        residents: members.filter((member) => member.residency === 'resident').length,
+        guests: members.filter((member) => member.residency === 'guest').length,
+        allergies: members.reduce(
+          (sum, member) => sum + member.restrictions.filter((r) => r.type === 'allergy').length,
+          0,
+        ),
+        events: this.activeEvents.length,
+      }
+    },
+    filteredMembers() {
+      const keyword = this.searchText.trim().toLowerCase()
+      return (this.household?.members ?? [])
+        .filter((member) => {
+          if (this.activeFilter === 'resident') return member.residency === 'resident'
+          if (this.activeFilter === 'guest') return member.residency === 'guest'
+          return true
+        })
+        .filter((member) =>
+          !keyword
+            ? true
+            : `${member.display_name}${member.taboo ?? ''}${member.note ?? ''}`
+                .toLowerCase()
+                .includes(keyword),
+        )
+    },
+  },
+  methods: {
+    today() {
+      return new Date().toISOString().slice(0, 10)
+    },
+    ingredientName(key: string) {
+      return this.ingredients.find((item) => item.key === key)?.name ?? key
+    },
+    memberEvents(userId: string) {
+      return (this.household?.events ?? [])
+        .filter((event) => event.user_id === userId)
+        .sort((a, b) => a.start_date.localeCompare(b.start_date))
+    },
+    eventState(event: { start_date: string; end_date: string }) {
+      if (event.start_date > this.today()) return 'future'
+      if (event.end_date < this.today()) return 'expired'
+      return 'active'
+    },
+    restrictionLabel(type: string) {
+      return type === 'allergy' ? '过敏' : '忌口'
+    },
+    resetDrafts() {
+      this.restrictionDraft.type = 'allergy'
+      this.restrictionDraft.ingredient_key = ''
+      this.eventDraft.event_type = '感冒'
+      this.eventDraft.constraint_tags = [...EVENT_PRESETS[0].tags]
+      this.eventDraft.range = [this.today(), this.today()]
+      this.eventDraft.note = ''
+      this.pendingRestrictions = []
+      this.pendingEvents = []
+      this.existingRestrictions = []
+      this.existingEvents = []
+      this.originalRestrictionIds = []
+      this.originalEventIds = []
+      this.editTab = 'profile'
+    },
+    openCreate() {
+      this.editingId = null
+      Object.assign(this.form, {
+        display_name: '',
+        gender: '保密',
+        residency: 'resident',
+        taboo: '',
+        note: '',
+      })
+      this.resetDrafts()
+      this.dialogVisible = true
+    },
+    openEdit(member: HouseholdMember) {
+      this.resetDrafts()
+      this.editingId = member.user_id
+      Object.assign(this.form, {
+        display_name: member.display_name,
+        gender: member.gender ?? '保密',
+        residency: member.residency as 'resident' | 'guest',
+        taboo: member.taboo ?? '',
+        note: member.note ?? '',
+      })
+      this.existingRestrictions = member.restrictions.map((item) => ({ ...item }))
+      this.existingEvents = this.memberEvents(member.user_id).map((item) => ({
+        ...item,
+        constraint_tags: [...item.constraint_tags],
+      }))
+      this.originalRestrictionIds = this.existingRestrictions.map((item) => item.id)
+      this.originalEventIds = this.existingEvents.map((item) => item.id)
+      this.dialogVisible = true
+    },
+    onEventTypeChange(type: string) {
+      const preset = EVENT_PRESETS.find((item) => item.type === type)
+      this.eventDraft.constraint_tags = preset ? [...preset.tags] : []
+    },
+    async stageRestriction() {
+      if (!this.restrictionDraft.ingredient_key) {
+        ElMessage.warning('请先选择食材')
+        return
+      }
+      const exists =
+        this.existingRestrictions.some(
+          (item) =>
+            item.type === this.restrictionDraft.type &&
+            item.ingredient_key === this.restrictionDraft.ingredient_key,
+        ) ||
+        this.pendingRestrictions.some(
+          (item) =>
+            item.type === this.restrictionDraft.type &&
+            item.ingredient_key === this.restrictionDraft.ingredient_key,
+        )
+      if (exists) {
+        ElMessage.info('这条限制已经在档案里了')
+        return
+      }
+      const payload = {
+        type: this.restrictionDraft.type,
+        ingredient_key: this.restrictionDraft.ingredient_key,
+        name: this.ingredientName(this.restrictionDraft.ingredient_key),
+      }
+      this.pendingRestrictions.push(payload)
+      ElMessage.success(`已暂存${this.restrictionLabel(payload.type)}：${payload.name}，保存后生效`)
+      this.restrictionDraft.ingredient_key = ''
+    },
+    removeRestriction(restrictionId: string) {
+      this.existingRestrictions = this.existingRestrictions.filter(
+        (item) => item.id !== restrictionId,
       )
-      targetUserId = created?.user_id ?? null
-    }
-    if (targetUserId) {
-      const retainedRestrictionIds = new Set(existingRestrictions.value.map((item) => item.id))
-      for (const id of originalRestrictionIds.value) {
-        if (!retainedRestrictionIds.has(id)) household.value = await deleteRestriction(id)
+    },
+    async removeFoodPreference(preferenceId: string) {
+      try {
+        this.household = await deleteFoodPreference(preferenceId)
+        ElMessage.success('长期菜品偏好已删除')
+      } catch {
+        ElMessage.error('删除长期菜品偏好失败')
       }
-      for (const item of pendingRestrictions.value) {
-        household.value = await createRestriction({
-          user_id: targetUserId,
-          type: item.type,
-          ingredient_key: item.ingredient_key,
-        })
+    },
+    async stageEvent() {
+      if (!this.eventDraft.range || this.eventDraft.range.length < 2) {
+        ElMessage.warning('请选择生效日期')
+        return
       }
-      const retainedEventIds = new Set(existingEvents.value.map((item) => item.id))
-      for (const id of originalEventIds.value) {
-        if (!retainedEventIds.has(id)) household.value = await deleteMemberEvent(id)
+      const payload = {
+        event_type: this.eventDraft.event_type,
+        constraint_tags: [...this.eventDraft.constraint_tags],
+        start: this.eventDraft.range[0],
+        end: this.eventDraft.range[1],
+        note: this.eventDraft.note,
       }
-      for (const item of pendingEvents.value) {
-        household.value = await createMemberEvent({
-          user_id: targetUserId,
-          event_type: item.event_type,
-          constraint_tags: item.constraint_tags,
-          start_date: item.start,
-          end_date: item.end,
-          note: item.note || null,
-        })
+      this.pendingEvents.push(payload)
+      ElMessage.success(`已暂存「${payload.event_type}」，保存后生效`)
+    },
+    removeEvent(eventId: string) {
+      this.existingEvents = this.existingEvents.filter((item) => item.id !== eventId)
+    },
+    removePendingRestriction(index: number) {
+      this.pendingRestrictions.splice(index, 1)
+    },
+    removePendingEvent(index: number) {
+      this.pendingEvents.splice(index, 1)
+    },
+    async submit() {
+      if (!this.form.display_name.trim()) {
+        ElMessage.warning('请填写名字')
+        return
       }
-    }
-    ElMessage.success(editingId.value ? '成员档案已更新' : '成员已加入家庭档案')
-    dialogVisible.value = false
-  } finally {
-    submitting.value = false
-  }
-}
-
-async function remove(member: HouseholdMember) {
-  try {
-    await ElMessageBox.confirm(
-      `确定删除「${member.display_name}」的档案吗？其忌口、过敏与特殊事件会一并删除。`,
-      '删除成员',
-      { type: 'warning', confirmButtonText: '删除', cancelButtonText: '取消' },
-    )
-  } catch {
-    return
-  }
-  household.value = await deleteMember(member.user_id)
-  ElMessage.success('已删除')
-}
-
-async function load() {
-  loading.value = true
-  try {
-    const [home, options, pantry] = await Promise.all([fetchHousehold(), fetchIngredients(), fetchPantryConfig()])
-    household.value = home
-    ingredients.value = options
-    pantryConfig.value = pantry
-  } finally {
-    loading.value = false
-  }
-}
-
-async function savePantry() {
-  if (!pantryConfig.value) return
-  const custom = pantryDraft.value.split(/[,，\s]+/).map((item) => item.trim()).filter(Boolean)
-  pantryConfig.value = await updatePantryConfig({ ...pantryConfig.value, custom_keys: [...new Set([...pantryConfig.value.custom_keys, ...custom])] })
-  pantryDraft.value = ''
-  ElMessage.success('常备料设置已保存')
-}
-
-async function removeCustomPantry(key: string) {
-  if (!pantryConfig.value) return
-  pantryConfig.value = await updatePantryConfig({
-    ...pantryConfig.value,
-    custom_keys: pantryConfig.value.custom_keys.filter((item) => item !== key),
-  })
-  ElMessage.success(`已删除自定义常备料：${key}`)
-}
-
-onMounted(load)
+      this.submitting = true
+      const payload: MemberPayload = {
+        display_name: this.form.display_name.trim(),
+        gender: this.form.gender,
+        residency: this.form.residency,
+        taboo: this.form.taboo || null,
+        note: this.form.note || null,
+      }
+      try {
+        let targetUserId = this.editingId
+        if (this.editingId) {
+          this.household = await updateMember(this.editingId, payload)
+        } else {
+          this.household = await createMemberApi(payload)
+          const created = this.household.members.find(
+            (member) => member.display_name === payload.display_name,
+          )
+          targetUserId = created?.user_id ?? null
+        }
+        if (targetUserId) {
+          const retainedRestrictionIds = new Set(this.existingRestrictions.map((item) => item.id))
+          for (const id of this.originalRestrictionIds) {
+            if (!retainedRestrictionIds.has(id)) this.household = await deleteRestriction(id)
+          }
+          for (const item of this.pendingRestrictions) {
+            this.household = await createRestriction({
+              user_id: targetUserId,
+              type: item.type,
+              ingredient_key: item.ingredient_key,
+            })
+          }
+          const retainedEventIds = new Set(this.existingEvents.map((item) => item.id))
+          for (const id of this.originalEventIds) {
+            if (!retainedEventIds.has(id)) this.household = await deleteMemberEvent(id)
+          }
+          for (const item of this.pendingEvents) {
+            this.household = await createMemberEvent({
+              user_id: targetUserId,
+              event_type: item.event_type,
+              constraint_tags: item.constraint_tags,
+              start_date: item.start,
+              end_date: item.end,
+              note: item.note || null,
+            })
+          }
+        }
+        ElMessage.success(this.editingId ? '成员档案已更新' : '成员已加入家庭档案')
+        this.dialogVisible = false
+      } finally {
+        this.submitting = false
+      }
+    },
+    async remove(member: HouseholdMember) {
+      try {
+        await ElMessageBox.confirm(
+          `确定删除「${member.display_name}」的档案吗？其忌口、过敏与特殊事件会一并删除。`,
+          '删除成员',
+          { type: 'warning', confirmButtonText: '删除', cancelButtonText: '取消' },
+        )
+      } catch {
+        return
+      }
+      this.household = await deleteMember(member.user_id)
+      ElMessage.success('已删除')
+    },
+    async load() {
+      this.loading = true
+      try {
+        const [home, options, pantry] = await Promise.all([
+          fetchHousehold(),
+          fetchIngredients(),
+          fetchPantryConfig(),
+        ])
+        this.household = home
+        this.ingredients = options
+        this.pantryConfig = pantry
+      } finally {
+        this.loading = false
+      }
+    },
+    async savePantry() {
+      if (!this.pantryConfig) return
+      const custom = this.pantryDraft
+        .split(/[,，\s]+/)
+        .map((item) => item.trim())
+        .filter(Boolean)
+      this.pantryConfig = await updatePantryConfig({
+        ...this.pantryConfig,
+        custom_keys: [...new Set([...this.pantryConfig.custom_keys, ...custom])],
+      })
+      this.pantryDraft = ''
+      ElMessage.success('常备料设置已保存')
+    },
+    async removeCustomPantry(key: string) {
+      if (!this.pantryConfig) return
+      this.pantryConfig = await updatePantryConfig({
+        ...this.pantryConfig,
+        custom_keys: this.pantryConfig.custom_keys.filter((item) => item !== key),
+      })
+      ElMessage.success(`已删除自定义常备料：${key}`)
+    },
+  },
+  mounted() {
+    return this.load()
+  },
+})
 </script>
 
 <template>
@@ -391,10 +410,22 @@ onMounted(load)
     </header>
 
     <div class="summary-strip">
-      <div><span>总人数</span><strong>{{ stats.total }}</strong><small>位</small></div>
-      <div><span>常驻成员</span><strong>{{ stats.residents }}</strong><small>位</small></div>
-      <div><span>访客</span><strong>{{ stats.guests }}</strong><small>位</small></div>
-      <div><span>生效中事件</span><strong>{{ stats.events }}</strong><small>个</small></div>
+      <div>
+        <span>总人数</span><strong>{{ stats.total }}</strong
+        ><small>位</small>
+      </div>
+      <div>
+        <span>常驻成员</span><strong>{{ stats.residents }}</strong
+        ><small>位</small>
+      </div>
+      <div>
+        <span>访客</span><strong>{{ stats.guests }}</strong
+        ><small>位</small>
+      </div>
+      <div>
+        <span>生效中事件</span><strong>{{ stats.events }}</strong
+        ><small>个</small>
+      </div>
     </div>
 
     <div class="legend-row">
@@ -409,8 +440,17 @@ onMounted(load)
         <p>常备料不需要录入冰箱，也不会自动加入采购清单；仍会参与过敏与忌口校验。</p>
       </div>
       <div class="pantry-controls">
-        <el-switch v-model="pantryConfig.use_defaults" active-text="启用默认库" @change="savePantry" />
-        <el-input v-model="pantryDraft" size="small" placeholder="新增自定义项，如：黄油、孜然" @keyup.enter="savePantry" />
+        <el-switch
+          v-model="pantryConfig.use_defaults"
+          active-text="启用默认库"
+          @change="savePantry"
+        />
+        <el-input
+          v-model="pantryDraft"
+          size="small"
+          placeholder="新增自定义项，如：黄油、孜然"
+          @keyup.enter="savePantry"
+        />
         <el-button size="small" @click="savePantry">保存</el-button>
       </div>
       <div class="pantry-tags">
@@ -428,11 +468,22 @@ onMounted(load)
     </section>
 
     <div class="filter-bar">
-      <el-input v-model="searchText" :prefix-icon="Search" clearable placeholder="搜索姓名、忌口或备注" />
+      <el-input
+        v-model="searchText"
+        :prefix-icon="Search"
+        clearable
+        placeholder="搜索姓名、忌口或备注"
+      />
       <div class="tag-filter">
-        <button :class="{ active: activeFilter === 'all' }" @click="activeFilter = 'all'">全部</button>
-        <button :class="{ active: activeFilter === 'resident' }" @click="activeFilter = 'resident'">常驻</button>
-        <button :class="{ active: activeFilter === 'guest' }" @click="activeFilter = 'guest'">访客</button>
+        <button :class="{ active: activeFilter === 'all' }" @click="activeFilter = 'all'">
+          全部
+        </button>
+        <button :class="{ active: activeFilter === 'resident' }" @click="activeFilter = 'resident'">
+          常驻
+        </button>
+        <button :class="{ active: activeFilter === 'guest' }" @click="activeFilter = 'guest'">
+          访客
+        </button>
       </div>
     </div>
 
@@ -485,7 +536,9 @@ onMounted(load)
               :effect="restriction.type === 'allergy' ? 'dark' : 'plain'"
               size="small"
             >
-              {{ restriction.type === 'allergy' ? '过敏' : '忌口' }}·{{ restriction.ingredient_name }}
+              {{ restriction.type === 'allergy' ? '过敏' : '忌口' }}·{{
+                restriction.ingredient_name
+              }}
             </el-tag>
           </div>
           <p v-else class="no-restriction">暂无过敏或忌口</p>
@@ -500,7 +553,9 @@ onMounted(load)
               closable
               @close="removeFoodPreference(preference.id)"
             >
-              {{ preference.preference === 'dislike' ? '不喜欢' : '喜欢' }}·{{ preference.target_name }}
+              {{ preference.preference === 'dislike' ? '不喜欢' : '喜欢' }}·{{
+                preference.target_name
+              }}
             </el-tag>
           </div>
 
@@ -547,7 +602,11 @@ onMounted(load)
           <el-form label-position="top">
             <div class="form-grid two">
               <el-form-item label="名字" required>
-                <el-input v-model="form.display_name" maxlength="20" placeholder="怎么称呼这位成员" />
+                <el-input
+                  v-model="form.display_name"
+                  maxlength="20"
+                  placeholder="怎么称呼这位成员"
+                />
               </el-form-item>
               <el-form-item label="性别">
                 <el-select v-model="form.gender" style="width: 100%">
@@ -562,7 +621,11 @@ onMounted(load)
               </el-radio-group>
             </el-form-item>
             <el-form-item label="自由描述(选填)">
-              <el-input v-model="form.taboo" maxlength="100" placeholder="例如:不吃香菜、海鲜过敏" />
+              <el-input
+                v-model="form.taboo"
+                maxlength="100"
+                placeholder="例如:不吃香菜、海鲜过敏"
+              />
             </el-form-item>
             <el-form-item label="备注(选填)">
               <el-input
@@ -614,7 +677,9 @@ onMounted(load)
               closable
               @close="removeRestriction(restriction.id)"
             >
-              {{ restriction.type === 'allergy' ? '过敏' : '忌口' }}·{{ restriction.ingredient_name }}
+              {{ restriction.type === 'allergy' ? '过敏' : '忌口' }}·{{
+                restriction.ingredient_name
+              }}
             </el-tag>
             <el-tag
               v-for="(item, index) in pendingRestrictions"
@@ -636,12 +701,14 @@ onMounted(load)
         </el-tab-pane>
 
         <el-tab-pane label="特殊事件" name="event">
-          <p class="tab-hint">
-            🟡 临时事件仅在生效期内参与约束,过期自动失效,不写入长期档案。
-          </p>
+          <p class="tab-hint">🟡 临时事件仅在生效期内参与约束,过期自动失效,不写入长期档案。</p>
           <el-form label-position="top">
             <el-form-item label="事件类型">
-              <el-select v-model="eventDraft.event_type" style="width: 100%" @change="onEventTypeChange">
+              <el-select
+                v-model="eventDraft.event_type"
+                style="width: 100%"
+                @change="onEventTypeChange"
+              >
                 <el-option
                   v-for="preset in EVENT_PRESETS"
                   :key="preset.type"
@@ -673,7 +740,11 @@ onMounted(load)
               </el-select>
             </el-form-item>
             <el-form-item label="备注(选填)">
-              <el-input v-model="eventDraft.note" maxlength="100" placeholder="例如:昨天开始嗓子疼" />
+              <el-input
+                v-model="eventDraft.note"
+                maxlength="100"
+                placeholder="例如:昨天开始嗓子疼"
+              />
             </el-form-item>
           </el-form>
           <el-button type="primary" plain @click="stageEvent">记录这次事件</el-button>
@@ -694,7 +765,14 @@ onMounted(load)
               </span>
               <small>{{ event.constraint_tags.join('、') || '无附加约束' }}</small>
               <small class="event-date">{{ event.start_date }} ~ {{ event.end_date }}</small>
-              <el-button :icon="Delete" size="small" circle text type="danger" @click="removeEvent(event.id)" />
+              <el-button
+                :icon="Delete"
+                size="small"
+                circle
+                text
+                type="danger"
+                @click="removeEvent(event.id)"
+              />
             </div>
             <div
               v-for="(item, index) in pendingEvents"
@@ -705,12 +783,16 @@ onMounted(load)
               <span class="event-main">{{ item.event_type }} <em class="future">待保存</em></span>
               <small>{{ item.constraint_tags.join('、') || '无附加约束' }}</small>
               <small class="event-date">{{ item.start }} ~ {{ item.end }}</small>
-              <el-button :icon="Delete" size="small" circle text type="danger" @click="removePendingEvent(index)" />
+              <el-button
+                :icon="Delete"
+                size="small"
+                circle
+                text
+                type="danger"
+                @click="removePendingEvent(index)"
+              />
             </div>
-            <p
-              v-if="!existingEvents.length && !pendingEvents.length"
-              class="no-restriction"
-            >
+            <p v-if="!existingEvents.length && !pendingEvents.length" class="no-restriction">
               还没有特殊事件记录
             </p>
           </div>
@@ -726,63 +808,288 @@ onMounted(load)
 </template>
 
 <style scoped>
-.members-page { max-width: 1180px; width: 100%; height: calc(100vh - 118px); min-height: 0; margin: 0 auto; padding-bottom: 0; display: flex; flex-direction: column; overflow: hidden; }
+.members-page {
+  max-width: 1180px;
+  width: 100%;
+  height: calc(100vh - 118px);
+  min-height: 0;
+  margin: 0 auto;
+  padding-bottom: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
 
-.legend-row { display: flex; flex-wrap: wrap; gap: 18px; margin: 16px 4px 0; font-size: 12.5px; color: var(--muted); }
-.legend { display: inline-flex; align-items: center; gap: 6px; }
-.legend .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
-.legend .dot.red { background: #c0392b; }
-.legend .dot.orange { background: #d79a3c; }
-.legend .dot.yellow { background: #e0c05a; }
+.legend-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin: 16px 4px 0;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.legend .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.legend .dot.red {
+  background: #c0392b;
+}
+.legend .dot.orange {
+  background: #d79a3c;
+}
+.legend .dot.yellow {
+  background: #e0c05a;
+}
 
-.card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; flex: 1; min-height: 0; overflow-y: auto; align-content: start; padding: 0 4px 18px 0; scrollbar-gutter: stable; }
-.member-card { background: #fff; border: 1px solid var(--border); border-radius: 18px; padding: 16px 18px; transition: transform 0.2s ease, box-shadow 0.2s ease; }
-.member-card:hover { transform: translateY(-3px); box-shadow: 0 14px 34px rgba(25, 66, 58, 0.12); }
-.card-top { display: flex; align-items: center; gap: 0.7rem; margin-bottom: 0.75rem; }
-.avatar { width: 44px; height: 44px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; color: #fff; flex-shrink: 0; }
-.avatar.resident { background: linear-gradient(135deg, #0f4c45, #2e7a6d); }
-.avatar.guest { background: linear-gradient(135deg, #c88a2d, #e0b15e); }
-.who { flex: 1; min-width: 0; }
-.who strong { font-size: 15.5px; }
-.who-tags { display: flex; gap: 4px; margin-top: 3px; }
-.card-actions { flex-shrink: 0; }
-.card-body { display: flex; flex-direction: column; gap: 0.5rem; }
-.info-line { font-size: 13px; display: flex; gap: 0.5rem; align-items: baseline; }
-.info-line small { flex-shrink: 0; color: #9aa8a4; background: #f2f4f0; padding: 1px 7px; border-radius: 6px; }
-.taboo-text { color: #a43c36; }
-.restriction-tags { display: flex; flex-wrap: wrap; gap: 0.3rem; }
-.no-restriction { font-size: 12.5px; color: #b3bdb9; margin: 0; }
-.event-block { display: flex; flex-direction: column; gap: 0.35rem; margin-top: 0.15rem; }
-.event-line { font-size: 12.5px; color: #8a5a12; background: #fdf6e8; border-radius: 8px; padding: 5px 9px; display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
-.event-line.active { background: #fdf2d9; border: 1px solid #ecd9a8; }
-.event-line.future { background: #f3f6f4; color: #7d8a86; }
-.event-line.expired { background: #f6f6f4; color: #a8b0ad; opacity: 0.85; }
-.event-line.pending { border: 1px dashed #d8c79a; }
-.event-line small { color: #b09a6e; }
-.event-line .event-date { font-variant-numeric: tabular-nums; }
-.event-main { font-weight: 650; }
-.event-main em { font-style: normal; font-size: 11px; padding: 0 5px; border-radius: 999px; background: #e7c574; color: #5f4410; margin-left: 4px; }
-.event-main em.future { background: #dfe6e3; color: #63706c; }
-.event-main em.expired { background: #e9eae7; color: #98a09d; }
-.event-dot { width: 6px; height: 6px; border-radius: 50%; background: #e0a23c; flex-shrink: 0; }
-.event-line.active .event-dot { animation: blink 1.4s ease-in-out infinite; }
-@keyframes blink { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  align-content: start;
+  padding: 0 4px 18px 0;
+  scrollbar-gutter: stable;
+}
+.member-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 16px 18px;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+.member-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 34px rgba(25, 66, 58, 0.12);
+}
+.card-top {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin-bottom: 0.75rem;
+}
+.avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+}
+.avatar.resident {
+  background: linear-gradient(135deg, #0f4c45, #2e7a6d);
+}
+.avatar.guest {
+  background: linear-gradient(135deg, #c88a2d, #e0b15e);
+}
+.who {
+  flex: 1;
+  min-width: 0;
+}
+.who strong {
+  font-size: 15.5px;
+}
+.who-tags {
+  display: flex;
+  gap: 4px;
+  margin-top: 3px;
+}
+.card-actions {
+  flex-shrink: 0;
+}
+.card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.info-line {
+  font-size: 13px;
+  display: flex;
+  gap: 0.5rem;
+  align-items: baseline;
+}
+.info-line small {
+  flex-shrink: 0;
+  color: #9aa8a4;
+  background: #f2f4f0;
+  padding: 1px 7px;
+  border-radius: 6px;
+}
+.taboo-text {
+  color: #a43c36;
+}
+.restriction-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+.no-restriction {
+  font-size: 12.5px;
+  color: #b3bdb9;
+  margin: 0;
+}
+.event-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.15rem;
+}
+.event-line {
+  font-size: 12.5px;
+  color: #8a5a12;
+  background: #fdf6e8;
+  border-radius: 8px;
+  padding: 5px 9px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+.event-line.active {
+  background: #fdf2d9;
+  border: 1px solid #ecd9a8;
+}
+.event-line.future {
+  background: #f3f6f4;
+  color: #7d8a86;
+}
+.event-line.expired {
+  background: #f6f6f4;
+  color: #a8b0ad;
+  opacity: 0.85;
+}
+.event-line.pending {
+  border: 1px dashed #d8c79a;
+}
+.event-line small {
+  color: #b09a6e;
+}
+.event-line .event-date {
+  font-variant-numeric: tabular-nums;
+}
+.event-main {
+  font-weight: 650;
+}
+.event-main em {
+  font-style: normal;
+  font-size: 11px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #e7c574;
+  color: #5f4410;
+  margin-left: 4px;
+}
+.event-main em.future {
+  background: #dfe6e3;
+  color: #63706c;
+}
+.event-main em.expired {
+  background: #e9eae7;
+  color: #98a09d;
+}
+.event-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #e0a23c;
+  flex-shrink: 0;
+}
+.event-line.active .event-dot {
+  animation: blink 1.4s ease-in-out infinite;
+}
+@keyframes blink {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
 
-.empty-state { grid-column: 1 / -1; }
-.pantry-card { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(300px, 1.2fr); gap: 12px 20px; margin: 0 0 14px; padding: 14px 16px; border: 1px solid #d9e6df; border-radius: 12px; background: #fbfdfb; }
-.pantry-card p { margin: 4px 0 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
-.pantry-controls { display: flex; align-items: center; gap: 8px; }
-.pantry-controls .el-input { flex: 1; }
-.pantry-tags { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 5px; }
+.empty-state {
+  grid-column: 1 / -1;
+}
+.pantry-card {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(300px, 1.2fr);
+  gap: 12px 20px;
+  margin: 0 0 14px;
+  padding: 14px 16px;
+  border: 1px solid #d9e6df;
+  border-radius: 12px;
+  background: #fbfdfb;
+}
+.pantry-card p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.pantry-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pantry-controls .el-input {
+  flex: 1;
+}
+.pantry-tags {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
 
-.tab-hint { margin: 0 0 14px; font-size: 12.5px; color: var(--muted); line-height: 1.7; }
-.draft-row { display: flex; gap: 10px; align-items: center; margin-bottom: 14px; }
-.tag-list { display: flex; flex-wrap: wrap; gap: 0.4rem; min-height: 28px; }
-.event-history { display: flex; flex-direction: column; gap: 0.4rem; margin-top: 16px; }
-.member-tabs :deep(.el-tabs__header) { margin-bottom: 16px; }
+.tab-hint {
+  margin: 0 0 14px;
+  font-size: 12.5px;
+  color: var(--muted);
+  line-height: 1.7;
+}
+.draft-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 14px;
+}
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  min-height: 28px;
+}
+.event-history {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: 16px;
+}
+.member-tabs :deep(.el-tabs__header) {
+  margin-bottom: 16px;
+}
 
 @media (max-width: 1180px) {
-  .card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .pantry-card { grid-template-columns: 1fr; }
+  .card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .pantry-card {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

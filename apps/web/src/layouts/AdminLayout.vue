@@ -1,6 +1,5 @@
-<script setup lang="ts">
-import { ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+<script lang="ts">
+import { defineComponent } from 'vue'
 import { ElMessage } from 'element-plus'
 import {
   Fold,
@@ -17,19 +16,11 @@ import {
 } from '@element-plus/icons-vue'
 import AccountChip from '../components/AccountChip.vue'
 import NotificationCenter from '../components/NotificationCenter.vue'
-import { conversationStarted, dateLine, greeting } from '../composables/greeting'
-
-const route = useRoute()
-const router = useRouter()
-const collapsed = ref(false)
-
-function onUserCommand(command: string) {
-  if (command === 'version') {
-    ElMessage({ message: '当前版本 v1.2', type: 'info', grouping: true })
-  } else {
-    ElMessage.info('该功能未开发,敬请期待 ✨')
-  }
-}
+import {
+  conversationStarted as started,
+  dateLine as currentDateLine,
+  greeting as currentGreeting,
+} from '../composables/greeting'
 
 // 已开发菜单:选中即跳转;占位菜单:点击提示功能未开发
 const allMenus: Array<{ label: string; icon: unknown; index?: string }> = [
@@ -44,14 +35,55 @@ const allMenus: Array<{ label: string; icon: unknown; index?: string }> = [
   { label: '系统设置', icon: Setting },
 ]
 
-function onMenuSelect(index: string) {
-  const target = allMenus.find((menu) => menu.index === index)
-  if (target?.index) {
-    router.push(target.index)
-  } else {
-    ElMessage.info('该功能未开发,敬请期待 ✨')
-  }
-}
+export default defineComponent({
+  name: 'AdminLayout',
+  components: { AccountChip, NotificationCenter, Fold, Expand },
+  data() {
+    return {
+      collapsed: false,
+      allMenus,
+      Fold,
+      Expand,
+      Dish,
+      Food,
+      User,
+      Timer,
+      Setting,
+      MagicStick,
+      House,
+      ShoppingCart,
+      EditPen,
+    }
+  },
+  computed: {
+    routePath(): string {
+      return this.$route.path
+    },
+    conversationStarted(): boolean {
+      return started.value
+    },
+    dateLine(): string {
+      return currentDateLine
+    },
+    greeting(): string {
+      return currentGreeting
+    },
+  },
+  methods: {
+    onUserCommand(command: string) {
+      if (command === 'version') {
+        ElMessage({ message: '当前版本 v1.2', type: 'info', grouping: true })
+      } else {
+        ElMessage.info('该功能未开发,敬请期待 ✨')
+      }
+    },
+    onMenuSelect(index: string) {
+      const target = this.allMenus.find((menu) => menu.index === index)
+      if (target?.index) this.$router.push(target.index)
+      else ElMessage.info('该功能未开发,敬请期待 ✨')
+    },
+  },
+})
 </script>
 
 <template>
@@ -64,18 +96,22 @@ function onMenuSelect(index: string) {
           <small>家庭智能配餐 Agent</small>
         </span>
       </div>
-      <el-menu
-        :default-active="route.path"
-        class="side-menu"
-        @select="onMenuSelect"
-      >
-        <el-menu-item v-for="menu in allMenus" :key="menu.label" :index="menu.index ?? `placeholder-${menu.label}`">
+      <el-menu :default-active="routePath" class="side-menu" @select="onMenuSelect">
+        <el-menu-item
+          v-for="menu in allMenus"
+          :key="menu.label"
+          :index="menu.index ?? `placeholder-${menu.label}`"
+        >
           <el-icon><component :is="menu.icon" /></el-icon>
           <span class="menu-label">{{ menu.label }}</span>
         </el-menu-item>
       </el-menu>
       <div class="sidebar-foot">
-        <button class="collapse-btn" :title="collapsed ? '展开' : '收起'" @click="collapsed = !collapsed">
+        <button
+          class="collapse-btn"
+          :title="collapsed ? '展开' : '收起'"
+          @click="collapsed = !collapsed"
+        >
           <el-icon v-if="!collapsed"><Fold /></el-icon>
           <el-icon v-else><Expand /></el-icon>
         </button>
@@ -109,7 +145,12 @@ function onMenuSelect(index: string) {
 </template>
 
 <style scoped>
-.admin-shell { display: flex; height: 100vh; min-height: 100vh; overflow: hidden; }
+.admin-shell {
+  display: flex;
+  height: 100vh;
+  min-height: 100vh;
+  overflow: hidden;
+}
 .sidebar {
   width: 208px;
   flex-shrink: 0;
@@ -120,7 +161,9 @@ function onMenuSelect(index: string) {
   transition: width 0.28s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
 }
-.admin-shell.collapsed .sidebar { width: 64px; }
+.admin-shell.collapsed .sidebar {
+  width: 64px;
+}
 .brand {
   display: flex;
   align-items: center;
@@ -130,10 +173,15 @@ function onMenuSelect(index: string) {
   white-space: nowrap;
 }
 .brand-mark {
-  width: 34px; height: 34px; flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
   border-radius: 10px;
-  background: #e5bd68; color: #18322f;
-  display: flex; align-items: center; justify-content: center;
+  background: #e5bd68;
+  color: #18322f;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-weight: 700;
   transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -143,7 +191,9 @@ function onMenuSelect(index: string) {
   justify-content: center;
   padding: 16px 8px;
 }
-.admin-shell.collapsed .brand-mark { transform: scale(1.06); }
+.admin-shell.collapsed .brand-mark {
+  transform: scale(1.06);
+}
 .brand-text {
   display: inline-grid;
   gap: 3px;
@@ -159,14 +209,25 @@ function onMenuSelect(index: string) {
   width: 0;
   transform: translateX(-10px) scale(0.9);
 }
-.brand strong { display: block; font-size: 15px; white-space: nowrap; }
-.brand small { display: block; font-size: 11px; opacity: 0.65; white-space: nowrap; }
+.brand strong {
+  display: block;
+  font-size: 15px;
+  white-space: nowrap;
+}
+.brand small {
+  display: block;
+  font-size: 11px;
+  opacity: 0.65;
+  white-space: nowrap;
+}
 .side-menu {
   border-right: 0;
   background: transparent;
   flex: 1;
 }
-.side-menu:not(.el-menu--collapse) { width: 100%; }
+.side-menu:not(.el-menu--collapse) {
+  width: 100%;
+}
 .side-menu :deep(.el-menu-item) {
   color: rgba(255, 255, 255, 0.78);
   white-space: nowrap;
@@ -175,21 +236,33 @@ function onMenuSelect(index: string) {
   color: #fff;
   background: rgba(255, 255, 255, 0.12);
 }
-.side-menu :deep(.el-menu-item:hover) { background: rgba(255, 255, 255, 0.08); }
-.menu-label { transition: opacity 0.2s ease; white-space: nowrap; }
+.side-menu :deep(.el-menu-item:hover) {
+  background: rgba(255, 255, 255, 0.08);
+}
+.menu-label {
+  transition: opacity 0.2s ease;
+  white-space: nowrap;
+}
 .admin-shell.collapsed .side-menu :deep(.el-menu-item) {
   justify-content: center;
   padding: 0;
 }
-.admin-shell.collapsed .side-menu :deep(.el-icon) { margin-right: 0; }
+.admin-shell.collapsed .side-menu :deep(.el-icon) {
+  margin-right: 0;
+}
 .admin-shell.collapsed .menu-label {
   opacity: 0;
   display: inline-block;
   width: 0;
   overflow: hidden;
 }
-.sidebar-foot { padding: 12px; margin-top: auto; }
-.admin-shell.collapsed .sidebar-foot { padding: 12px 8px; }
+.sidebar-foot {
+  padding: 12px;
+  margin-top: auto;
+}
+.admin-shell.collapsed .sidebar-foot {
+  padding: 12px 8px;
+}
 .collapse-btn {
   width: 100%;
   border: 0;
@@ -199,7 +272,9 @@ function onMenuSelect(index: string) {
   padding: 7px 0;
   cursor: pointer;
 }
-.collapse-btn:hover { background: rgba(255, 255, 255, 0.16); }
+.collapse-btn:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
 .sidebar-note {
   font-size: 11px;
   opacity: 0.65;
@@ -208,10 +283,16 @@ function onMenuSelect(index: string) {
   overflow: hidden;
   transition: opacity 0.2s ease;
 }
-.admin-shell.collapsed .sidebar-note { opacity: 0; }
+.admin-shell.collapsed .sidebar-note {
+  opacity: 0;
+}
 .status-dot {
-  display: inline-block; width: 7px; height: 7px; border-radius: 50%;
-  background: #7fd1ae; margin-right: 6px;
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #7fd1ae;
+  margin-right: 6px;
 }
 .admin-main {
   flex: 1;
@@ -237,8 +318,14 @@ function onMenuSelect(index: string) {
   pointer-events: none;
   transition: opacity 0.18s ease;
 }
-.greeting.visible { visibility: visible; opacity: 1; }
-.greeting small { color: #8a9a94; letter-spacing: 0.04em; }
+.greeting.visible {
+  visibility: visible;
+  opacity: 1;
+}
+.greeting small {
+  color: #8a9a94;
+  letter-spacing: 0.04em;
+}
 .greeting h1 {
   margin: 1px 0 0;
   font-size: 21px;

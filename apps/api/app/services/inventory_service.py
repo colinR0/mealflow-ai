@@ -131,7 +131,7 @@ def add_item(session: Session, workspace_id: str, payload: InventoryCreate) -> I
     if item is None:
         # 此时只创建 Python ORM 对象，并指定两张表之间的外键关联。
         item = InventoryItem(workspace_id=workspace_id, ingredient_id=ingredient.id)
-        # 放入当前数据库事务，commit 前尚未永久写入 SQLite 文件。
+        # 放入当前数据库事务，commit 前尚未永久写入 PostgreSQL。
         session.add(item)
 
     # 无论新建或已有记录，都把数量覆盖为本次提交的最新值，而不是累加。
@@ -141,7 +141,7 @@ def add_item(session: Session, workspace_id: str, payload: InventoryCreate) -> I
     # 保存到期日；payload 中允许为空，表示用户暂时未知到期日。
     item.expires_on = payload.expires_on
 
-    # 提交事务：此时新增或更新才真正写入 mealflow.sqlite3。
+    # 提交事务：此时新增或更新才真正持久化。
     session.commit()
 
     # 将 ORM 对象转换成对外稳定的 Pydantic 响应格式，再返回给 Router 和前端。

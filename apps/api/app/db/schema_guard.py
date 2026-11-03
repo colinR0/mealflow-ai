@@ -1,8 +1,8 @@
-"""启动前数据库版本保护，避免旧 SQLite 以模糊 OperationalError 进入业务层。"""
+"""启动前数据库版本保护，避免旧数据库以模糊 OperationalError 进入业务层。"""
 
+from alembic.config import Config
 from alembic.migration import MigrationContext
 from alembic.script import ScriptDirectory
-from alembic.config import Config
 
 from app.core.config import REPO_ROOT
 from app.db.session import engine
@@ -14,6 +14,7 @@ class DatabaseSchemaOutdatedError(RuntimeError):
 
 def schema_version_status() -> tuple[str | None, set[str]]:
     config = Config(str(REPO_ROOT / "apps" / "api" / "alembic.ini"))
+    config.set_main_option("script_location", str(REPO_ROOT / "apps" / "api" / "migrations"))
     scripts = ScriptDirectory.from_config(config)
     with engine.connect() as connection:
         current = MigrationContext.configure(connection).get_current_revision()
@@ -21,8 +22,7 @@ def schema_version_status() -> tuple[str | None, set[str]]:
 
 
 def ensure_schema_current() -> None:
-    # pytest 使用 sqlite:// 内存库并以 Base.metadata 建表；它没有也不需要
-    # alembic_version。真实 SQLite 文件及其它持久化数据库必须通过版本检查。
+    # Disposable PostgreSQL test schemas use Base.metadata and have no Alembic history.
     if engine.url.database is None:
         return
     current, heads = schema_version_status()

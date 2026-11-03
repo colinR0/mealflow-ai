@@ -1,9 +1,21 @@
 import os
+import re
 
 import pytest
+from sqlalchemy import create_engine, text
 
-# 在导入数据库模块之前切换配置，测试不得触碰真实家庭数据库或调用收费模型。
-os.environ["DATABASE_URL"] = "sqlite://"
+# Tests require an explicitly provisioned, disposable PostgreSQL database.
+test_database_url = os.environ.get("MEALFLOW_TEST_DATABASE_URL")
+if not test_database_url:
+    raise RuntimeError("Set MEALFLOW_TEST_DATABASE_URL to a disposable PostgreSQL database")
+if not re.match(r"^postgresql(?:\+psycopg)?://", test_database_url):
+    raise RuntimeError("MEALFLOW_TEST_DATABASE_URL must use PostgreSQL")
+test_database_engine = create_engine(test_database_url)
+database_name = test_database_engine.url.database
+if database_name is None or not database_name.endswith("_test"):
+    raise RuntimeError("MEALFLOW_TEST_DATABASE_URL database name must end with _test")
+test_database_engine.dispose()
+os.environ["DATABASE_URL"] = test_database_url
 os.environ["LLM_API_KEY"] = ""
 os.environ["AITECHFLUX_API_KEY"] = ""
 os.environ["BIGMODEL_API_KEY"] = ""
@@ -13,13 +25,21 @@ from app.db.seed import seed_demo_data
 
 @pytest.fixture(autouse=True)
 def _database_schema():
-    """每个测试使用全新空库：发布/反馈等状态不能跨测试泄漏。"""
+    """Recreate tables only in the explicitly named disposable PostgreSQL test database."""
     from app.db import models  # noqa: F401
     from app.db.base import Base
     from app.db.session import engine
 
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
+    with engine.begin() as connection:
+        connection.execute(text(
+            "CREATE TABLE IF NOT EXISTS alembic_version (version_num VARCHAR(32) NOT NULL)"
+        ))
+        connection.execute(text("DELETE FROM alembic_version"))
+        connection.execute(text(
+            "INSERT INTO alembic_version (version_num) VALUES ('08b2c3d4e5f6')"
+        ))
 
 
 @pytest.fixture(autouse=True)

@@ -74,6 +74,7 @@ class User(TimestampMixin, Base):
 
 class WorkspaceMember(TimestampMixin, Base):
     __tablename__ = "workspace_members"
+    __table_args__ = (UniqueConstraint("workspace_id", "user_id", name="uq_membership"),)
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)  # 成员关系记录 ID
     workspace_id: Mapped[str] = mapped_column(ForeignKey("workspaces.id"), index=True)  # 所属工作区 ID
@@ -340,4 +341,7 @@ class CookingRecord(TimestampMixin, Base):
     next_time_note: Mapped[str] = mapped_column(Text, default="")  # 下次改进备注
     image: Mapped[str] = mapped_column(Text, default="")  # 图片地址或前端保存的图片数据
     reviews: Mapped[list[dict]] = mapped_column(JSON, default=list)  # 其他人的评价列表
+
+
+from app.db import v2_models as v2_models  # noqa: E402,F401
 

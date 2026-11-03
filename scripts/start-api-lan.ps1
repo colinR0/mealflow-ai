@@ -10,8 +10,9 @@ if (-not (Test-Path -LiteralPath $python)) {
 $env:PYTHONPATH = Join-Path $root 'apps\api'
 Push-Location (Join-Path $root 'apps\api')
 try {
-  # alembic.ini 的相对路径以 apps/api 为基准，但数据库仍使用仓库根目录 data/local。
-  $env:DATABASE_URL = 'sqlite:///../../data/local/mealflow.sqlite3'
+  if (-not $env:DATABASE_URL) {
+    throw 'DATABASE_URL must point to PostgreSQL. Configure the S7 PostgreSQL endpoint first.'
+  }
   & $python -m alembic upgrade head
   if ($LASTEXITCODE -ne 0) { throw "数据库迁移失败；API 未启动。请先处理上方迁移错误。" }
 } finally {

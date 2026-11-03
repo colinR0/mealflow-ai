@@ -1,6 +1,5 @@
-<script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+<script lang="ts">
+import { defineComponent } from 'vue'
 import { ElMessage } from 'element-plus'
 import { ArrowDown, Refresh, Search } from '@element-plus/icons-vue'
 
@@ -23,154 +22,168 @@ import {
   type SortKey,
 } from '../../composables/recipeBook'
 
-defineOptions({ name: 'LazyCookbookView' })
-
 const PAGE_SIZE = 24
+export default defineComponent({
+  name: 'LazyCookbookView',
+  components: { RecipeCard, RecipeDetailDrawer, ArrowDown, Refresh, Search },
+  data() {
+    return {
+      PAGE_SIZE,
+      Refresh,
+      Search,
+      recipes: [] as Recipe[],
+      loading: true,
+      errorMessage: '',
+      activeTab: 'all' as 'all' | 'ingredients',
+      ingredientsExpanded: true,
+      keyword: '',
+      category: '全部',
+      difficulties: [] as string[],
+      heatRange: [0, 9999] as [number, number],
+      heatSliderBounds: [0, 9999] as [number, number],
+      sort: 'default' as SortKey,
+      page1: 1,
+      openSections: { difficulty: true, heat: true },
+      selectedIngredients: [] as string[],
+      selectedTools: [] as string[],
+      matchMode: 'fuzzy' as MatchMode,
+      page2: 1,
+      detailRecipe: null as Recipe | null,
+      detailVisible: false,
+      CATEGORY_ORDER,
+      DIFFICULTY_OPTIONS,
+      INGREDIENT_GROUPS,
+      MATCH_MODES,
+      SORT_OPTIONS,
+      TOOL_OPTIONS,
+      BIG_POT_HINT,
+    }
+  },
+  computed: {
+    categoryOptions() {
+      const counts = new Map<string, number>()
+      for (const recipe of this.recipes) {
+        counts.set(recipe.category, (counts.get(recipe.category) ?? 0) + 1)
+      }
+      const ordered = CATEGORY_ORDER.filter((name) => counts.has(name)).map((name) => ({
+        name,
+        count: counts.get(name) ?? 0,
+      }))
+      for (const [name, count] of counts) {
+        if (!CATEGORY_ORDER.includes(name)) ordered.push({ name, count })
+      }
+      return [{ name: '全部', count: this.recipes.length }, ...ordered]
+    },
+    heatIsFullRange(): boolean {
+      return (
+        this.heatRange[0] === this.heatSliderBounds[0] &&
+        this.heatRange[1] === this.heatSliderBounds[1]
+      )
+    },
+    tab1Filtered() {
+      return filterCookbook(this.recipes, {
+        keyword: this.keyword,
+        category: this.category,
+        difficulties: this.difficulties,
+        heatRange: this.heatIsFullRange ? null : this.heatRange,
+        sort: this.sort,
+      })
+    },
+    tab1Paged(): Recipe[] {
+      return this.tab1Filtered.slice((this.page1 - 1) * PAGE_SIZE, this.page1 * PAGE_SIZE)
+    },
+    tab2Matched(): Recipe[] {
+      return matchByIngredients(this.recipes, this.selectedIngredients, this.matchMode)
+    },
+    tab2Paged(): Recipe[] {
+      return this.tab2Matched.slice((this.page2 - 1) * PAGE_SIZE, this.page2 * PAGE_SIZE)
+    },
+  },
+  watch: {
+    keyword() {
+      this.page1 = 1
+    },
+    category() {
+      this.page1 = 1
+    },
+    difficulties() {
+      this.page1 = 1
+    },
+    heatRange() {
+      this.page1 = 1
+    },
+    sort() {
+      this.page1 = 1
+    },
+    selectedIngredients() {
+      this.page2 = 1
+    },
+    matchMode() {
+      this.page2 = 1
+    },
+  },
+  async mounted() {
+    try {
+      this.recipes = await loadRecipes()
+      const heats = this.recipes
+        .map((recipe) => recipe.heat)
+        .filter((heat): heat is number => heat !== null)
+      if (heats.length) {
+        const low = Math.floor(Math.min(...heats) / 10) * 10
+        const high = Math.ceil(Math.max(...heats) / 10) * 10
+        this.heatSliderBounds = [low, high]
+        this.heatRange = [low, high]
+      }
+    } catch (error) {
+      this.errorMessage = error instanceof Error ? error.message : '菜谱数据加载失败'
+    } finally {
+      this.loading = false
+    }
+  },
+  methods: {
+    openRecipeDetail(recipe: Recipe) {
+      this.detailRecipe = recipe
+      this.detailVisible = true
+    },
+    resetTab1Filters() {
+      this.keyword = ''
+      this.category = '全部'
+      this.difficulties = []
+      this.heatRange = [...this.heatSliderBounds]
+      this.sort = 'default'
+    },
+    clearTab2Selection() {
+      this.selectedIngredients = []
+      this.selectedTools = []
+    },
+    sendRecipeToAgent(recipe: Recipe) {
+      const parts = [`我想做【${recipe.name}】（${recipe.category}，${recipe.difficulty}）。`]
+      if (recipe.ingredients.length) {
+        parts.push(`食材：${recipe.ingredients.join('、')}。`)
+      }
+      if (recipe.tools) {
+        parts.push(`可用厨具：${recipe.tools}。`)
+      }
+      parts.push('请结合家庭成员的口味与忌口，给我一套能直接开火的定制做法。')
+      useAgentHandoffStore().stage(parts.join(''))
+      void this.$router.push('/admin/agent')
+    },
 
-const router = useRouter()
-const agentHandoff = useAgentHandoffStore()
-
-const recipes = ref<Recipe[]>([])
-const loading = ref(true)
-const errorMessage = ref('')
-const activeTab = ref<'all' | 'ingredients'>('all')
-const ingredientsExpanded = ref(true)
-
-// ===== Tab1 菜谱大全 =====
-const keyword = ref('')
-const category = ref('全部')
-const difficulties = ref<string[]>([])
-const heatRange = ref<[number, number]>([0, 9999])
-const heatSliderBounds = ref<[number, number]>([0, 9999])
-const sort = ref<SortKey>('default')
-const page1 = ref(1)
-const openSections = reactive({ difficulty: true, heat: true })
-
-// ===== Tab2 按食材找菜 =====
-const selectedIngredients = ref<string[]>([])
-const selectedTools = ref<string[]>([])
-const matchMode = ref<MatchMode>('fuzzy')
-const page2 = ref(1)
-
-// ===== 菜谱详情抽屉 =====
-const detailRecipe = ref<Recipe | null>(null)
-const detailVisible = ref(false)
-
-function openRecipeDetail(recipe: Recipe) {
-  detailRecipe.value = recipe
-  detailVisible.value = true
-}
-
-onMounted(async () => {
-  try {
-    recipes.value = await loadRecipes()
-    initHeatBounds()
-  } catch (error) {
-    errorMessage.value = error instanceof Error ? error.message : '菜谱数据加载失败'
-  } finally {
-    loading.value = false
-  }
+    sendIngredientsToAgent() {
+      if (!this.selectedIngredients.length) {
+        ElMessage.warning('请先勾选家里现有的食材')
+        return
+      }
+      const parts = [`家里现有食材：${this.selectedIngredients.join('、')}。`]
+      if (this.selectedTools.length) {
+        parts.push(`可用厨具：${this.selectedTools.join('、')}。`)
+      }
+      parts.push('请基于这些现有食材，推荐能做的菜。')
+      useAgentHandoffStore().stage(parts.join(''))
+      void this.$router.push('/admin/agent')
+    },
+  },
 })
-
-function initHeatBounds() {
-  const heats = recipes.value
-    .map((recipe) => recipe.heat)
-    .filter((heat): heat is number => heat !== null)
-  if (!heats.length) return
-  const sliderMin = Math.floor(Math.min(...heats) / 10) * 10
-  const sliderMax = Math.ceil(Math.max(...heats) / 10) * 10
-  heatSliderBounds.value = [sliderMin, sliderMax]
-  heatRange.value = [sliderMin, sliderMax]
-}
-
-const categoryOptions = computed(() => {
-  const counts = new Map<string, number>()
-  for (const recipe of recipes.value) {
-    counts.set(recipe.category, (counts.get(recipe.category) ?? 0) + 1)
-  }
-  const ordered = CATEGORY_ORDER.filter((name) => counts.has(name)).map((name) => ({
-    name,
-    count: counts.get(name) ?? 0,
-  }))
-  for (const [name, count] of counts) {
-    if (!CATEGORY_ORDER.includes(name)) ordered.push({ name, count })
-  }
-  return [{ name: '全部', count: recipes.value.length }, ...ordered]
-})
-
-const heatIsFullRange = computed(
-  () =>
-    heatRange.value[0] === heatSliderBounds.value[0] &&
-    heatRange.value[1] === heatSliderBounds.value[1],
-)
-
-const tab1Filtered = computed(() =>
-  filterCookbook(recipes.value, {
-    keyword: keyword.value,
-    category: category.value,
-    difficulties: difficulties.value,
-    heatRange: heatIsFullRange.value ? null : heatRange.value,
-    sort: sort.value,
-  }),
-)
-const tab1Paged = computed(() =>
-  tab1Filtered.value.slice((page1.value - 1) * PAGE_SIZE, page1.value * PAGE_SIZE),
-)
-
-const tab2Matched = computed(() =>
-  matchByIngredients(recipes.value, selectedIngredients.value, matchMode.value),
-)
-const tab2Paged = computed(() =>
-  tab2Matched.value.slice((page2.value - 1) * PAGE_SIZE, page2.value * PAGE_SIZE),
-)
-
-watch([keyword, category, difficulties, heatRange, sort], () => {
-  page1.value = 1
-})
-watch([selectedIngredients, matchMode], () => {
-  page2.value = 1
-})
-
-function resetTab1Filters() {
-  keyword.value = ''
-  category.value = '全部'
-  difficulties.value = []
-  heatRange.value = [heatSliderBounds.value[0], heatSliderBounds.value[1]]
-  sort.value = 'default'
-}
-
-function clearTab2Selection() {
-  selectedIngredients.value = []
-  selectedTools.value = []
-}
-
-// 把选中的菜谱交给智能配餐 Agent:写入待办文本后跳转,工作台 onActivated 里消费填入输入框
-function sendRecipeToAgent(recipe: Recipe) {
-  const parts = [`我想做【${recipe.name}】（${recipe.category}，${recipe.difficulty}）。`]
-  if (recipe.ingredients.length) {
-    parts.push(`食材：${recipe.ingredients.join('、')}。`)
-  }
-  if (recipe.tools) {
-    parts.push(`可用厨具：${recipe.tools}。`)
-  }
-  parts.push('请结合家庭成员的口味与忌口，给我一套能直接开火的定制做法。')
-  agentHandoff.stage(parts.join(''))
-  void router.push('/admin/agent')
-}
-
-function sendIngredientsToAgent() {
-  if (!selectedIngredients.value.length) {
-    ElMessage.warning('请先勾选家里现有的食材')
-    return
-  }
-  const parts = [`家里现有食材：${selectedIngredients.value.join('、')}。`]
-  if (selectedTools.value.length) {
-    parts.push(`可用厨具：${selectedTools.value.join('、')}。`)
-  }
-  parts.push('请基于这些现有食材，推荐能做的菜。')
-  agentHandoff.stage(parts.join(''))
-  void router.push('/admin/agent')
-}
 </script>
 
 <template>
@@ -187,7 +200,8 @@ function sendIngredientsToAgent() {
     </header>
 
     <div class="allergy-notice">
-      ⚠️ 本页面展示原版菜谱，未自动适配家庭成员过敏原、忌口，如需个性化方案请点击按钮交给智能配餐Agent处理。
+      ⚠️
+      本页面展示原版菜谱，未自动适配家庭成员过敏原、忌口，如需个性化方案请点击按钮交给智能配餐Agent处理。
     </div>
 
     <nav class="cookbook-tabs">
@@ -236,13 +250,23 @@ function sendIngredientsToAgent() {
           </div>
 
           <div class="filter-group">
-            <button type="button" class="filter-title toggle" @click="openSections.difficulty = !openSections.difficulty">
+            <button
+              type="button"
+              class="filter-title toggle"
+              @click="openSections.difficulty = !openSections.difficulty"
+            >
               难度筛选
               <el-icon :class="{ open: openSections.difficulty }"><arrow-down /></el-icon>
             </button>
             <div v-show="openSections.difficulty" class="filter-content">
               <el-checkbox-group v-model="difficulties" class="inline-checks">
-                <el-checkbox v-for="item in DIFFICULTY_OPTIONS" :key="item" :value="item" border size="small">
+                <el-checkbox
+                  v-for="item in DIFFICULTY_OPTIONS"
+                  :key="item"
+                  :value="item"
+                  border
+                  size="small"
+                >
                   {{ item }}
                 </el-checkbox>
               </el-checkbox-group>
@@ -250,12 +274,22 @@ function sendIngredientsToAgent() {
           </div>
 
           <div class="filter-group">
-            <button type="button" class="filter-title toggle" @click="openSections.heat = !openSections.heat">
+            <button
+              type="button"
+              class="filter-title toggle"
+              @click="openSections.heat = !openSections.heat"
+            >
               热量区间
               <el-icon :class="{ open: openSections.heat }"><arrow-down /></el-icon>
             </button>
             <div v-show="openSections.heat" class="filter-content">
-              <el-slider v-model="heatRange" range :min="heatSliderBounds[0]" :max="heatSliderBounds[1]" :step="10" />
+              <el-slider
+                v-model="heatRange"
+                range
+                :min="heatSliderBounds[0]"
+                :max="heatSliderBounds[1]"
+                :step="10"
+              />
               <p class="heat-value">
                 {{ heatIsFullRange ? '热量不限' : `约 ${heatRange[0]} ~ ${heatRange[1]} kcal` }}
               </p>
@@ -266,7 +300,12 @@ function sendIngredientsToAgent() {
             <div class="filter-title">排序方式</div>
             <div class="filter-content">
               <el-select v-model="sort" size="small" aria-label="排序方式" style="width: 100%">
-                <el-option v-for="option in SORT_OPTIONS" :key="option.key" :label="option.label" :value="option.key" />
+                <el-option
+                  v-for="option in SORT_OPTIONS"
+                  :key="option.key"
+                  :label="option.label"
+                  :value="option.key"
+                />
               </el-select>
             </div>
           </div>
@@ -289,7 +328,13 @@ function sendIngredientsToAgent() {
           </div>
           <div class="result-scroll">
             <div v-if="tab1Paged.length" class="card-grid">
-              <RecipeCard v-for="recipe in tab1Paged" :key="recipe.id" :recipe="recipe" @agent="sendRecipeToAgent" @open="openRecipeDetail" />
+              <RecipeCard
+                v-for="recipe in tab1Paged"
+                :key="recipe.id"
+                :recipe="recipe"
+                @agent="sendRecipeToAgent"
+                @open="openRecipeDetail"
+              />
             </div>
             <div v-else class="state-block">🍳 没有找到匹配的菜谱,试试减少筛选条件或换个关键词</div>
           </div>
@@ -312,7 +357,13 @@ function sendIngredientsToAgent() {
           <div class="pick-section" v-for="group in INGREDIENT_GROUPS" :key="group.label">
             <div class="pick-title">{{ group.label }}</div>
             <el-checkbox-group v-model="selectedIngredients" class="inline-checks">
-              <el-checkbox v-for="item in group.items" :key="item" :value="item" border size="small">
+              <el-checkbox
+                v-for="item in group.items"
+                :key="item"
+                :value="item"
+                border
+                size="small"
+              >
                 {{ item }}
               </el-checkbox>
             </el-checkbox-group>
@@ -321,11 +372,19 @@ function sendIngredientsToAgent() {
           <div class="pick-section">
             <div class="pick-title">厨具</div>
             <el-checkbox-group v-model="selectedTools" class="inline-checks">
-              <el-checkbox v-for="tool in TOOL_OPTIONS" :key="tool" :value="tool" border size="small">
+              <el-checkbox
+                v-for="tool in TOOL_OPTIONS"
+                :key="tool"
+                :value="tool"
+                border
+                size="small"
+              >
                 {{ tool }}
               </el-checkbox>
             </el-checkbox-group>
-            <p class="pick-hint">提示:{{ BIG_POT_HINT }};厨具不参与本地筛选,仅随食材一并告诉 Agent。</p>
+            <p class="pick-hint">
+              提示:{{ BIG_POT_HINT }};厨具不参与本地筛选,仅随食材一并告诉 Agent。
+            </p>
           </div>
 
           <div class="pick-section">
@@ -353,10 +412,18 @@ function sendIngredientsToAgent() {
               ,匹配到 <strong>{{ tab2Matched.length }}</strong> 道菜
             </div>
             <div class="pick-buttons">
-              <el-button size="small" :disabled="!selectedIngredients.length && !selectedTools.length" @click="clearTab2Selection">
+              <el-button
+                size="small"
+                :disabled="!selectedIngredients.length && !selectedTools.length"
+                @click="clearTab2Selection"
+              >
                 清空勾选
               </el-button>
-              <el-button type="primary" :disabled="!selectedIngredients.length" @click="sendIngredientsToAgent">
+              <el-button
+                type="primary"
+                :disabled="!selectedIngredients.length"
+                @click="sendIngredientsToAgent"
+              >
                 将选中食材传给Agent
               </el-button>
             </div>
@@ -366,7 +433,13 @@ function sendIngredientsToAgent() {
         <div class="result-area">
           <div class="result-scroll">
             <div v-if="tab2Paged.length" class="card-grid">
-              <RecipeCard v-for="recipe in tab2Paged" :key="recipe.id" :recipe="recipe" @agent="sendRecipeToAgent" @open="openRecipeDetail" />
+              <RecipeCard
+                v-for="recipe in tab2Paged"
+                :key="recipe.id"
+                :recipe="recipe"
+                @agent="sendRecipeToAgent"
+                @open="openRecipeDetail"
+              />
             </div>
             <div v-else class="state-block">🍳 没有匹配的菜谱,多勾几种食材或换成模糊匹配试试</div>
           </div>
@@ -416,10 +489,27 @@ function sendIngredientsToAgent() {
   padding: 0;
   flex-shrink: 0;
 }
-.page-hero .eyebrow { display: inline-block; }
-.page-hero h2 { margin: 3px 0 4px; font-family: Georgia, 'Songti SC', serif; font-size: 34px; line-height: 1.1; }
-.page-hero p { margin: 4px 0 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
-.data-note { color: var(--muted); font-size: 13px; white-space: nowrap; padding-bottom: 3px; }
+.page-hero .eyebrow {
+  display: inline-block;
+}
+.page-hero h2 {
+  margin: 3px 0 4px;
+  font-family: Georgia, 'Songti SC', serif;
+  font-size: 34px;
+  line-height: 1.1;
+}
+.page-hero p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.data-note {
+  color: var(--muted);
+  font-size: 13px;
+  white-space: nowrap;
+  padding-bottom: 3px;
+}
 
 .allergy-notice {
   flex-shrink: 0;
@@ -433,7 +523,12 @@ function sendIngredientsToAgent() {
   line-height: 1.6;
 }
 
-.cookbook-tabs { display: flex; flex-shrink: 0; gap: 4px; margin: 8px 0 0; }
+.cookbook-tabs {
+  display: flex;
+  flex-shrink: 0;
+  gap: 4px;
+  margin: 8px 0 0;
+}
 .cookbook-tabs button {
   min-width: 112px;
   padding: 7px 16px;
@@ -494,8 +589,15 @@ function sendIngredientsToAgent() {
   box-shadow: 0 4px 18px rgba(33, 60, 54, 0.04);
   overflow: visible;
 }
-.filter-group { min-width: 0; padding-bottom: 6px; border-bottom: 1px solid #eef0ec; }
-.filter-group:last-of-type { padding-bottom: 0; border-bottom: 0; }
+.filter-group {
+  min-width: 0;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #eef0ec;
+}
+.filter-group:last-of-type {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
 .filter-title {
   width: 100%;
   display: flex;
@@ -508,11 +610,23 @@ function sendIngredientsToAgent() {
   font-weight: 700;
   color: var(--ink);
 }
-.filter-title .el-icon { transition: transform 0.18s ease; color: var(--muted); }
-.filter-title .el-icon.open { transform: rotate(180deg); }
-.filter-content { margin-top: 4px; }
+.filter-title .el-icon {
+  transition: transform 0.18s ease;
+  color: var(--muted);
+}
+.filter-title .el-icon.open {
+  transform: rotate(180deg);
+}
+.filter-content {
+  margin-top: 4px;
+}
 
-.category-list { display: grid; grid-template-columns: 1fr; gap: 2px; margin-top: 4px; }
+.category-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2px;
+  margin-top: 4px;
+}
 .category-list button {
   display: flex;
   justify-content: space-between;
@@ -525,20 +639,59 @@ function sendIngredientsToAgent() {
   font-size: 13px;
   transition: 0.14s ease;
 }
-.category-list button:hover { background: #f1f5f1; }
-.category-list button.active { background: var(--green); color: #fff; font-weight: 650; }
-.category-list small { color: inherit; opacity: 0.62; font-variant-numeric: tabular-nums; }
+.category-list button:hover {
+  background: #f1f5f1;
+}
+.category-list button.active {
+  background: var(--green);
+  color: #fff;
+  font-weight: 650;
+}
+.category-list small {
+  color: inherit;
+  opacity: 0.62;
+  font-variant-numeric: tabular-nums;
+}
 
-.inline-checks { display: flex; flex-wrap: wrap; gap: 4px; }
-.inline-checks :deep(.el-checkbox) { margin-right: 0; --el-checkbox-checked-bg-color: var(--green); --el-checkbox-checked-input-border-color: var(--green); }
-.inline-checks :deep(.el-checkbox.el-checkbox--border) { padding: 2px 6px; border-radius: 6px; height: 24px; }
-.inline-checks :deep(.el-checkbox__label) { font-size: 11px; padding-left: 4px; }
-.filter-panel .inline-checks { flex-wrap: nowrap; }
-.filter-panel :deep(.el-slider) { height: 24px; margin: 0 5px; width: calc(100% - 10px); }
+.inline-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.inline-checks :deep(.el-checkbox) {
+  margin-right: 0;
+  --el-checkbox-checked-bg-color: var(--green);
+  --el-checkbox-checked-input-border-color: var(--green);
+}
+.inline-checks :deep(.el-checkbox.el-checkbox--border) {
+  padding: 2px 6px;
+  border-radius: 6px;
+  height: 24px;
+}
+.inline-checks :deep(.el-checkbox__label) {
+  font-size: 11px;
+  padding-left: 4px;
+}
+.filter-panel .inline-checks {
+  flex-wrap: nowrap;
+}
+.filter-panel :deep(.el-slider) {
+  height: 24px;
+  margin: 0 5px;
+  width: calc(100% - 10px);
+}
 
-.heat-value { margin: 2px 0 0; color: var(--muted); font-size: 11px; text-align: center; }
+.heat-value {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  text-align: center;
+}
 
-.sort-list { display: grid; gap: 4px; }
+.sort-list {
+  display: grid;
+  gap: 4px;
+}
 .sort-list button {
   padding: 7px 10px;
   border: 1px solid transparent;
@@ -549,11 +702,24 @@ function sendIngredientsToAgent() {
   font-size: 13px;
   transition: 0.14s ease;
 }
-.sort-list button:hover { background: #f1f5f1; }
-.sort-list button.active { background: #e7f2ee; border-color: var(--green-2); color: var(--green); font-weight: 650; }
+.sort-list button:hover {
+  background: #f1f5f1;
+}
+.sort-list button.active {
+  background: #e7f2ee;
+  border-color: var(--green-2);
+  color: var(--green);
+  font-weight: 650;
+}
 
-.reset-btn { width: 100%; align-self: end; }
-.filter-panel .reset-btn { min-height: 28px; height: 28px; }
+.reset-btn {
+  width: 100%;
+  align-self: end;
+}
+.filter-panel .reset-btn {
+  min-height: 28px;
+  height: 28px;
+}
 
 /* ===== 结果区 ===== */
 .result-area {
@@ -602,22 +768,51 @@ function sendIngredientsToAgent() {
   background: transparent;
   border-top: 0;
 }
-.search-input { width: min(360px, 58%); }
-.result-count { color: var(--muted); font-size: 13px; }
-.result-bar--summary { justify-content: space-between; }
-.result-heading { color: var(--ink); font-size: 14px; }
+.search-input {
+  width: min(360px, 58%);
+}
+.result-count {
+  color: var(--muted);
+  font-size: 13px;
+}
+.result-bar--summary {
+  justify-content: space-between;
+}
+.result-heading {
+  color: var(--ink);
+  font-size: 14px;
+}
 .card-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 8px;
   align-items: stretch;
 }
-.card-grid :deep(.recipe-card) { padding: 9px; gap: 4px; }
-.card-grid :deep(.card-topline h3) { font-size: 14px; }
-.card-grid :deep(.card-ingredients) { font-size: 12px; line-height: 1.5; }
-.card-grid :deep(.card-actions) { gap: 4px; padding-top: 0; }
-.card-grid :deep(.card-actions .el-button) { margin-left: 0; min-height: 28px; height: 28px; font-size: 11px; padding: 0 6px; }
-.pager { justify-content: flex-end; }
+.card-grid :deep(.recipe-card) {
+  padding: 9px;
+  gap: 4px;
+}
+.card-grid :deep(.card-topline h3) {
+  font-size: 14px;
+}
+.card-grid :deep(.card-ingredients) {
+  font-size: 12px;
+  line-height: 1.5;
+}
+.card-grid :deep(.card-actions) {
+  gap: 4px;
+  padding-top: 0;
+}
+.card-grid :deep(.card-actions .el-button) {
+  margin-left: 0;
+  min-height: 28px;
+  height: 28px;
+  font-size: 11px;
+  padding: 0 6px;
+}
+.pager {
+  justify-content: flex-end;
+}
 
 .state-block {
   padding: 46px 20px;
@@ -627,7 +822,10 @@ function sendIngredientsToAgent() {
   text-align: center;
   font-size: 13.5px;
 }
-.state-block.error { color: #a43c36; border-color: #dfb2ae; }
+.state-block.error {
+  color: #a43c36;
+  border-color: #dfb2ae;
+}
 
 /* ===== Tab2:食材/厨具/模式面板 ===== */
 .tab2-layout {
@@ -654,14 +852,38 @@ function sendIngredientsToAgent() {
   border-radius: 14px;
   box-shadow: 0 4px 18px rgba(33, 60, 54, 0.04);
 }
-.tab2-layout > .result-area { grid-column: 1; grid-row: 2; }
-.tab2-layout > .result-footer { grid-column: 1; grid-row: 3; }
-.pick-section { min-width: 0; }
-.pick-section + .pick-section { padding-top: 0; border-top: 0; }
-.pick-title { font-size: 12px; font-weight: 700; margin-bottom: 4px; }
-.pick-hint { margin: 4px 0 0; color: var(--muted); font-size: 10.5px; line-height: 1.3; }
+.tab2-layout > .result-area {
+  grid-column: 1;
+  grid-row: 2;
+}
+.tab2-layout > .result-footer {
+  grid-column: 1;
+  grid-row: 3;
+}
+.pick-section {
+  min-width: 0;
+}
+.pick-section + .pick-section {
+  padding-top: 0;
+  border-top: 0;
+}
+.pick-title {
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.pick-hint {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 10.5px;
+  line-height: 1.3;
+}
 
-.mode-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; }
+.mode-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+}
 .mode-card {
   position: relative;
   display: grid;
@@ -673,15 +895,28 @@ function sendIngredientsToAgent() {
   text-align: left;
   transition: 0.16s ease;
 }
-.mode-card:hover { border-color: var(--green-2); }
+.mode-card:hover {
+  border-color: var(--green-2);
+}
 .mode-card.active {
   border-color: var(--green);
   background: #f0f7f3;
   box-shadow: 0 6px 16px rgba(15, 76, 69, 0.08);
 }
-.mode-card strong { font-size: 11px; color: var(--ink); padding-right: 12px; }
-.mode-card.active strong { color: var(--green); }
-.mode-card p { margin: 0; color: var(--muted); font-size: 10.5px; line-height: 1.3; }
+.mode-card strong {
+  font-size: 11px;
+  color: var(--ink);
+  padding-right: 12px;
+}
+.mode-card.active strong {
+  color: var(--green);
+}
+.mode-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 10.5px;
+  line-height: 1.3;
+}
 .mode-dot {
   position: absolute;
   top: 6px;
@@ -705,11 +940,30 @@ function sendIngredientsToAgent() {
   gap: 8px;
   padding-top: 0;
 }
-.pick-summary { color: var(--muted); font-size: 11px; }
-.pick-summary strong { color: var(--green); font-size: 15px; }
-.pick-buttons { display: flex; flex-wrap: wrap; gap: 6px; }
-.pick-buttons :deep(.el-button) { flex: 1; margin-left: 0; height: 28px; min-height: 28px; font-size: 11px; padding: 0 6px; }
-.pick-buttons :deep(.el-button--primary) { flex: 2; }
+.pick-summary {
+  color: var(--muted);
+  font-size: 11px;
+}
+.pick-summary strong {
+  color: var(--green);
+  font-size: 15px;
+}
+.pick-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.pick-buttons :deep(.el-button) {
+  flex: 1;
+  margin-left: 0;
+  height: 28px;
+  min-height: 28px;
+  font-size: 11px;
+  padding: 0 6px;
+}
+.pick-buttons :deep(.el-button--primary) {
+  flex: 2;
+}
 
 .filter-panel,
 .pick-panel,
@@ -720,43 +974,93 @@ function sendIngredientsToAgent() {
 }
 .filter-panel::-webkit-scrollbar,
 .pick-panel::-webkit-scrollbar,
-.result-scroll::-webkit-scrollbar { width: 7px; }
+.result-scroll::-webkit-scrollbar {
+  width: 7px;
+}
 .filter-panel::-webkit-scrollbar-thumb,
 .pick-panel::-webkit-scrollbar-thumb,
-.result-scroll::-webkit-scrollbar-thumb { background: #9ab1ab; border-radius: 999px; }
+.result-scroll::-webkit-scrollbar-thumb {
+  background: #9ab1ab;
+  border-radius: 999px;
+}
 
 @media (max-width: 1300px) {
-  .cookbook-page { max-width: none; }
-  .card-grid { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+  .cookbook-page {
+    max-width: none;
+  }
+  .card-grid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  }
 }
 
 @media (max-width: 760px) {
   .tab-layout,
-  .tab2-layout { grid-template-columns: 1fr; }
-  .cookbook-body { overflow-y: auto; }
+  .tab2-layout {
+    grid-template-columns: 1fr;
+  }
+  .cookbook-body {
+    overflow-y: auto;
+  }
   .tab-layout,
-  .tab2-layout { height: auto; }
+  .tab2-layout {
+    height: auto;
+  }
   .filter-panel,
   .pick-panel,
-  .result-area { grid-row: auto; grid-column: 1; }
+  .result-area {
+    grid-row: auto;
+    grid-column: 1;
+  }
   .filter-panel,
-  .pick-panel { grid-template-columns: 1fr; max-height: none; height: auto; overflow: visible; }
+  .pick-panel {
+    grid-template-columns: 1fr;
+    max-height: none;
+    height: auto;
+    overflow: visible;
+  }
   .result-area,
-  .result-area--with-toolbar { display: flex; flex-direction: column; height: auto; overflow: visible; }
-  .result-scroll { overflow: visible; padding-right: 0; }
+  .result-area--with-toolbar {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    overflow: visible;
+  }
+  .result-scroll {
+    overflow: visible;
+    padding-right: 0;
+  }
   .result-bar,
-  .result-footer { background: transparent; }
+  .result-footer {
+    background: transparent;
+  }
   .result-footer--external {
     grid-column: 1;
     grid-row: auto;
     justify-content: center;
   }
-  .page-hero { align-items: flex-start; flex-direction: column; gap: 8px; }
-  .data-note { padding-bottom: 0; }
-  .search-input { width: min(100%, 420px); }
-  .mode-cards { grid-template-columns: 1fr; }
-  .pick-actions { flex-direction: column; align-items: stretch; }
-  .pick-buttons { display: flex; }
-  .pick-buttons :deep(.el-button) { width: auto; }
+  .page-hero {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .data-note {
+    padding-bottom: 0;
+  }
+  .search-input {
+    width: min(100%, 420px);
+  }
+  .mode-cards {
+    grid-template-columns: 1fr;
+  }
+  .pick-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .pick-buttons {
+    display: flex;
+  }
+  .pick-buttons :deep(.el-button) {
+    width: auto;
+  }
 }
 </style>

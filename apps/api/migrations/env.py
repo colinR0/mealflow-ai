@@ -1,6 +1,4 @@
 from logging.config import fileConfig
-from pathlib import Path
-
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
@@ -13,9 +11,7 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 database_url = get_settings().database_url
-if database_url.startswith("sqlite:///./"):
-    Path(database_url.removeprefix("sqlite:///./")).parent.mkdir(parents=True, exist_ok=True)
-config.set_main_option("sqlalchemy.url", database_url)
+config.set_main_option("sqlalchemy.url", database_url.replace("%", "%%"))
 target_metadata = Base.metadata
 
 

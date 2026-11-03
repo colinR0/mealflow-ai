@@ -9,6 +9,7 @@ import ProcurementView from '../views/admin/ProcurementView.vue'
 import LazyCookbookView from '../views/admin/LazyCookbookView.vue'
 import CodePracticeView from '../views/admin/CodePracticeView.vue'
 import LoginView from '../views/LoginView.vue'
+import DurableWorkbench from '../views/admin/DurableWorkbench.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -21,6 +22,7 @@ const router = createRouter({
       meta: { requiresAuth: true },
       children: [
         { path: 'agent', component: ConversationWorkbench },
+        { path: 'durable-agent', component: DurableWorkbench },
         { path: 'members', component: MembersView },
         { path: 'inventory', component: InventoryView },
         { path: 'cooking-history', component: CookingHistoryView },

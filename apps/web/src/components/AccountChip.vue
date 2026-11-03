@@ -1,14 +1,20 @@
-<script setup lang="ts">
+<script lang="ts">
+import { defineComponent } from 'vue'
 import { ArrowDown } from '@element-plus/icons-vue'
 
-const displayName = 'admin'
-const initial = 'A'
-
-const emit = defineEmits<{ command: [string] }>()
-
-function onCommand(command: string) {
-  emit('command', command)
-}
+export default defineComponent({
+  name: 'AccountChip',
+  components: { ArrowDown },
+  emits: ['command'],
+  data() {
+    return { displayName: 'admin', initial: 'A' }
+  },
+  methods: {
+    onCommand(command: string) {
+      this.$emit('command', command)
+    },
+  },
+})
 </script>
 
 <template>
@@ -38,7 +44,9 @@ function onCommand(command: string) {
   background: #fff;
   border-radius: 999px;
   cursor: pointer;
-  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  transition:
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
   outline: none;
 }
 .user-chip:hover {
@@ -50,6 +58,12 @@ function onCommand(command: string) {
   color: #fff;
   font-weight: 700;
 }
-.user-name { font-size: 13.5px; color: var(--ink, #1d2b28); }
-.user-caret { font-size: 12px; color: #8a9a94; }
+.user-name {
+  font-size: 13.5px;
+  color: var(--ink, #1d2b28);
+}
+.user-caret {
+  font-size: 12px;
+  color: #8a9a94;
+}
 </style>

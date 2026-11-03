@@ -1,38 +1,46 @@
-<script setup lang="ts">
-import { computed } from 'vue'
+<script lang="ts">
+import { defineComponent } from 'vue'
 import { MagicStick, VideoPlay } from '@element-plus/icons-vue'
 import type { Recipe } from '../types/recipe'
 
-defineOptions({ name: 'RecipeDetailDrawer' })
-
-const props = defineProps<{ recipe: Recipe | null; modelValue: boolean }>()
-const emit = defineEmits<{
-  (e: 'update:modelValue', value: boolean): void
-  (e: 'agent', recipe: Recipe): void
-}>()
-
-const visible = computed({
-  get: () => props.modelValue,
-  set: (value: boolean) => emit('update:modelValue', value),
+export default defineComponent({
+  name: 'RecipeDetailDrawer',
+  props: {
+    recipe: { type: Object as () => Recipe | null, default: null },
+    modelValue: { type: Boolean, default: false },
+  },
+  emits: ['update:modelValue', 'agent'],
+  data() {
+    return { MagicStick, VideoPlay }
+  },
+  computed: {
+    visible: {
+      get(): boolean {
+        return this.modelValue
+      },
+      set(value: boolean) {
+        this.$emit('update:modelValue', value)
+      },
+    },
+    playerSrc(): string {
+      return this.recipe?.bvid
+        ? `https://player.bilibili.com/player.html?bvid=${this.recipe.bvid}&autoplay=0&high_quality=1`
+        : ''
+    },
+    difficultyClass(): string {
+      return (
+        ({ 简单: 'easy', 中等: 'medium', 困难: 'hard' } as Record<string, string>)[
+          this.recipe?.difficulty ?? ''
+        ] ?? 'easy'
+      )
+    },
+  },
+  methods: {
+    openVideo() {
+      if (this.recipe?.videoUrl) window.open(this.recipe.videoUrl, '_blank', 'noopener')
+    },
+  },
 })
-
-// iframe 仅在抽屉打开且有 BV 号时渲染(destroy-on-close 会随关闭销毁)
-const playerSrc = computed(() =>
-  props.recipe?.bvid
-    ? `https://player.bilibili.com/player.html?bvid=${props.recipe.bvid}&autoplay=0&high_quality=1`
-    : '',
-)
-
-const difficultyClass = computed(() => {
-  const map: Record<string, string> = { 简单: 'easy', 中等: 'medium', 困难: 'hard' }
-  return map[props.recipe?.difficulty ?? ''] ?? 'easy'
-})
-
-function openVideo() {
-  if (props.recipe?.videoUrl) {
-    window.open(props.recipe.videoUrl, '_blank', 'noopener')
-  }
-}
 </script>
 
 <template>
@@ -72,12 +80,14 @@ function openVideo() {
       <section class="detail-section">
         <h3>食材</h3>
         <div class="chip-row">
-          <span v-for="item in recipe.ingredients" :key="item" class="ingredient-chip">{{ item }}</span>
+          <span v-for="item in recipe.ingredients" :key="item" class="ingredient-chip">{{
+            item
+          }}</span>
           <span v-if="!recipe.ingredients.length" class="empty-note">—</span>
         </div>
         <div v-if="recipe.tools.length" class="tools-row">
           <small>厨具</small>
-          <span>{{ recipe.tools.join("、") }}</span>
+          <span>{{ recipe.tools.join('、') }}</span>
         </div>
       </section>
 
@@ -116,12 +126,7 @@ function openVideo() {
         <el-button :disabled="!recipe?.videoUrl" :icon="VideoPlay" @click="openVideo">
           查看原版视频
         </el-button>
-        <el-button
-          v-if="recipe"
-          type="primary"
-          :icon="MagicStick"
-          @click="emit('agent', recipe)"
-        >
+        <el-button v-if="recipe" type="primary" :icon="MagicStick" @click="$emit('agent', recipe)">
           ✦ 交给Agent生成定制菜谱
         </el-button>
       </div>
@@ -192,9 +197,18 @@ function openVideo() {
   font-size: 12px;
   font-weight: 650;
 }
-.difficulty-chip.easy { background: #e7f2ee; color: #0f6b4f; }
-.difficulty-chip.medium { background: #fdf3e0; color: #a2701d; }
-.difficulty-chip.hard { background: #fdece7; color: #a4442c; }
+.difficulty-chip.easy {
+  background: #e7f2ee;
+  color: #0f6b4f;
+}
+.difficulty-chip.medium {
+  background: #fdf3e0;
+  color: #a2701d;
+}
+.difficulty-chip.hard {
+  background: #fdece7;
+  color: #a4442c;
+}
 .heat-chip,
 .pop-chip {
   color: var(--muted);
