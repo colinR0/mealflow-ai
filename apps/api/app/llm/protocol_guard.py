@@ -50,7 +50,7 @@ _NAME = re.compile(r"""name\s*=\s*["']([^"']+)["']""", re.IGNORECASE)
 
 
 def contains_protocol_leak(text: str) -> bool:
-    return bool(_LEAK.search(text or ""))
+    return bool(_LEAK.search(text))
 
 
 def normalize_model_message(
@@ -97,7 +97,7 @@ def _alias(name: str) -> str:
 def _arguments_ok(name: str, arguments: str) -> bool:
     try:
         data = json.loads(arguments or "{}")
-    except json.JSONDecodeError:
+    except json.JSONDecodeError:  # Reject malformed model arguments before tool execution.
         return False
     if not isinstance(data, dict):
         return False
@@ -109,7 +109,7 @@ def _arguments_ok(name: str, arguments: str) -> bool:
 
 def _parse_dsml(text: str) -> list[dict[str, Any]]:
     calls: list[dict[str, Any]] = []
-    for index, (attrs, body) in enumerate(_INVOKE.findall(text or "")):
+    for index, (attrs, body) in enumerate(_INVOKE.findall(text)):
         found = _NAME.search(attrs)
         if not found:
             continue
@@ -132,7 +132,7 @@ def _params(body: str) -> dict[str, Any]:
         return {}
     try:
         data = json.loads(match.group(0))
-    except json.JSONDecodeError:
+    except json.JSONDecodeError:  # Unparseable embedded parameters cannot become tool arguments.
         return {}
     return data if isinstance(data, dict) else {}
 
@@ -150,7 +150,7 @@ def _coerce_param(raw: str) -> Any:
 
 
 def _parse_json_envelope(text: str) -> list[dict[str, Any]]:
-    if "tool_calls" not in (text or ""):
+    if "tool_calls" not in text:
         return []
     start = text.find("{")
     end = text.rfind("}")
@@ -158,7 +158,7 @@ def _parse_json_envelope(text: str) -> list[dict[str, Any]]:
         return []
     try:
         data = json.loads(text[start : end + 1])
-    except json.JSONDecodeError:
+    except json.JSONDecodeError:  # Ignore malformed model envelopes rather than executing them.
         return []
     if not isinstance(data, dict):
         return []

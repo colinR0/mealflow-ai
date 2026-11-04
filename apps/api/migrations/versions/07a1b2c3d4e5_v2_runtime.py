@@ -252,7 +252,6 @@ def upgrade():
         ["active"],
         unique=True,
         postgresql_where=sa.text("active = true"),
-        sqlite_where=sa.text("active = 1"),
     )
     table(
         "knowledge_documents",

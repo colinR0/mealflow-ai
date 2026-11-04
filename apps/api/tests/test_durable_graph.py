@@ -70,6 +70,7 @@ def test_graph_real_tools_and_confirmation_boundary():
     worker.execute(snapshot.job_id, "graph-worker")
     run = runtime.accessible_run(actor[0], response["run_id"])
     assert run.status == "waiting_confirmation"
+    assert "尚未保存" in run.result["text"]
     assert run.state["budgets"] == {"tool_calls": 2, "model_calls": 3}
     assert "execute_tool" in run.state["trace"]
     with SessionLocal() as session:

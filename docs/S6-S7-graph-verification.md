@@ -8,8 +8,7 @@ LangGraph 路由、引用验证和持久化，不再调用 `v2_runtime.request_s
 
 - JSON-only StateGraph：load_authorized_context → decide ↔ execute_tool → validate_answer。
 - PostgreSQL 使用已安装 `langgraph-checkpoint-postgres` 的 `PostgresSaver`，实际 setup、
-  put、put_writes、get_state、invoke 恢复；thread_id 为 run_id。SQLite 兼容路径为内存 Saver，
-  不宣称具备跨进程图恢复。
+  put、put_writes、get_state、invoke 恢复；thread_id 为 run_id。
 - PG checkpoint 写入、工具预留/完成、模型调用预留均检查当前 worker、attempt、租约、
   run 状态、取消、家庭权限和期限。PG Saver 写入期间持有短期 job/run guard，防旧 attempt
   污染新检查点；外部 provider/tool 执行不持数据库事务。

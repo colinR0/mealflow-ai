@@ -60,7 +60,7 @@ def install_native_schema(connection: Connection, dimensions: int = 64) -> None:
         ]
         for statement in statements:
             connection.exec_driver_sql(statement)
-    except Exception as exc:
+    except Exception as exc:  # Translate extension setup failure into a deployment error.
         raise RuntimeError(
             "pgvector is unavailable; install the PostgreSQL vector extension"
         ) from exc

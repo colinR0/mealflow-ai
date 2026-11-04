@@ -18,7 +18,7 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     # 早期开发环境通过 metadata.create_all 已经拥有这些列，但 alembic_version
-    # 仍停留在上一版。SQLite 不支持重复 ADD COLUMN，因此迁移必须可安全补跑。
+    # 仍停留在上一版，因此迁移必须检查列是否存在以便安全补跑。
     columns = {column["name"] for column in sa.inspect(op.get_bind()).get_columns("cooking_records")}
     if "image" not in columns:
         op.add_column("cooking_records", sa.Column("image", sa.Text(), nullable=False, server_default=""))

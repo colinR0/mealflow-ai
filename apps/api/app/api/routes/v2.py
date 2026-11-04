@@ -1,10 +1,10 @@
-"""Authenticated v2 demo boundary; legacy v1 remains development-only."""
+"""Authenticated API boundary for browser and native clients."""
 
 import asyncio
 import json
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, Response
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select
@@ -12,7 +12,16 @@ from sqlalchemy import select
 from app.core.config import get_settings
 from app.db.session import SessionLocal
 from app.db.v2_models import AgentEvent, AuthSession, InventoryLot, ShoppingItem
+from app.services import turn_history
 from app.services import v2_runtime as runtime
+from app.services.household_profiles import (
+    ProfileCreate,
+    ProfileUpdate,
+    create_archive,
+    delete_archive,
+    list_archives,
+    update_archive,
+)
 
 router = APIRouter(prefix="/api/v2", tags=["v2"])
 
@@ -22,16 +31,12 @@ class Input(BaseModel):
 
 
 class Login(Input):
-    email: str = Field(min_length=3, max_length=160)
+    phone: str = Field(pattern=r"^1[3-9][0-9]{9}$")
     password: str = Field(min_length=1, max_length=256)
 
 
 class Name(Input):
     name: str = Field(min_length=1, max_length=80)
-
-
-class Profile(Name):
-    linked_user_id: str | None = None
 
 
 class Turn(Input):
@@ -57,17 +62,29 @@ def check_origin(request: Request) -> None:
 
 
 def identity(request: Request) -> tuple[str, str]:
-    user_id, session_id = runtime.authenticate(request.cookies.get("mealflow_session", ""))
+    authorization = request.headers.get("authorization", "")
+    bearer = authorization[7:].strip() if authorization.lower().startswith("bearer ") else ""
+    user_id, session_id = runtime.authenticate(
+        bearer or request.cookies.get("mealflow_session", "")
+    )
+    native_bearer = bool(bearer)
     if request.method not in {"GET", "HEAD"}:
-        check_origin(request)
-        with SessionLocal() as session:
-            record = session.get(AuthSession, session_id)
+        if request.headers.get("origin"):
+            check_origin(request)
+        if native_bearer:
+            with SessionLocal() as session:
+                record = session.get(AuthSession, session_id)
+                if not record.native_client:
+                    raise HTTPException(403, detail={"code": "NATIVE_SESSION_REQUIRED"})
+        else:
             import secrets
 
-            if not secrets.compare_digest(
-                record.csrf_hash, runtime.digest(request.headers.get("x-csrf-token", ""))
-            ):
-                raise HTTPException(403, detail={"code": "CSRF_REJECTED"})
+            with SessionLocal() as session:
+                record = session.get(AuthSession, session_id)
+                if not secrets.compare_digest(
+                    record.csrf_hash, runtime.digest(request.headers.get("x-csrf-token", ""))
+                ):
+                    raise HTTPException(403, detail={"code": "CSRF_REJECTED"})
     return user_id, session_id
 
 
@@ -76,17 +93,24 @@ Identity = Annotated[tuple[str, str], Depends(identity)]
 
 @router.post("/auth/login")
 def login(body: Login, request: Request, response: Response):
-    check_origin(request)
-    token, csrf, user_id = runtime.login(body.email, body.password)
+    if request.headers.get("origin"):
+        check_origin(request)
+    native_client = request.headers.get("x-mealflow-client") == "native-app"
+    token, csrf, user_id = runtime.login(
+        body.phone, body.password, native_client=native_client
+    )
     response.set_cookie(
         "mealflow_session",
         token,
         httponly=True,
         samesite="lax",
-        secure=get_settings().app_env != "development",
+        secure=get_settings().app_env != "development" and request.url.scheme == "https",
         max_age=604800,
     )
-    return {"user_id": user_id, "csrf_token": csrf}
+    result = {"user_id": user_id, "csrf_token": csrf}
+    if native_client:
+        result["access_token"] = token
+    return result
 
 
 @router.get("/auth/me")
@@ -119,7 +143,7 @@ def invite(household_id: str, actor: Identity):
 
 @router.get("/households/{household_id}/profiles")
 def profiles(household_id: str, actor: Identity):
-    return runtime.list_profiles(actor[0], household_id)
+    return list_archives(actor[0], household_id)
 
 
 @router.post("/invites/accept")
@@ -128,8 +152,21 @@ def accept_invite(body: InviteAcceptance, actor: Identity):
 
 
 @router.post("/households/{household_id}/profiles", status_code=201)
-def profile(household_id: str, body: Profile, actor: Identity):
-    return runtime.create_profile(actor[0], household_id, body.name, body.linked_user_id)
+def profile(household_id: str, body: ProfileCreate, actor: Identity):
+    return create_archive(actor[0], household_id, body)
+
+
+@router.patch("/households/{household_id}/profiles/{profile_id}")
+def edit_profile(household_id: str, profile_id: str, body: ProfileUpdate, actor: Identity):
+    return update_archive(actor[0], household_id, profile_id, body)
+
+
+@router.delete("/households/{household_id}/profiles/{profile_id}", status_code=204)
+def remove_profile(
+    household_id: str, profile_id: str, actor: Identity,
+    expected_version: Annotated[int, Query(ge=1)],
+):
+    delete_archive(actor[0], household_id, profile_id, expected_version)
 
 
 @router.get("/households/{household_id}/inventory-lots")
@@ -166,6 +203,27 @@ def procurement(household_id: str, actor: Identity):
                 select(ShoppingItem).where(ShoppingItem.workspace_id == household_id).limit(100)
             )
         ]
+
+
+@router.get("/households/{household_id}/agent/sessions")
+def sessions(
+    household_id: str, actor: Identity,
+    offset: int = Query(default=0, ge=0), limit: int = Query(default=30, ge=1, le=100),
+):
+    return turn_history.list_chats(actor[0], household_id, offset, limit)
+
+
+@router.get("/households/{household_id}/agent/sessions/{session_id}")
+def session_detail(
+    household_id: str, session_id: str, actor: Identity,
+    before: str | None = None, limit: int = Query(default=30, ge=1, le=100),
+):
+    return turn_history.chat_detail(actor[0], household_id, session_id, before, limit)
+
+
+@router.delete("/households/{household_id}/agent/sessions/{session_id}")
+def session_delete(household_id: str, session_id: str, actor: Identity):
+    return turn_history.delete_chat(actor[0], household_id, session_id)
 
 
 @router.post("/agent/turn-runs", status_code=202)
@@ -231,7 +289,7 @@ def events(run_id: str, request: Request, actor: Identity):
         seq = int(seq)
         if scope != run_id or seq < 0 or seq > run.next_seq:
             raise ValueError
-    except ValueError:
+    except ValueError:  # Translate invalid SSE cursor syntax or range into an HTTP input error.
         raise HTTPException(400, detail={"code": "INVALID_EVENT_CURSOR"}) from None
 
     async def stream():
@@ -239,10 +297,16 @@ def events(run_id: str, request: Request, actor: Identity):
         while not await request.is_disconnected():
             # A long-lived stream must not outlive the cookie session that opened it.
             try:
-                current_user, _ = await asyncio.to_thread(
-                    runtime.authenticate, request.cookies.get("mealflow_session", "")
+                authorization = request.headers.get("authorization", "")
+                bearer = (
+                    authorization[7:].strip()
+                    if authorization.lower().startswith("bearer ")
+                    else ""
                 )
-            except HTTPException:
+                current_user, _ = await asyncio.to_thread(
+                    runtime.authenticate, bearer or request.cookies.get("mealflow_session", "")
+                )
+            except HTTPException:  # End the stream when its session is no longer authenticated.
                 break
             if current_user != actor[0]:
                 break

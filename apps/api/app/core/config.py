@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     )
 
     app_env: str = "development"
-    app_name: str = "MealFlow API"
+    app_name: str = "智慧冰箱服务"
     api_v1_prefix: str = "/api/v1"
     database_url: str = (
         "postgresql+psycopg://mealflow@127.0.0.1:5434/mealflow_s7?gssencmode=disable"
@@ -56,9 +56,9 @@ class Settings(BaseSettings):
     @field_validator("database_url", mode="after")
     @classmethod
     def require_postgresql(cls, value: str) -> str:
-        """The application runtime is PostgreSQL-only; SQLite remains a read-only import format."""
+        """Require PostgreSQL for every application database connection."""
         if not value.startswith(("postgresql://", "postgresql+psycopg://")):
-            raise ValueError("DATABASE_URL must use PostgreSQL; SQLite is no longer supported")
+            raise ValueError("DATABASE_URL must use PostgreSQL")
         return value
 
     @field_validator("cors_origins", mode="before")

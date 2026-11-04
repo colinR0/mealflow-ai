@@ -1,25 +1,26 @@
-# Repository Guidelines
+# Repository Instructions
 
-## 项目结构
+## Boundaries
 
-`apps/api/app/` 是 FastAPI 后端，`apps/api/tests/` 是 pytest 测试，数据库迁移位于 `apps/api/migrations/`。Vue 3 前端位于 `apps/web/src/`；种子菜谱、开发脚本和项目文档分别位于 `data/seed/`、`scripts/` 和 `docs/`。
+- `apps/api/` is the FastAPI service, Alembic migrations, and pytest suite. `apps/web/` is the uni-app client (Vue 3 + TypeScript); it is not the old Vite admin website. `data/seed/` holds seed data and `docs/` holds product/technical baselines and handoff notes.
+- The API and all test databases require PostgreSQL. The API checks Alembic head at startup; apply migrations before launching it.
 
-## 开发与验证命令
+## Commands (PowerShell)
 
-使用 Python 3.12/3.13、Node.js 20+ 和 PostgreSQL。应用运行时只支持 PostgreSQL；SQLite 仅作为旧库只读导入格式。统一演示使用 `docker compose -f docker-compose.s7.yml up --build`，数据库映射 `127.0.0.1:5435`、API `8003`、Web `5176`。pytest 前设置 `MEALFLOW_TEST_DATABASE_URL` 指向独立且数据库名以 `_test` 结尾的 PostgreSQL 数据库，例如 `postgresql+psycopg://mealflow@127.0.0.1:5434/mealflow_s7_test?gssencmode=disable`；测试会重建其中的 ORM 表，禁止指向演示或业务库。在 `apps/web/` 执行 `npm ci`、`npm run typecheck` 和 `npm run build`。
+- Install backend/dev dependencies from repo root: `..\.venv\Scripts\python.exe -m pip install -e ".\apps\api[dev]"`.
+- Apply migrations from `apps/api/`: `..\..\.venv\Scripts\python.exe -m alembic upgrade head`.
+- Run API and worker from `apps/api/`: `..\..\.venv\Scripts\python.exe -m uvicorn app.main:app --reload --port 8000` and `..\..\.venv\Scripts\python.exe -m app.worker`.
+- Run backend tests from repo root only after setting `MEALFLOW_TEST_DATABASE_URL` to a disposable PostgreSQL database whose name ends in `_test`; tests drop and recreate its ORM tables. Example: `$env:MEALFLOW_TEST_DATABASE_URL='postgresql+psycopg://mealflow@127.0.0.1:5434/mealflow_s7_test?gssencmode=disable'; ..\.venv\Scripts\python.exe -m pytest apps/api -q`. Never point this variable at a development/demo database.
+- Run backend lint from repo root: `..\.venv\Scripts\python.exe -m ruff check apps/api`.
+- In `apps/web/`, use `npm ci`, `npm run typecheck`, and `npm run build:app-android`. HBuilderX imports `apps/web/`; Android CLI output is `apps/web/dist/build/app`. A signed APK requires HBuilderX packaging or Android SDK/signing setup.
+- Android emulator API default is `http://10.0.2.2:8000`, configured in `apps/web/src/shared/config.ts`; a physical device needs a reachable development-machine LAN address.
+- `docker compose -f docker-compose.s7.yml up --build` starts PostgreSQL, API, and worker only; it does not build or run the uni-app client.
 
-## 代码风格
+## Non-obvious Constraints
 
-Python 使用四空格缩进和 `snake_case` 命名；Ruff 配置的行宽为 100 字符。Vue/TypeScript 沿用现有风格：两空格缩进、单引号、不写分号，组件文件使用 PascalCase。业务规则和安全校验放在后端服务中，避免前端重复实现。
-
-## 测试要求
-
-从仓库根目录设置 `$env:MEALFLOW_TEST_DATABASE_URL='postgresql+psycopg://mealflow@127.0.0.1:5434/mealflow_s7_test?gssencmode=disable'`，再执行 `..\.venv\Scripts\python.exe -m pytest apps/api -q`。新增后端测试以 `test_*.py` 命名，覆盖修改过的 Agent 约束、接口行为或数据库迁移。项目目前没有配置最低覆盖率要求。
-
-## 提交与 PR
-
-近期提交同时使用中文描述和 `feat:`、`fix:` 等前缀；提交标题应简短且说明具体改动。一个分支聚焦一项可验收变更。PR 说明目的、修改内容、验证结果和风险；界面改动附截图，接口改动附示例。
-
-## 配置与 Agent 协作
-
-从 `.env.example` 创建本地 `.env`，不得提交密钥、本地数据库或构建产物。开始任务前检查 Git 状态及相关代码；引用文档前确认文件仍存在、内容与当前实现一致。
+- Avoid defensive programming by default across frontend and backend: do not add redundant null/empty checks, repeated validation, or branches that do not protect a real boundary or define a meaningful fallback. Do not use `try/catch` merely to suppress errors or duplicate lower-layer handling. If one is necessary for recovery, translation, cleanup, or user-facing feedback, add a concise code comment explaining why and call it out in the completion summary.
+- Before changing migrations or starting the API, check the configured `DATABASE_URL` and current Alembic head. Do not bypass the schema guard to hide a pending migration.
+- The native app's authenticated requests use Bearer sessions marked as native; browser cookie writes retain CSRF validation. Preserve this distinction when changing auth or CORS.
+- Keep quantity-unknown inventory distinct from known quantities, and do not present visual observations as confirmed inventory. Device images/vision are not yet connected.
+- Product specs in `docs/01_产品需求文档.md` and `docs/02_技术设计文档.md` are target contracts, not proof of implementation; check `docs/README.md` for confirmed decisions and current gaps.
+- Check `git status` before editing: this repository may contain substantial in-progress changes. Do not revert unrelated work.

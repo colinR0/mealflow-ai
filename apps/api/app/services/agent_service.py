@@ -125,8 +125,8 @@ async def _parse_constraints_with_llm(
             },
         ]
         raw = ""
-        # 兼容未实现 supports_stream 的旧 Provider(含测试替身):缺属性视为不支持流式
-        use_stream = bool(getattr(provider, "supports_stream", lambda: False)())
+        # 按 Provider 契约判断流式能力，基类默认不支持流式。
+        use_stream = provider.supports_stream()
         if use_stream:
             # 思维链直播:模型推理增量实时回调,约束 JSON 从正文增量中累积
             text_parts: list[str] = []
@@ -371,11 +371,11 @@ def _save_run(run: AgentRunView, request_text: str, scope: tuple[str, str]) -> N
 
 
 def _to_view(row: AgentRun) -> AgentRunView:
-    state = row.state or {}
+    state = row.state
     return AgentRunView(
         id=row.id,
         status=RunStatus(row.status),
-        constraints=PlanningConstraints(**(row.constraints or {})),
+        constraints=PlanningConstraints(**row.constraints),
         tool_trace=[ToolTraceView(**trace) for trace in state.get("tool_trace", [])],
         options=[MenuOption(**option) for option in state.get("options", [])],
         warnings=state.get("warnings", []),
@@ -492,7 +492,7 @@ async def revise_run(
     revised.workspace_restrictions = workspace_restrictions
     revised.status = RunStatus.WAITING_APPROVAL
     revised.approval_status = "waiting"
-    _save_run(revised, row.request_text or "", scope)
+    _save_run(revised, row.request_text, scope)
     return revised
 
 

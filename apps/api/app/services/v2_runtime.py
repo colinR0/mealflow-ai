@@ -38,7 +38,7 @@ def utc_now() -> datetime:
 
 
 def aware(value: datetime) -> datetime:
-    # SQLite drops timezone metadata; PostgreSQL returns aware timestamptz values.
+    # Normalize timestamps supplied by callers as well as database values.
     return value.replace(tzinfo=UTC) if value.tzinfo is None else value
 
 
@@ -67,9 +67,7 @@ def authenticate(token: str) -> tuple[str, str]:
         return record.user_id, record.id
 
 
-def authorized_workspace(
-    session: Session, user_id: str, workspace_id: str, *, owner: bool = False
-) -> WorkspaceMember:
+def authorized_workspace(session: Session, user_id: str, workspace_id: str) -> WorkspaceMember:
     membership = session.scalar(
         select(WorkspaceMember).where(
             WorkspaceMember.user_id == user_id,
@@ -77,19 +75,19 @@ def authorized_workspace(
             WorkspaceMember.status == "active",
         )
     )
-    if membership is None or (owner and membership.role != "owner"):
+    if membership is None:
         raise HTTPException(404, detail={"code": "HOUSEHOLD_NOT_FOUND"})
     return membership
 
 
-def login(email: str, password: str) -> tuple[str, str, str]:
+def login(phone: str, password: str, *, native_client: bool = False) -> tuple[str, str, str]:
     now = utc_now()
     with SessionLocal() as session:
-        key = digest(email.strip().lower())
+        key = digest(phone)
         attempt = session.get(LoginAttempt, key, with_for_update=True)
         if attempt and aware(attempt.window_until) > now and attempt.failures >= 5:
             raise HTTPException(429, detail={"code": "LOGIN_RATE_LIMITED"})
-        user = session.scalar(select(User).where(User.email == email))
+        user = session.scalar(select(User).where(User.phone == phone))
         valid = False
         if user:
             from argon2 import PasswordHasher
@@ -98,7 +96,7 @@ def login(email: str, password: str) -> tuple[str, str, str]:
             try:
                 PasswordHasher().verify(user.password_hash, password)
                 valid = True
-            except (VerificationError, InvalidHashError):
+            except (VerificationError, InvalidHashError):  # Record a failed login attempt.
                 pass
         if not valid:
             if attempt is None:
@@ -119,6 +117,7 @@ def login(email: str, password: str) -> tuple[str, str, str]:
                 user_id=user.id,
                 token_hash=digest(raw),
                 csrf_hash=digest(csrf),
+                native_client=native_client,
                 expires_at=now + timedelta(days=7),
                 idle_until=now + timedelta(hours=24),
                 revoked=False,
@@ -131,12 +130,12 @@ def login(email: str, password: str) -> tuple[str, str, str]:
 def household_list(user_id: str) -> list[dict[str, str]]:
     with SessionLocal() as session:
         rows = session.execute(
-            select(Workspace, WorkspaceMember.role)
+            select(Workspace)
             .join(WorkspaceMember, WorkspaceMember.workspace_id == Workspace.id)
             .where(WorkspaceMember.user_id == user_id, WorkspaceMember.status == "active")
-        ).all()
+        ).scalars().all()
         return [
-            {"id": workspace.id, "name": workspace.name, "role": role} for workspace, role in rows
+            {"id": workspace.id, "name": workspace.name, "role": "user"} for workspace in rows
         ]
 
 
@@ -147,7 +146,7 @@ def create_household(user_id: str, name: str) -> str:
         session.flush()
         session.add(
             WorkspaceMember(
-                workspace_id=household.id, user_id=user_id, role="owner", status="active"
+                workspace_id=household.id, user_id=user_id, role="user", status="active"
             )
         )
         session.add(
@@ -159,7 +158,7 @@ def create_household(user_id: str, name: str) -> str:
 def create_invite(user_id: str, workspace_id: str) -> str:
     token = secrets.token_urlsafe(32)
     with SessionLocal() as session, session.begin():
-        authorized_workspace(session, user_id, workspace_id, owner=True)
+        authorized_workspace(session, user_id, workspace_id)
         session.add(
             HouseholdInvite(
                 workspace_id=workspace_id,
@@ -195,7 +194,7 @@ def accept_invite(user_id: str, token: str) -> str:
                 WorkspaceMember(
                     workspace_id=invite.workspace_id,
                     user_id=user_id,
-                    role="member",
+                    role="user",
                     status="active",
                 )
             )
@@ -304,7 +303,10 @@ def create_turn(
         chat = session.get(TurnSession, session_id, with_for_update=True) if session_id else None
         if session_id and chat is None:
             raise HTTPException(404, detail={"code": "SESSION_NOT_FOUND"})
-        if chat and (chat.workspace_id != workspace_id or chat.created_by != user_id):
+        if chat and (
+            chat.workspace_id != workspace_id or chat.created_by != user_id
+            or chat.state.get("deleted_at")
+        ):
             raise HTTPException(404, detail={"code": "SESSION_NOT_FOUND"})
         if chat is None:
             chat = TurnSession(workspace_id=workspace_id, created_by=user_id, state={})
@@ -323,7 +325,7 @@ def create_turn(
             ):
                 raise HTTPException(404, detail={"code": "PARENT_RUN_NOT_FOUND"})
         # A seeded singleton serializes admission across API processes and households.
-        # UPDATE also obtains SQLite's write lock; PG holds the row lock until commit.
+        # PostgreSQL holds the row lock until commit.
         gate = session.execute(
             update(RuntimeAdmission).where(RuntimeAdmission.id == "agent_turn")
             .values(id="agent_turn")
@@ -451,7 +453,7 @@ def validate_action(kind: str, payload: dict) -> None:
             and isinstance(unit, str)
             and bool(unit.strip())
         )
-    except InvalidOperation:
+    except InvalidOperation:  # Report invalid decimal input as a quantity validation error.
         valid = False
     if not valid or (kind == "add_inventory" and not payload.get("ingredient_key")):
         raise HTTPException(422, detail={"code": "INVALID_QUANTITY"})
@@ -602,6 +604,7 @@ def decide_action(
                 summary.pop("pending_action", None)
                 summary["status"] = "succeeded"
                 summary["action_result"] = result
+                summary["text"] = "操作已确认并保存。" if accept else "已取消保存，未执行此操作。"
                 run.status = "succeeded"
                 run.result = summary
                 run.state = {

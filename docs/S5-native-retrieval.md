@@ -18,7 +18,7 @@
 
 原生集成测试显式 opt-in，使用随机临时 schema，先 `Base.metadata.create_all()`，
 再安装 native 列和索引；结束时只删除该测试 schema。缺少环境变量或数据库没有
-vector 扩展时明确 skip，不将其计为原生验证通过。SQLite 会拒绝 native 安装和构建。
+vector 扩展时明确 skip，不将其计为原生验证通过。原生安装和构建要求 PostgreSQL。
 
 ## 索引与检索
 

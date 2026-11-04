@@ -237,21 +237,21 @@ def load_planning_context(
                 quantity=link.quantity,
                 unit=link.unit,
                 optional=link.optional,
-                category=ingredient.category or "",
+                category=ingredient.category,
             )
         )
     for recipe in recipe_rows:
         lines = ingredients_by_recipe.get(recipe.id, [])
-        if (recipe.meal_role or "").strip():
+        if recipe.meal_role.strip():
             meal_role = recipe.meal_role
             staple_type = recipe.staple_type or "无"
-            protein_sources = list(recipe.protein_sources or [])
-            vegetable_keys = list(recipe.vegetable_keys or [])
+            protein_sources = list(recipe.protein_sources)
+            vegetable_keys = list(recipe.vegetable_keys)
             portion_confidence = recipe.portion_confidence or "servings_only"
         else:
             classified = classify_recipe(
                 recipe.name,
-                list(recipe.tags or []),
+                list(recipe.tags),
                 [
                     IngredientFact(
                         key=line.key,
@@ -278,9 +278,9 @@ def load_planning_context(
                 kcal_per_serving=recipe.kcal_per_serving,
                 estimated_cost_cents=recipe.estimated_cost_cents,
                 tags=recipe.tags,
-                taste_tags=recipe.taste_tags or [],
+                taste_tags=recipe.taste_tags,
                 allergens=recipe.allergens,
-                steps=recipe.steps or [],
+                steps=recipe.steps,
                 ingredients=lines,
                 meal_role=meal_role,
                 staple_type=staple_type,

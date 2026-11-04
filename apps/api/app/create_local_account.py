@@ -2,6 +2,7 @@
 
 import argparse
 import getpass
+import re
 
 from argon2 import PasswordHasher
 from sqlalchemy import select
@@ -15,20 +16,22 @@ from app.services.v2_runtime import create_household
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("email")
+    parser.add_argument("phone")
     parser.add_argument("--name", default="本地联调用户")
     args = parser.parse_args()
     if get_settings().app_env != "development":
         raise SystemExit("Only development provisioning is supported")
-    password = getpass.getpass("Password (12+ characters): ")
-    if len(password) < 12:
-        raise SystemExit("Password must contain at least 12 characters")
+    if not re.fullmatch(r"1[3-9][0-9]{9}", args.phone):
+        raise SystemExit("An 11-digit mainland China mobile number is required")
+    password = getpass.getpass("Password (6+ characters): ")
+    if len(password) < 6:
+        raise SystemExit("Password must contain at least 6 characters")
     ensure_schema_current()
     with SessionLocal() as session, session.begin():
-        if session.scalar(select(User).where(User.email == args.email)):
+        if session.scalar(select(User).where(User.phone == args.phone)):
             raise SystemExit("Account exists; no changes made")
         user = User(
-            email=args.email, display_name=args.name, password_hash=PasswordHasher().hash(password)
+            phone=args.phone, display_name=args.name, password_hash=PasswordHasher().hash(password)
         )
         session.add(user)
         session.flush()

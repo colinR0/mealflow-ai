@@ -50,14 +50,14 @@ async def dispatch(tool: Tool | None, arguments: str) -> ToolResult:
         return ToolResult(status="error", error_code="UNKNOWN_TOOL")
     try:
         body = tool.input_model.model_validate_json(arguments)
-    except (ValidationError, ValueError):
+    except (ValidationError, ValueError):  # Translate untrusted model arguments into a tool result.
         return ToolResult(status="error", error_code="INVALID_ARGUMENTS")
     try:
         async with asyncio.timeout(tool.timeout):
             return await tool.handler(body)
-    except TimeoutError:
+    except TimeoutError:  # Let the agent continue after a tool exceeds its budget.
         return ToolResult(status="unavailable", error_code="TOOL_TIMEOUT")
-    except Exception:
+    except Exception:  # Isolate handler failures as structured tool errors.
         return ToolResult(status="error", error_code="TOOL_FAILED")
 
 
@@ -100,7 +100,7 @@ async def run_loop(
                 normalized = json.dumps(
                     json.loads(arguments), sort_keys=True, separators=(",", ":")
                 )
-            except (ValueError, TypeError):
+            except (ValueError, TypeError):  # Invalid JSON still reaches dispatch for validation.
                 normalized = arguments
             key = json.dumps([function["name"], normalized, fact_version])
             if tool and tool.effect == "read" and key in cache:

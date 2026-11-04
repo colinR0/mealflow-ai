@@ -341,7 +341,7 @@ def _optional_int(value: object) -> int | None:
         return None
     try:
         return int(value)
-    except (TypeError, ValueError):
+    except (TypeError, ValueError):  # Invalid model-supplied numbers use the caller's default.
         return None
 
 

@@ -32,6 +32,9 @@ class AuthSession(TimestampMixin, Base):
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
     token_hash: Mapped[str] = mapped_column(String(64), unique=True)
     csrf_hash: Mapped[str] = mapped_column(String(64))
+    native_client: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=text("false")
+    )
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     idle_until: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     revoked: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -45,23 +48,6 @@ class RuntimeAdmission(Base):
 @event.listens_for(RuntimeAdmission.__table__, "after_create")
 def seed_runtime_admission(table, connection, **kwargs):
     connection.execute(table.insert().values(id="agent_turn"))
-
-
-class LegacyImport(TimestampMixin, Base):
-    __tablename__ = "legacy_imports"
-    __table_args__ = (
-        UniqueConstraint("workspace_id", "source", "source_table", "source_id"),
-    )
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
-    workspace_id: Mapped[str] = mapped_column(ForeignKey("workspaces.id"))
-    source: Mapped[str] = mapped_column(String(120))
-    source_table: Mapped[str] = mapped_column(String(80))
-    source_id: Mapped[str] = mapped_column(String(120))
-    source_hash: Mapped[str] = mapped_column(String(64))
-    snapshot: Mapped[dict] = mapped_column(JSON)
-    target_table: Mapped[str] = mapped_column(String(80))
-    target_id: Mapped[str] = mapped_column(String(36))
-    target_hash: Mapped[str] = mapped_column(String(64))
 
 
 class LoginAttempt(Base):

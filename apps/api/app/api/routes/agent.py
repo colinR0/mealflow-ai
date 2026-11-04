@@ -23,7 +23,7 @@ async def create_agent_run(payload: CreateAgentRunRequest) -> AgentRunView:
         return await create_run(
             payload.workspace_id, payload.site_id, payload.meal_service_id, payload.request_text
         )
-    except ScopeNotFoundError as exc:
+    except ScopeNotFoundError as exc:  # Translate invalid scope to an HTTP input error.
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
 
 

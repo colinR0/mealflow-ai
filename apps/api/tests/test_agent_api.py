@@ -11,6 +11,9 @@ from app.services.context_loader import load_planning_context
 
 
 class _NullBooleanProvider:
+    def supports_stream(self):
+        return False
+
     async def chat(self, *, messages):
         return json.dumps(
             {

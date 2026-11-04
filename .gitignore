@@ -58,8 +58,6 @@ cover/
 # Django stuff:
 *.log
 local_settings.py
-db.sqlite3
-db.sqlite3-journal
 
 # Flask stuff:
 instance/
@@ -142,14 +140,14 @@ cython_debug/
 # Frontend
 node_modules/
 apps/web/dist/
+apps/web/unpackage/
+apps/web/.hbuilderx/
+apps/web/.uni/
 *.tsbuildinfo
 
 # Local application data
-*.sqlite
-*.sqlite3
 data/local/
 apps/api/data/
-*.sqlite3.bak-*
 
 # 本机工具与临时产物(不入库)
 .zcode/

@@ -86,7 +86,7 @@ class OpenAICompatibleCloudProvider(LLMProvider):
     async def healthcheck(self) -> bool:
         try:
             await self.client.models.list()
-        except Exception:
+        except Exception:  # Report provider connectivity failure through the healthcheck contract.
             return False
         return True
 

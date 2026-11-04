@@ -18,7 +18,7 @@ Prepare 仅在便携实例不可用时通过 pg_ctl 启动，创建缺失的 `me
 
 不提供 `--credential-file` 时仅为新账号交互读取密码。Prepare 为新账号生成随机密码，独占写入仓库外 `$env:LOCALAPPDATA\Temp\opencode\mealflow-s7-vector-login.json`，不向控制台打印密码。已有账号的密码不修改；凭据文件遗失后重新 seed 不会恢复或重置密码。可以在本地编辑器打开该文件用于登录，不要把文件内容贴入文档或终端日志。
 
-数据全部自造：`s7-vector@example.test` 的独立家庭、花生/虾永久限制、番茄/鸡蛋/豆腐/大米各 500g 的库存、5 道菜谱（含用于验证限制的花生炒虾仁）、已批准来源、已发布文档、显式 fake 64 维 profile。无客户数据，也不依赖旧 SQLite。使用稳定 ID，仅补缺失项，不覆盖现有演示库存、限制、菜谱和账号密码。有效活动 generation 重跑复用；缺失原生向量或文档版本块时重新构建。原生 schema 安装和 rebuild_generation 均显式调用，构建传入 idle connection，生成 vector、tsvector、HNSW/GIN 索引与活动 generation。fake embedding 仅验证集成线路，不代表语义检索质量。
+数据全部自造：`s7-vector@example.test` 的独立家庭、花生/虾永久限制、番茄/鸡蛋/豆腐/大米各 500g 的库存、5 道菜谱（含用于验证限制的花生炒虾仁）、已批准来源、已发布文档、显式 fake 64 维 profile。无客户数据，全部保存在 PostgreSQL。使用稳定 ID，仅补缺失项，不覆盖现有演示库存、限制、菜谱和账号密码。有效活动 generation 重跑复用；缺失原生向量或文档版本块时重新构建。原生 schema 安装和 rebuild_generation 均显式调用，构建传入 idle connection，生成 vector、tsvector、HNSW/GIN 索引与活动 generation。fake embedding 仅验证集成线路，不代表语义检索质量。
 
 分别在三个终端运行（各进程前台运行，用 Ctrl+C 停止）：
 

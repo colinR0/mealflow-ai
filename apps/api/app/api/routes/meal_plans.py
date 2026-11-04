@@ -20,9 +20,9 @@ def confirm_meal_plan(payload: MealPlanCreate) -> MealPlanView:
     """管理员确认选中方案：保存菜单计划并记录确认状态，不产生发布副作用。"""
     try:
         return meal_plan_service.confirm_plan(payload.agent_run_id, payload.strategy)
-    except PlanNotFoundError as exc:
+    except PlanNotFoundError as exc:  # Translate missing plan/run to HTTP 404.
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
-    except StrategyNotFoundError as exc:
+    except StrategyNotFoundError as exc:  # Report an invalid strategy as a client input error.
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
 
@@ -42,9 +42,9 @@ def publish_meal_plan(
     """发布菜单：要求管理员已确认，且使用 Idempotency-Key 防重复发布。"""
     try:
         return meal_plan_service.publish_plan(plan_id, idempotency_key)
-    except IdempotencyKeyRequiredError as exc:
+    except IdempotencyKeyRequiredError as exc:  # Report the missing required request header.
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
-    except PlanNotFoundError as exc:
+    except PlanNotFoundError as exc:  # Translate missing plan/run to HTTP 404.
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
-    except (ApprovalRequiredError, PlanAlreadyPublishedError) as exc:
+    except (ApprovalRequiredError, PlanAlreadyPublishedError) as exc:  # Map state conflict to 409.
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc

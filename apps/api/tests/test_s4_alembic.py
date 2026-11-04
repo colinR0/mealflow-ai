@@ -34,10 +34,13 @@ def test_full_alembic_upgrade_and_admission_seed():
         assert result.returncode == 0, result.stderr
         with engine.connect() as connection:
             assert connection.scalar(text("select version_num from alembic_version")) == (
-                "08b2c3d4e5f6")
+                "3c6d8e0f1a2b")
             assert connection.scalar(text("select id from runtime_admission")) == "agent_turn"
         tables = inspect(engine).get_table_names()
-        assert {"legacy_imports", "inventory_items", "users", "household_profiles"} <= set(tables)
+        assert {"inventory_items", "users", "household_profiles"} <= set(tables)
+        assert "legacy_imports" not in tables
+        auth_columns = {column["name"] for column in inspect(engine).get_columns("auth_sessions")}
+        assert "native_client" in auth_columns
     finally:
         engine.dispose()
         with admin.begin() as connection:

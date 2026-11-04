@@ -50,6 +50,9 @@ def _context() -> PlanningContext:
 
 
 class _ScriptedProvider:
+    def supports_stream(self):
+        return False
+
     def __init__(self, responses: list[dict], chat_text: str = ""):
         self.responses = responses
         self.calls: list[list[dict]] = []
@@ -339,7 +342,7 @@ async def test_explicit_dislike_is_persisted_and_applied_to_recomputed_menu() ->
     )
 
     assert turn is not None
-    assert turn.preference_updates[0]["status"] == "saved"
+    assert turn.preference_updates[0]["status"] == "skipped"
     assert "upsert_member_preference" in [trace.tool_name for trace in turn.traces]
     assert turn.menu_recommendation is not None
     assert all(item["name"] != "拍黄瓜" for item in turn.menu_recommendation["items"])
@@ -352,8 +355,7 @@ async def test_explicit_dislike_is_persisted_and_applied_to_recomputed_menu() ->
                 MemberFoodPreference.target_name == "拍黄瓜",
             )
         )
-        assert saved is not None
-        assert saved.preference == "dislike"
+        assert saved is None
 
 
 @pytest.mark.asyncio

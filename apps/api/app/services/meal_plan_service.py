@@ -42,10 +42,10 @@ def _to_view(plan: MealPlan) -> MealPlanView:
         agent_run_id=plan.agent_run_id,
         strategy=plan.strategy,
         status=plan.status,
-        items=plan.items or [],
-        procurement_list=plan.procurement_list or [],
+        items=plan.items,
+        procurement_list=plan.procurement_list,
         estimated_cost_cents=plan.estimated_cost_cents,
-        constraints_snapshot=plan.constraints_snapshot or {},
+        constraints_snapshot=plan.constraints_snapshot,
         published_at=plan.published_at,
     )
 
@@ -58,7 +58,7 @@ def _load_run(session: Session, run_id: str) -> AgentRun:
 
 
 def _option_for(run: AgentRun, strategy: str) -> MenuOption:
-    options = [MenuOption(**option) for option in (run.state or {}).get("options", [])]
+    options = [MenuOption(**option) for option in run.state.get("options", [])]
     for option in options:
         if option.strategy == strategy:
             return option
@@ -85,7 +85,7 @@ def _items_for_option(option: MenuOption, session: Session) -> list[dict]:
 
 
 def _mark_run_approved(session: Session, run: AgentRun) -> None:
-    state = dict(run.state or {})
+    state = dict(run.state)
     state["approval_status"] = "approved"
     run.state = state
     session.add(run)
@@ -112,7 +112,7 @@ def confirm_plan(agent_run_id: str, strategy: str) -> MealPlanView:
             items=_items_for_option(option, session),
             procurement_list=option.procurement_list,
             estimated_cost_cents=option.estimated_cost_cents,
-            constraints_snapshot=run.constraints or {},
+            constraints_snapshot=run.constraints,
         )
         session.add(plan)
         _mark_run_approved(session, run)
@@ -137,7 +137,7 @@ def publish_plan(plan_id: str, idempotency_key: str | None) -> MealPlanView:
             raise PlanAlreadyPublishedError("该菜单已发布，不能使用新的幂等键重复发布")
 
         run = _load_run(session, plan.agent_run_id)
-        state = run.state or {}
+        state = run.state
         if state.get("approval_status") != "approved":
             raise ApprovalRequiredError("缺少管理员确认状态，不能发布")
 

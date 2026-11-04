@@ -32,7 +32,7 @@ def list_ingredients(session: Session = Depends(_db)) -> list[IngredientView]:
 def list_inventory(workspace_id: str, session: Session = Depends(_db)) -> list[InventoryItemView]:
     try:
         return inventory_service.list_items(session, workspace_id)
-    except inventory_service.WorkspaceNotFoundError as exc:
+    except inventory_service.WorkspaceNotFoundError as exc:  # Map missing workspace to 404.
         raise HTTPException(status_code=404, detail=str(exc))
 
 
@@ -46,11 +46,11 @@ def add_inventory_item(
 ) -> InventoryItemView:
     try:
         return inventory_service.add_item(session, workspace_id, payload)
-    except inventory_service.WorkspaceNotFoundError as exc:
+    except inventory_service.WorkspaceNotFoundError as exc:  # Map missing workspace to 404.
         raise HTTPException(status_code=404, detail=str(exc))
-    except inventory_service.IngredientNotFoundError as exc:
+    except inventory_service.IngredientNotFoundError as exc:  # Map unknown ingredient to 400.
         raise HTTPException(status_code=400, detail=str(exc))
-    except inventory_service.UnitMismatchError as exc:
+    except inventory_service.UnitMismatchError as exc:  # Map incompatible units to 400.
         raise HTTPException(status_code=400, detail=str(exc))
 
 
@@ -60,9 +60,9 @@ def update_inventory_item(
 ) -> InventoryItemView:
     try:
         return inventory_service.update_item(session, item_id, payload)
-    except inventory_service.ItemNotFoundError as exc:
+    except inventory_service.ItemNotFoundError as exc:  # Map missing inventory item to 404.
         raise HTTPException(status_code=404, detail=str(exc))
-    except inventory_service.UnitMismatchError as exc:
+    except inventory_service.UnitMismatchError as exc:  # Map incompatible units to 400.
         raise HTTPException(status_code=400, detail=str(exc))
 
 
@@ -70,5 +70,5 @@ def update_inventory_item(
 def delete_inventory_item(item_id: str, session: Session = Depends(_db)) -> None:
     try:
         inventory_service.delete_item(session, item_id)
-    except inventory_service.ItemNotFoundError as exc:
+    except inventory_service.ItemNotFoundError as exc:  # Map missing inventory item to 404.
         raise HTTPException(status_code=404, detail=str(exc))

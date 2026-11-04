@@ -129,7 +129,7 @@ def test_blocked_provider_heartbeats_and_cancels_before_return(monkeypatch):
     def execute():
         try:
             worker.execute(job_id, "worker")
-        except Exception as error:
+        except Exception as error:  # Return thread failures to the main test's assertions.
             errors.append(error)
 
     monkeypatch.setattr(worker, "compute_result", provider)

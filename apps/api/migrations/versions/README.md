@@ -1,6 +1,6 @@
 # Database migrations
 
-表结构的唯一事实来源是 `app/db/models.py`，本目录保存它的变更历史。两人同步表结构的方式是执行迁移，**不要**复制、手改本地 `.sqlite3` 文件。
+表结构由 `app/db/models.py` 和 `app/db/v2_models.py` 定义，本目录保存变更历史。两人通过执行迁移同步 PostgreSQL 表结构。
 
 ## 日常命令（在 `apps/api` 目录下执行）
 
@@ -22,4 +22,4 @@
 2. 已推送到远程的迁移文件不再修改，需要变更就追加新迁移。
 3. 两人并行改表产生双头时，后推的人把自己的 `down_revision` 改为指向对方最新迁移，`upgrade head` 验证后再推。
 4. `create_all` 仅保留给测试使用（`tests/conftest.py`），运行中的应用一律走迁移。
-5. 演示数据可随时销毁：破坏性变更直接删除 `data/local/mealflow.sqlite3` 后重新 `upgrade head` + 跑种子脚本。
+5. 破坏性演示重置只能针对明确指定的独立 PostgreSQL 演示库，业务库升级使用增量迁移。

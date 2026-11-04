@@ -253,7 +253,7 @@ def search(
                 },
                 warnings=["fake embedding 仅验证检索链路，不代表语义质量"] if provider.fake else [],
             )
-    except RetrievalUnavailable as error:
+    except RetrievalUnavailable as error:  # Preserve the structured retrieval failure code.
         return ToolResult(
             status="unavailable",
             error_code=error.code,

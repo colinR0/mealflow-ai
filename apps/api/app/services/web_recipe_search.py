@@ -111,7 +111,7 @@ def fetch_step_brief(url: str, max_steps: int = 5, max_len: int = 40) -> list[st
     meta 偶发缺失时返回空,展示层容错。"""
     try:
         html = _get_with_retry(url)
-    except Exception:  # noqa: BLE001
+    except Exception:  # noqa: BLE001 - unavailable detail pages contribute no optional step brief
         return []
     meta = re.search(r'<meta name="description" content="([^"]+)"', html)
     if not meta:
@@ -148,6 +148,6 @@ def search_with_briefs(keyword: str, limit: int = 3) -> list[dict]:
         for future, item in futures.items():
             try:
                 item["steps_brief"] = future.result(timeout=15)
-            except Exception:  # noqa: BLE001
+            except Exception:  # noqa: BLE001 - keep other results when one detail fails
                 item["steps_brief"] = []
     return items

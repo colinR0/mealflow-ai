@@ -27,7 +27,7 @@ def upgrade() -> None:
     op.drop_table("feedback")
     op.drop_table("kiosk_devices")
 
-    # SQLite 不支持直接 ALTER 加外键列;迁移只加普通列,外键关系由 ORM 模型维护
+    # 历史版本只添加成员引用列，保持既有迁移结构。
     with op.batch_alter_table("dietary_restrictions") as batch_op:
         batch_op.add_column(sa.Column("user_id", sa.String(36), nullable=True))
     op.create_index("ix_dietary_restrictions_user_id", "dietary_restrictions", ["user_id"])

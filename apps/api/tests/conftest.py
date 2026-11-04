@@ -20,7 +20,8 @@ os.environ["LLM_API_KEY"] = ""
 os.environ["AITECHFLUX_API_KEY"] = ""
 os.environ["BIGMODEL_API_KEY"] = ""
 
-from app.db.seed import seed_demo_data
+# Configure the isolated database before importing application modules.
+from app.db.seed import seed_demo_data  # noqa: E402
 
 
 @pytest.fixture(autouse=True)
@@ -38,7 +39,7 @@ def _database_schema():
         ))
         connection.execute(text("DELETE FROM alembic_version"))
         connection.execute(text(
-            "INSERT INTO alembic_version (version_num) VALUES ('08b2c3d4e5f6')"
+            "INSERT INTO alembic_version (version_num) VALUES ('3c6d8e0f1a2b')"
         ))
 
 
@@ -53,3 +54,12 @@ def _no_real_llm(monkeypatch):
     from app.services import agent_service
 
     monkeypatch.setattr(agent_service, "build_llm_provider", lambda settings: None)
+
+
+@pytest.fixture(autouse=True)
+def _offline_worker_provider(monkeypatch):
+    """Worker regression tests remain deterministic and never call paid models."""
+    from app.agent.durable_graph import FakeProvider
+    from app.llm import durable_provider
+
+    monkeypatch.setattr(durable_provider, "ConfiguredProvider", FakeProvider)

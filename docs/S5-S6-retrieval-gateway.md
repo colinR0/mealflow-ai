@@ -43,7 +43,7 @@ $env:MEALFLOW_TEST_POSTGRES_URL='postgresql+psycopg://mealflow@localhost:5433/me
 ```
 
 PG16+vector verifies native ranking/evidence/provider boundaries. PG17 without vector verifies
-an explicit unavailable result rather than fallback. SQLite tests cover demo evidence,
+an explicit unavailable result rather than fallback. PostgreSQL tests cover demo evidence,
 revocation/version changes, every profile identity field, invalid embeddings and index changes.
 
 Verification on 2026-11-03: gateway tests **16 passed**; gateway plus existing native PG tests

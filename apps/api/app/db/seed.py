@@ -202,7 +202,7 @@ def seed_demo_data() -> dict[str, int]:
         if guest_created or guest.note is None:
             guest.note = "周末偶尔来吃饭"
 
-        for user, role in ((me, "owner"), (partner, "member"), (guest, "guest")):
+        for user in (me, partner, guest):
             exists = session.scalar(
                 select(WorkspaceMember).where(
                     WorkspaceMember.workspace_id == workspace.id,
@@ -211,7 +211,7 @@ def seed_demo_data() -> dict[str, int]:
             )
             if exists is None:
                 session.add(
-                    WorkspaceMember(workspace_id=workspace.id, user_id=user.id, role=role)
+                    WorkspaceMember(workspace_id=workspace.id, user_id=user.id, role="user")
                 )
 
         meal_service = session.get(MealService, HOME_MEAL_SERVICE_ID)

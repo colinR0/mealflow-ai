@@ -55,5 +55,18 @@ def test_shared_cooking_record_crud() -> None:
         assert listed.status_code == 200
         assert listed.json()[0]["id"] == record["id"]
 
+        updated = client.patch(
+            f"/api/v1/cooking-records/{record['id']}",
+            json={"tags": None, "steps": None, "reviews": None},
+        )
+        assert updated.status_code == 200
+        for field in ("tags", "steps", "reviews"):
+            assert updated.json()[field] == []
+
+        listed = client.get("/api/v1/workspaces/home-workspace/cooking-records")
+        assert listed.status_code == 200
+        for field in ("tags", "steps", "reviews"):
+            assert listed.json()[0][field] == []
+
         deleted = client.delete(f"/api/v1/cooking-records/{record['id']}")
         assert deleted.status_code == 204

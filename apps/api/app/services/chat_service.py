@@ -181,7 +181,7 @@ async def _route_message(text: str, model_id: str | None = None) -> str:
             route = json.loads(match.group(0)).get("route")
             if route in {"kitchen_qa", "kitchen_recipe", "kitchen_plan", "general"}:
                 return route
-    except Exception:
+    except Exception:  # Model routing failure falls back to the local routing rules.
         pass
     return fallback
 
@@ -553,7 +553,7 @@ def _resolve_refusal_dish(
         for row in rows:
             if current_message_id and row.id == current_message_id:
                 continue
-            prev_text = _message_without_frontend_context(row.content or "")
+            prev_text = _message_without_frontend_context(row.content)
             if not prev_text:
                 continue
             prev_intent = _detect_intent(prev_text, context, has_previous_run=False)
@@ -779,7 +779,7 @@ def _persist_options(run_id: str, options: list[MenuOption]) -> None:
     with SessionLocal() as session:
         row = session.get(AgentRun, run_id)
         if row is not None:
-            row.state = dict(row.state or {})
+            row.state = dict(row.state)
             row.state["options"] = [option.model_dump() for option in options]
             session.commit()
 
@@ -843,7 +843,7 @@ def _compose_plan_text(
         parts.append(f"需要采购:{lines}。")
     else:
         parts.append("冰箱现有食材就够了,不用采购。")
-    parts.extend(option.pantry_notes or [])
+    parts.extend(option.pantry_notes)
 
     budget = run.constraints.budget_limit_cents
     if budget:
@@ -862,8 +862,8 @@ def _compose_plan_text(
 
 
 def _compose_confirm_text(plan_view) -> str:
-    items = "、".join(str(item.get("name")) for item in plan_view.items or [])
-    procurement = plan_view.procurement_list or []
+    items = "、".join(str(item.get("name")) for item in plan_view.items)
+    procurement = plan_view.procurement_list
     lines = [f"已确认「{plan_view.strategy}」这套,食材用量按人数落好了。"]
     if items:
         lines.append(f"菜单:{items}。")
@@ -945,7 +945,7 @@ def _load_context_optional(payload: ChatStreamRequest) -> PlanningContext | None
                 payload.site_id,
                 payload.meal_service_id,
             )
-    except ScopeNotFoundError:
+    except ScopeNotFoundError:  # Missing planning scope leaves the caller on its non-planning path.
         return None
     context.member_constraints = _filter_constraints(
         context.member_constraints, payload.diners_user_ids
@@ -1125,7 +1125,7 @@ async def _llm_stream_text(
         async for kind, delta in provider.chat_stream(messages=prompt_messages):
             if delta:
                 yield kind, delta
-    except Exception:
+    except Exception:  # Signal stream failure so the caller can render its rule-based fallback.
         logger.exception("chat LLM 流式调用失败,将回退规则文本")
         yield "__error__", ""
 
@@ -1154,7 +1154,7 @@ def _recent_history_messages(
     for row in rows:
         if exclude_message_id and row.id == exclude_message_id:
             continue
-        content = (row.content or "").strip()
+        content = row.content.strip()
         if not content:
             continue
         if row.role == "user":
@@ -1617,7 +1617,7 @@ async def _stream_chat_impl(payload: ChatStreamRequest) -> AsyncIterator[str]:
                 payload.site_id,
                 payload.meal_service_id,
             )
-    except ScopeNotFoundError as exc:
+    except ScopeNotFoundError as exc:  # Surface invalid planning scope as a terminal SSE error.
         yield _sse("error", {"message": str(exc), "fallback": False})
         yield _sse("done", {"session_id": session_id, "message_id": None})
         return

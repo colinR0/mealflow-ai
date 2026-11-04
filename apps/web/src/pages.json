@@ -1,0 +1,32 @@
+{
+  "pages": [
+    { "path": "pages/fridge/index", "style": { "navigationStyle": "custom", "enablePullDownRefresh": true, "backgroundColor": "#FFFFFF" } },
+    { "path": "pages/assistant/index", "style": { "navigationStyle": "custom", "backgroundColor": "#FFFFFF", "app-plus": { "softinputMode": "adjustResize" } } },
+    { "path": "pages/shopping/index", "style": { "navigationStyle": "custom", "enablePullDownRefresh": true, "backgroundColor": "#FFFFFF" } },
+    { "path": "pages/family/index", "style": { "navigationStyle": "custom", "backgroundColor": "#FFFFFF" } },
+    { "path": "pages/fridge/inventory", "style": { "navigationStyle": "custom", "enablePullDownRefresh": true, "backgroundColor": "#FFFFFF" } },
+    { "path": "pages/fridge/review", "style": { "navigationStyle": "custom", "backgroundColor": "#FFFFFF" } },
+    { "path": "pages/fridge/manual-add", "style": { "navigationStyle": "custom", "backgroundColor": "#FFFFFF" } },
+    { "path": "pages/assistant/meal-plan", "style": { "navigationStyle": "custom", "backgroundColor": "#FFFFFF" } },
+    { "path": "pages/shopping/stock-in", "style": { "navigationStyle": "custom", "backgroundColor": "#FFFFFF" } },
+    { "path": "pages/family/profile-edit", "style": { "navigationStyle": "custom", "backgroundColor": "#FFFFFF" } }
+  ],
+  "tabBar": {
+    "color": "#8A9BB1",
+    "selectedColor": "#3478F6",
+    "backgroundColor": "#FFFFFF",
+    "borderStyle": "white",
+    "list": [
+      { "pagePath": "pages/fridge/index", "text": "冰箱", "iconPath": "static/tabs/fridge.png", "selectedIconPath": "static/tabs/fridge-active.png" },
+      { "pagePath": "pages/assistant/index", "text": "助手", "iconPath": "static/tabs/assistant.png", "selectedIconPath": "static/tabs/assistant-active.png" },
+      { "pagePath": "pages/shopping/index", "text": "采购", "iconPath": "static/tabs/shopping.png", "selectedIconPath": "static/tabs/shopping-active.png" },
+      { "pagePath": "pages/family/index", "text": "家庭", "iconPath": "static/tabs/family.png", "selectedIconPath": "static/tabs/family-active.png" }
+    ]
+  },
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "智慧冰箱",
+    "navigationBarBackgroundColor": "#FFFFFF",
+    "backgroundColor": "#F3F4F6"
+  }
+}

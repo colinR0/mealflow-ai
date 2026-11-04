@@ -1,0 +1,36 @@
+page {
+  background: #f3f4f6;
+  color: #18181b;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: 28rpx;
+  --page-gap: 32rpx;
+}
+view, text, input, textarea, button, scroll-view { box-sizing: border-box; }
+button::after { border: 0; }
+button { font-weight: 600; }
+button, .scene-card, .suggestion { transition: transform .18s ease, background-color .18s ease; }
+button:active, .scene-card:active, .suggestion:active { transform: scale(.97); }
+.page-scroll { min-height: 100vh; padding-bottom: 32rpx; background: #f3f4f6; }
+/* Native tabBar owns the bottom system inset; H5 uses its injected tab-bar height. */
+.page-scroll { padding-bottom: calc(32rpx + var(--window-bottom, 0px)); }
+.primary-button, .action-button { margin: 20rpx 0 0; padding: 0 24rpx; min-height: 88rpx; line-height: 88rpx; border-radius: 16rpx; background: #2563eb; color: #fff; font-size: 26rpx; }
+.secondary-button { margin: 20rpx 0 0; min-height: 88rpx; line-height: 88rpx; border-radius: 16rpx; background: #fff; color: #374151; border: 1px solid #d1d5db; font-size: 26rpx; }
+button[disabled] { opacity: .5; }
+.empty-state { min-height: 230rpx; padding: 36rpx 16rpx; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14rpx; text-align: center; color: #7b8ba2; font-size: 25rpx; line-height: 1.7; }
+.empty-title { display: block; color: #314b6d; font-size: 30rpx; font-weight: 600; }
+.footnote, .page-footnote { display: block; color: #8391a7; font-size: 23rpx; line-height: 1.7; margin-top: 22rpx; }
+.page-footnote { padding: 0 40rpx 32rpx; }
+.error-state, .error-copy { display: block; padding: 22rpx 0; color: #c34c56; font-size: 25rpx; line-height: 1.7; }
+.inline-action { display: inline-block; padding: 20rpx; color: #3478f6; }
+.food-row { display: flex; align-items: center; justify-content: space-between; gap: 20rpx; min-height: 112rpx; padding: 20rpx 0; border-bottom: 1rpx solid #e5e7eb; }
+.food-row > view { flex: 1; min-width: 0; }
+.food-name, .food-meta { display: block; overflow-wrap: anywhere; }
+.food-name { color: #18181b; font-size: 29rpx; font-weight: 600; }
+.food-meta { margin-top: 10rpx; color: #8795aa; font-size: 23rpx; line-height: 1.6; }
+.food-quantity { max-width: 42%; color: #5278ae; font-size: 24rpx; text-align: right; overflow-wrap: anywhere; }
+.skeleton { height: 88rpx; margin: 20rpx 0; border-radius: 20rpx; background: linear-gradient(100deg,#edf2f9 20%,#fafcff 45%,#edf2f9 70%); background-size: 240% 100%; animation: shimmer 1.5s linear infinite; }
+@keyframes shimmer { to { background-position: -240% 0; } }
+@keyframes enter-card { from { opacity: 0; transform: translateY(16rpx); } to { opacity: 1; transform: translateY(0); } }
+@keyframes pulse { 50% { opacity: .35; transform: scale(.8); } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+@media (max-width: 350px) { page { --page-gap: 24rpx; } }

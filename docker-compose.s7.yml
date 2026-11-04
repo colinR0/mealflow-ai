@@ -41,11 +41,5 @@ services:
     depends_on:
       migrate:
         condition: service_completed_successfully
-  web:
-    build: ./apps/web
-    ports:
-      - "127.0.0.1:5176:80"
-    depends_on:
-      - api
 volumes:
   s7-postgres:

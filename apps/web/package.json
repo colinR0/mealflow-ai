@@ -1,26 +1,33 @@
 {
-  "name": "mealflow-web",
+  "name": "mealflow-app",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vue-tsc --noEmit -p tsconfig.app.json && vite build",
-    "typecheck": "vue-tsc --noEmit -p tsconfig.app.json",
-    "preview": "vite preview"
+    "dev:app-android": "uni -p app-android",
+    "build:app-android": "uni build -p app-android",
+    "dev:app": "uni -p app",
+    "build:app": "uni build -p app",
+    "dev:h5": "uni",
+    "build:h5": "uni build",
+    "typecheck": "vue-tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
-    "@element-plus/icons-vue": "^2.3.2",
-    "element-plus": "^2.14.7",
-    "pinia": "^3.0.1",
-    "vue": "^3.5.13",
-    "vue-router": "^4.5.0"
+    "@dcloudio/uni-app": "3.0.0-5030420261029002",
+    "@dcloudio/uni-app-plus": "3.0.0-5030420261029002",
+    "@dcloudio/uni-components": "3.0.0-5030420261029002",
+    "@dcloudio/uni-h5": "3.0.0-5030420261029002",
+    "@dcloudio/uni-mp-weixin": "3.0.0-5030420261029002",
+    "vue": "^3.5.44",
+    "vue-router": "^4.6.4"
   },
   "devDependencies": {
-    "@types/node": "^22.13.14",
-    "@vitejs/plugin-vue": "^5.2.3",
+    "@dcloudio/types": "3.4.31",
+    "@dcloudio/vite-plugin-uni": "3.0.0-5030420261029002",
+    "@vue/tsconfig": "^0.7.0",
+    "sass": "^1.89.0",
     "typescript": "~5.7.2",
-    "vite": "^6.2.4",
+    "vite": "5.2.8",
     "vue-tsc": "^2.2.8"
   }
 }

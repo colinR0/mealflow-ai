@@ -237,11 +237,12 @@ def test_cookie_login_csrf_logout_and_rate_limit():
     with SessionLocal() as session, session.begin():
         account = session.get(User, user)
         account.password_hash = PasswordHasher().hash("local-test-password")
-        email = account.email
+        phone = account.phone = "13900000005"
     with TestClient(app) as client:
         assert (
             client.post(
-                "/api/v2/auth/login", json={"email": email, "password": "local-test-password"}
+                "/api/v2/auth/login", headers={"Origin": "https://untrusted.example"},
+                json={"phone": phone, "password": "local-test-password"}
             ).status_code
             == 403
         )
@@ -249,7 +250,7 @@ def test_cookie_login_csrf_logout_and_rate_limit():
         login = client.post(
             "/api/v2/auth/login",
             headers=headers,
-            json={"email": email, "password": "local-test-password"},
+            json={"phone": phone, "password": "local-test-password"},
         )
         assert login.status_code == 200
         assert client.get("/api/v2/auth/me").status_code == 200
@@ -262,13 +263,13 @@ def test_cookie_login_csrf_logout_and_rate_limit():
                 client.post(
                     "/api/v2/auth/login",
                     headers=headers,
-                    json={"email": email, "password": "wrong"},
+                    json={"phone": phone, "password": "wrong"},
                 ).status_code
                 == 401
             )
         assert (
             client.post(
-                "/api/v2/auth/login", headers=headers, json={"email": email, "password": "wrong"}
+                "/api/v2/auth/login", headers=headers, json={"phone": phone, "password": "wrong"}
             ).status_code
             == 429
         )

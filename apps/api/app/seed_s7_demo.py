@@ -27,7 +27,7 @@ from app.services.knowledge_demo import PROFILE
 from app.services.native_index_worker import rebuild_generation
 from app.services.native_retrieval import NativeRetriever, install_native_schema
 
-EMAIL = "s7-vector@example.test"
+PHONE = "13900000007"  # Synthetic local demo credential; no SMS is sent.
 LICENSE = "项目自造演示数据，可再分发；无客户或第三方菜谱数据"
 INGREDIENTS = {
     "tomato": "番茄", "egg": "鸡蛋", "tofu": "豆腐", "broccoli": "西兰花",
@@ -64,7 +64,7 @@ def seed(credential_file: Path | None) -> dict:
     created_credentials = False
     with SessionLocal() as session, session.begin():
         session.execute(text("SELECT pg_advisory_xact_lock(hashtext('mealflow:s7-demo:seed'))"))
-        user = session.scalar(select(User).where(User.email == EMAIL))
+        user = session.get(User, demo_id("user"))
         if user is None:
             password = secrets.token_urlsafe(24) if credential_file else getpass.getpass(
                 "New S7 demo password (12+ characters): "
@@ -75,19 +75,20 @@ def seed(credential_file: Path | None) -> dict:
                 credential_file.parent.mkdir(parents=True, exist_ok=True)
                 # Exclusive creation prevents overwriting another demo's credentials.
                 with credential_file.open("x", encoding="utf-8") as stream:
-                    json.dump({"email": EMAIL, "password": password}, stream)
+                    json.dump({"phone": PHONE, "password": password}, stream)
                 created_credentials = True
-            user = User(id=demo_id("user"), email=EMAIL, display_name="向量演示用户",
+            user = User(id=demo_id("user"), phone=PHONE, display_name="向量演示用户",
                         password_hash=PasswordHasher().hash(password))
             session.add(user)
             session.flush()
+        user.phone = PHONE
         workspace_id = demo_id("household")
         if session.get(Workspace, workspace_id) is None:
             session.add(Workspace(id=workspace_id, name="S7 独立向量演示家庭", kind="personal"))
             session.flush()
         if session.get(WorkspaceMember, demo_id("membership")) is None:
             session.add(WorkspaceMember(id=demo_id("membership"), workspace_id=workspace_id,
-                                        user_id=user.id, role="owner", status="active"))
+                                        user_id=user.id, role="user", status="active"))
         if session.get(HouseholdProfile, demo_id("profile")) is None:
             session.add(HouseholdProfile(
                 id=demo_id("profile"), workspace_id=workspace_id, display_name="演示常住成员",
@@ -173,7 +174,7 @@ def seed(credential_file: Path | None) -> dict:
             "番茄豆腐", fake_embedding("番茄豆腐"))
         if not hits:
             raise RuntimeError("Native retrieval verification returned no evidence")
-    return {"email": EMAIL, "household_id": workspace_id, "generation_id": generation_id,
+    return {"phone": PHONE, "household_id": workspace_id, "generation_id": generation_id,
             "native_build": "built" if built else "reused", "native_hits": len(hits),
             "fake_embedding": True, "credentials_created": created_credentials}
 

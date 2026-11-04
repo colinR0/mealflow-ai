@@ -182,7 +182,7 @@ def _accept_generated_recipe(
 
 
 def _safe_reply(text: str, menu: dict[str, Any] | None) -> str:
-    cleaned = (text or "").strip()
+    cleaned = text.strip()
     if cleaned and not contains_protocol_leak(cleaned):
         return cleaned
     if cleaned:
@@ -202,7 +202,7 @@ async def _stream_final_reply(
 ) -> AsyncIterator[dict[str, Any]]:
     """最终文本独立生成；协议片段留在缓冲内，失败时撤回已发送文本。"""
     text = _safe_reply(fallback, menu)
-    if not getattr(provider, "supports_stream", lambda: False)():
+    if not provider.supports_stream():
         yield {"type": "reply_ready", "text": text}
         return
     sent_chars = 0
@@ -225,7 +225,7 @@ async def _stream_final_reply(
         if streamed_text:
             text = _safe_reply(streamed_text, menu)
             yield {"type": "text_delta", "delta": streamed_text[sent_chars:]}
-    except Exception:
+    except Exception:  # 撤回不完整或泄漏协议的流，恢复已有安全回答。
         logger.warning("最终回答流式调用失败或包含协议，使用已有结果")
         if sent_chars:
             yield {"type": "text_reset"}
@@ -256,14 +256,11 @@ def _run_tool(name: str, args: dict[str, Any], context: PlanningContext, diner_i
         return result, f"已生成 {len(result['items'])} 道菜建议：{result['ready_count']} 道可直接做，{result['purchase_optional_count']} 道可选采购", suggestions
     raise ValueError(f"不允许调用工具：{name}")
 
-def _calls(response: dict[str, Any]) -> list[dict[str, Any]]:
-    return [x for x in response.get("tool_calls") or [] if isinstance(x, dict) and isinstance(x.get("function"), dict)]
-
 def _trace(name: str, status: str, args: dict[str, Any], **extra: Any) -> ToolTraceView:
     label, template = TOOL_META.get(name, ("读取家庭数据", "执行查询"))
     try:
         summary = template.format(**args) if status == "running" else label
-    except KeyError:
+    except KeyError:  # 模型缺少展示参数时仍展示工具名称。
         summary = label
     return ToolTraceView(tool_name=name, status=status, input_summary=summary, **extra)
 
@@ -282,7 +279,7 @@ async def stream_conversation_agent(*, provider: LLMProvider | None, workspace_i
         # 一轮对话只加载一次数据库快照；后续工具都使用同一份可信上下文，
         # 防止模型在不同工具间看到彼此不一致的库存、限制或菜谱数据。
         context = _load_context(workspace_id, site_id, meal_service_id)
-    except Exception:
+    except Exception:  # 上下文加载失败时交还调用方的规则回答流程。
         yield {"type": "fallback"}
         return
     if intent is not None and intent.preference_updates:
@@ -485,11 +482,14 @@ async def stream_conversation_agent(*, provider: LLMProvider | None, workspace_i
             yield {"type": "final", "turn": ConversationTurn(text, traces, results, list(suggestions.values()), menu_recommendation, preference_events)}
             return
         yield {"type": "status", "step": "agent_decide", "label": "判断下一步", "state": "running"}
-        try: response = await provider.chat_with_tools(messages=messages, tools=TOOL_DEFINITIONS)
-        except Exception: yield {"type": "fallback"}; return
+        try:
+            response = await provider.chat_with_tools(messages=messages, tools=TOOL_DEFINITIONS)
+        except Exception:  # 模型不可用时交还调用方的规则回答流程。
+            yield {"type": "fallback"}
+            return
         response = normalize_model_message(response, _ALLOWED_TOOLS)
         yield {"type": "status", "step": "agent_decide", "label": "判断下一步", "state": "done", "detail": "已获得下一步决策"}
-        calls = _calls(response)
+        calls = response["tool_calls"]
         if not calls:
             text = _safe_reply(str(response.get("content") or ""), menu_recommendation)
             final_messages = [*messages, {
@@ -507,9 +507,9 @@ async def stream_conversation_agent(*, provider: LLMProvider | None, workspace_i
         if response.get("reasoning_content"): assistant["reasoning_content"] = response["reasoning_content"]
         messages.append(assistant)
         for call in calls:
-            fn = call["function"]; name = str(fn.get("name") or "unknown")
-            try: args = json.loads(fn.get("arguments") or "{}"); assert isinstance(args, dict)
-            except Exception: args = {}
+            fn = call["function"]
+            name = fn["name"]
+            args = json.loads(fn["arguments"])
             if name == "recommend_menu" and intent is not None:
                 if intent.diners is not None:
                     args["diners"] = intent.diners
@@ -537,7 +537,7 @@ async def stream_conversation_agent(*, provider: LLMProvider | None, workspace_i
                     tool_cache[fingerprint] = (result, summary, new)
                     if name == "recommend_menu": menu_recommendation = result
                     done = _trace(name, "success", args, duration_ms=max(1, round((time.perf_counter()-started)*1000)), output_summary=summary)
-                except Exception as exc:
+                except Exception as exc:  # 将工具执行失败转换为可展示的 trace 和模型错误结果。
                     logger.exception("对话工具执行失败：%s", name)
                     message, error_code = _tool_error(exc)
                     result = {"error": message}; done = _trace(name, "error", args, duration_ms=max(1, round((time.perf_counter()-started)*1000)), output_summary=message, error_code=error_code)
@@ -547,7 +547,7 @@ async def stream_conversation_agent(*, provider: LLMProvider | None, workspace_i
             text = _safe_reply("", menu_recommendation) or "我已完成本轮查询。为避免重复查询，请告诉我你想优先决定哪一点。"
             final_messages = [*messages, {"role": "system", "content": _WRAP_UP_PROMPT}]
             yield {"type": "status", "step": "compose_reply", "label": "正在组织回答", "state": "running"}
-            if getattr(provider, "supports_stream", lambda: False)():
+            if provider.supports_stream():
                 async for event in _stream_final_reply(provider, final_messages, text, menu_recommendation):
                     if event["type"] == "reply_ready":
                         text = event["text"]
@@ -557,11 +557,11 @@ async def stream_conversation_agent(*, provider: LLMProvider | None, workspace_i
                 return
             try:
                 raw = await provider.chat(messages=[*messages, {"role": "system", "content": _WRAP_UP_PROMPT}])
-                text = _safe_reply(str(raw or ""), menu_recommendation)
+                text = _safe_reply(raw, menu_recommendation)
                 if text:
                     yield {"type": "final", "turn": ConversationTurn(text, traces, results, list(suggestions.values()), menu_recommendation, preference_events)}
                     return
-            except Exception:
+            except Exception:  # 收束调用失败时仍返回已有菜单结果。
                 logger.warning("收束回答失败，改用已有菜单结果")
             fallback = _safe_reply("", menu_recommendation) or "我已完成本轮查询。为避免重复查询，请告诉我你想优先决定哪一点。"
             yield {"type": "final", "turn": ConversationTurn(fallback, traces, results, list(suggestions.values()), menu_recommendation, preference_events)}

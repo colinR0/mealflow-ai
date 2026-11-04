@@ -107,14 +107,16 @@ def heartbeat(snapshot: JobSnapshot) -> bool:
             return False
         try:
             authorized_workspace(session, run.actor_id, run.workspace_id)
-        except HTTPException:
+        except HTTPException:  # Revoked access stops lease renewal and further execution.
             return False
         job.lease_until = utc_now() + timedelta(seconds=LEASE_SECONDS)
         return True
 
 
 def compute_result(snapshot: JobSnapshot) -> dict:
-    return durable_graph.compute(SessionLocal, snapshot)
+    from app.llm.durable_provider import ConfiguredProvider
+
+    return durable_graph.compute(SessionLocal, snapshot, provider=ConfiguredProvider())
 
 
 def remaining_seconds(snapshot: JobSnapshot) -> float:
@@ -142,7 +144,7 @@ def execute(job_id: str, worker_id: str) -> None:
         def compute() -> None:
             try:
                 output.put((True, compute_result(snapshot)))
-            except Exception as error:
+            except Exception as error:  # Return provider failure to the worker thread.
                 output.put((False, error))
 
         # A blocked provider must not block cancellation or hold a DB transaction.
@@ -155,7 +157,7 @@ def execute(job_id: str, worker_id: str) -> None:
                 return
             try:
                 succeeded, result = output.get(timeout=min(HEARTBEAT_SECONDS, remaining))
-            except Empty:
+            except Empty:  # Keep renewing the lease while provider computation is pending.
                 if not heartbeat(snapshot):
                     finish(snapshot, {})
                     return
@@ -164,14 +166,14 @@ def execute(job_id: str, worker_id: str) -> None:
                 raise result
             finish(snapshot, result)
             return
-    except durable_graph.RunTimedOut:
+    except durable_graph.RunTimedOut:  # Persist a terminal timeout result for the client.
         finish(snapshot, {"status": "failed", "error_code": "RUN_TIMEOUT"})
-    except durable_graph.ExecutionStopped as error:
+    except durable_graph.ExecutionStopped as error:  # Finish using current lease ownership.
         if heartbeat(snapshot):
             finish(snapshot, {"status": "failed", "error_code": str(error)})
         else:
             finish(snapshot, {})
-    except Exception:
+    except Exception:  # Persist retry state before propagating computation failure.
         try:
             handle_failure(job_id, worker_id, snapshot.attempt)
         except Exception:
@@ -196,7 +198,7 @@ def finish(snapshot: JobSnapshot, result: dict) -> None:
         try:
             authorized_workspace(session, run.actor_id, run.workspace_id)
             allowed = True
-        except HTTPException:
+        except HTTPException:  # Translate revoked authorization into a terminal job result.
             allowed = False
         if run.cancel_requested:
             run.status, run.result = "cancelled", {"status": "cancelled"}
@@ -303,7 +305,7 @@ def main() -> None:
                 execute(job_id, worker_id)
             else:
                 time.sleep(1)
-        except Exception:
+        except Exception:  # Keep polling after a failed iteration so expired leases can recover.
             logging.exception("Demo worker iteration failed; retrying after backoff")
             time.sleep(1)
 

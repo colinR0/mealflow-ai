@@ -62,7 +62,8 @@ class User(TimestampMixin, Base):
     __tablename__ = "users"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)  # 用户唯一 ID
-    email: Mapped[str] = mapped_column(String(160), unique=True, index=True)  # 登录邮箱，不能重复
+    email: Mapped[str | None] = mapped_column(String(160), unique=True, index=True, nullable=True)
+    phone: Mapped[str | None] = mapped_column(String(11), unique=True, index=True, nullable=True)
     password_hash: Mapped[str] = mapped_column(String(255))  # 加密后的密码，绝不保存明文
     display_name: Mapped[str] = mapped_column(String(80))  # 页面显示的用户名
     # 家庭档案扩展:性别/常驻或访客/忌口(自由文本)/备注(特殊事件)
@@ -79,7 +80,8 @@ class WorkspaceMember(TimestampMixin, Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)  # 成员关系记录 ID
     workspace_id: Mapped[str] = mapped_column(ForeignKey("workspaces.id"), index=True)  # 所属工作区 ID
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)  # 对应用户 ID
-    role: Mapped[str] = mapped_column(String(32), default="member")  # 工作区角色，例如 owner/member
+    # 统一家庭用户；权限由有效成员关系决定。
+    role: Mapped[str] = mapped_column(String(32), default="user")
     status: Mapped[str] = mapped_column(String(32), default="active")  # 成员状态，例如 active
 
 

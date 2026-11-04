@@ -108,7 +108,7 @@ class PantryConfigUpdateRequest(BaseModel):
 def _pantry_config_view(
     session: Session, workspace_id: str, config: HouseholdPantryConfig | None
 ) -> PantryConfigView:
-    custom_keys = [] if config is None else config.custom_keys or []
+    custom_keys = [] if config is None else config.custom_keys
     effective_keys = effective_pantry_keys(session, workspace_id)
     custom_set = set(custom_keys)
     items = sorted(
@@ -125,7 +125,7 @@ def _pantry_config_view(
     return PantryConfigView(
         workspace_id=workspace_id,
         use_defaults=True if config is None else config.use_defaults,
-        disabled_default_keys=[] if config is None else config.disabled_default_keys or [],
+        disabled_default_keys=[] if config is None else config.disabled_default_keys,
         custom_keys=custom_keys,
         effective_keys=sorted(effective_keys),
         effective_items=items,
@@ -315,7 +315,7 @@ def _load_household(session: Session, workspace_id: str) -> HouseholdView:
             user_id=event.user_id,
             member_name=members_meta.get(event.user_id, ("未知成员", ""))[0],
             event_type=event.event_type,
-            constraint_tags=event.constraint_tags or [],
+            constraint_tags=event.constraint_tags,
             start_date=event.start_date,
             end_date=event.end_date,
             note=event.note,
@@ -548,10 +548,10 @@ def get_recipe_detail(recipe_id: str, diners: int | None = None) -> RecipeDetail
             duration_minutes=recipe.duration_minutes,
             kcal_per_serving=recipe.kcal_per_serving,
             estimated_cost_cents=recipe.estimated_cost_cents,
-            tags=recipe.tags or [],
-            taste_tags=recipe.taste_tags or [],
-            allergens=recipe.allergens or [],
-            steps=recipe.steps or [],
+            tags=recipe.tags,
+            taste_tags=recipe.taste_tags,
+            allergens=recipe.allergens,
+            steps=recipe.steps,
             ingredients=ingredients_detail,
             source_name=recipe.source_name,
         )
@@ -586,7 +586,7 @@ def create_member(payload: MemberCreateRequest) -> HouseholdView:
         session.flush()
         session.add(
             WorkspaceMember(
-                workspace_id=payload.workspace_id, user_id=user.id, role="member"
+                workspace_id=payload.workspace_id, user_id=user.id, role="user"
             )
         )
         session.commit()

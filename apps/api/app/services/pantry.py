@@ -39,8 +39,8 @@ def effective_pantry_keys(session: Session | None, workspace_id: str) -> set[str
     if config is None:
         return set(DEFAULT_PANTRY_STAPLE_KEYS)
     keys = set(DEFAULT_PANTRY_STAPLE_KEYS) if config.use_defaults else set()
-    keys.update(config.custom_keys or [])
-    keys.difference_update(config.disabled_default_keys or [])
+    keys.update(config.custom_keys)
+    keys.difference_update(config.disabled_default_keys)
     return keys
 
 

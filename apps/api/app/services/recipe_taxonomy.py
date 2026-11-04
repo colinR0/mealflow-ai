@@ -154,7 +154,7 @@ def _json_list(value: object) -> list[str]:
     if isinstance(value, str) and value:
         try:
             data = json.loads(value)
-        except json.JSONDecodeError:
+        except json.JSONDecodeError:  # Invalid imported JSON contributes no classification tags.
             return []
         if isinstance(data, list):
             return [str(item) for item in data]

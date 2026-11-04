@@ -130,7 +130,7 @@ def _build(connection, profile_id, embed, fake, model, job_id=None):
                     "worker_id = NULL, lease_until = NULL, updated_at = :now WHERE id = :id"
                 ), {"id": job_id, "g": generation_id, "now": datetime.now(UTC)})
         return generation_id
-    except BaseException:
+    except BaseException:  # Mark the generation failed before propagating interruption or error.
         with connection.begin():
             connection.execute(text(
                 "UPDATE index_generations SET status = 'failed', updated_at = :now WHERE id = :id"
@@ -169,7 +169,7 @@ def process_index_job(
         try:
             with _session_lock(connection, "mealflow:s5:profile:" + job.business_id):
                 return _build(connection, job.business_id, embed, fake, model, job_id)
-        except BaseException:
+        except BaseException:  # Release the job lease and persist failure before re-raising.
             with connection.begin():
                 connection.execute(text(
                     "UPDATE background_jobs SET status = 'failed', worker_id = NULL, "

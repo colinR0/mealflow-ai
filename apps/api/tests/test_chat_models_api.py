@@ -60,6 +60,9 @@ async def test_selected_model_reaches_agent_and_done_event(monkeypatch) -> None:
     captured = []
 
     class Provider:
+        def supports_stream(self):
+            return False
+
         async def chat_with_tools(self, *, messages, tools):
             return {"role": "assistant", "content": "今晚可以吃清淡一些。"}
 

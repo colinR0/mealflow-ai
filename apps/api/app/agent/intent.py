@@ -10,10 +10,7 @@ from decimal import Decimal
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy import select
 
-from app.db.models import MemberFoodPreference, WorkspaceMember
-from app.db.session import SessionLocal
 from app.llm.provider import LLMProvider
 from app.services.context_loader import PlanningContext, RecipeContext, RecipeIngredientLine
 
@@ -144,64 +141,11 @@ def upsert_member_preferences(
     explicit = [item for item in updates if item.explicit]
     if not explicit:
         return []
-    with SessionLocal() as session:
-        owners = session.scalars(
-            select(WorkspaceMember).where(
-                WorkspaceMember.workspace_id == workspace_id,
-                WorkspaceMember.role == "owner",
-            )
-        ).all()
-        if len(owners) != 1:
-            return [
-                {
-                    "status": "skipped",
-                    "message": "未找到唯一主账号成员，长期偏好未写入",
-                }
-            ]
-        owner = owners[0]
-        results: list[dict[str, str]] = []
-        for update in explicit:
-            recipe = (
-                find_recipe(context, update.target_name) if update.target_type == "dish" else None
-            )
-            target_key = recipe.id if recipe else normalize_preference_key(update.target_name)
-            existing = session.scalar(
-                select(MemberFoodPreference).where(
-                    MemberFoodPreference.workspace_id == workspace_id,
-                    MemberFoodPreference.user_id == owner.user_id,
-                    MemberFoodPreference.target_type == update.target_type,
-                    MemberFoodPreference.target_key == target_key,
-                )
-            )
-            if existing is None:
-                existing = MemberFoodPreference(
-                    workspace_id=workspace_id,
-                    user_id=owner.user_id,
-                    target_type=update.target_type,
-                    target_key=target_key,
-                    target_name=recipe.name if recipe else update.target_name.strip(),
-                    preference=update.preference,
-                    source="conversation",
-                )
-                session.add(existing)
-            else:
-                existing.target_name = recipe.name if recipe else update.target_name.strip()
-                existing.preference = update.preference
-                existing.source = "conversation"
-            session.flush()
-            results.append(
-                {
-                    "status": "saved",
-                    "id": existing.id,
-                    "user_id": owner.user_id,
-                    "target_type": existing.target_type,
-                    "target_name": existing.target_name,
-                    "preference": existing.preference,
-                    "message": f"已记入主账号长期偏好：{existing.target_name}",
-                }
-            )
-        session.commit()
-        return results
+    # This legacy route has no authenticated actor; never infer whose preferences to write.
+    return [{
+        "status": "skipped",
+        "message": "请在家庭助手中确认个人偏好；本轮条件仍用于菜单建议",
+    }]
 
 
 async def generate_recipe(

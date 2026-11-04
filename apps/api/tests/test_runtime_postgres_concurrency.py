@@ -87,7 +87,7 @@ def race_inserts(engine, first, second):
     def call(function):
         try:
             return function()
-        except HTTPException as error:
+        except HTTPException as error:  # Compare both concurrent calls' expected API outcomes.
             return error
 
     event.listen(engine, "before_cursor_execute", before_insert)

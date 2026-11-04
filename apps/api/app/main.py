@@ -19,7 +19,7 @@ async def lifespan(_: FastAPI):
     """拒绝在代码结构领先数据库时启动，防止请求进入后才集体工具失败。"""
     try:
         ensure_schema_current()
-    except DatabaseSchemaOutdatedError:
+    except DatabaseSchemaOutdatedError:  # Log the schema mismatch before refusing startup.
         logger.exception("数据库迁移未完成，API 已拒绝启动")
         raise
     yield
