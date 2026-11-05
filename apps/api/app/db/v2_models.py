@@ -100,10 +100,12 @@ class InventoryLot(TimestampMixin, Base):
     quantity: Mapped[Decimal | None] = mapped_column(Numeric(12, 3))
     unit: Mapped[str | None] = mapped_column(String(20))
     expires_on: Mapped[date | None] = mapped_column(Date)
+    notes: Mapped[str] = mapped_column(String(300), default="")
     confirmed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     source_type: Mapped[str] = mapped_column(String(32))
     source_id: Mapped[str] = mapped_column(String(120))
     version: Mapped[int] = mapped_column(Integer, default=1)
+    status: Mapped[str] = mapped_column(String(16), default="active")
 
 
 class InventoryMovement(TimestampMixin, Base):

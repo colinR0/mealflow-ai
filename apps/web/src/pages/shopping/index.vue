@@ -30,14 +30,16 @@ export default defineComponent({
     statusLabel(status: string) { return ({ pending: '待购买', purchased: '已购买', archived: '已归档' } as Record<string, string>)[status] || '待核对' },
     openAssistant() { uni.switchTab({ url: '/pages/assistant/index' }) },
     openStockIn() { uni.navigateTo({ url: '/pages/shopping/stock-in' }) },
+    openRecipes() { uni.navigateTo({ url: '/pages/shopping/recipes' }) },
   },
 })
 </script>
 
 <template>
   <view class="shopping-page">
-    <AppHeader eyebrow="SHOPPING" title="家庭采购清单" description="林家共享采购任务" />
+    <AppHeader eyebrow="SHOPPING" title="家庭采购清单" description="一起规划每一餐，购买与入库分开记录" />
     <scroll-view scroll-y class="shopping-scroll">
+      <button class="recipe-entry" @tap="openRecipes">今天吃什么？　浏览菜谱灵感 ›</button>
       <view class="summary-strip"><view><text class="summary-number">{{ state.items.filter((item) => item.status === 'pending').length }}</text><text>待购买</text></view><view><text class="summary-number">{{ state.items.filter((item) => item.status === 'purchased').length }}</text><text>已购买待入库</text></view><text class="summary-note">数量未知项请在购买时核对</text></view>
       <view class="filter-tabs"><button v-for="filter in filters" :key="filter.id" :class="['filter-tab', { active: activeStatus === filter.id }]" @tap="activeStatus = filter.id">{{ filter.label }}</button></view>
       <SurfaceCard :title="statusLabel(activeStatus)" :action="state.loading ? '读取中' : '刷新'" @action="refresh">
@@ -55,6 +57,7 @@ export default defineComponent({
 
 <style scoped lang="scss">
 .shopping-page { min-height: 100vh; display: flex; flex-direction: column; background: #f3f4f6; }
+.recipe-entry { margin: 0 16px 16px; padding: 16px; border-radius: 14px; background: #e8f0ff; color: #3478f6; font-size: 14px; text-align: left; line-height: 1.6; }
 .shopping-scroll { flex: 1; min-height: 0; padding: 18px 0 24px; }
 .summary-strip { display: flex; align-items: center; gap: 18px; margin: 0 16px 16px; padding: 15px 16px; border-radius: 13px; background: #18181b; color: #d4d4d8; font-size: 12px; }.summary-strip > view { display: flex; flex-direction: column; gap: 3px; }.summary-number { color: #fff; font-size: 20px; font-weight: 700; }.summary-note { margin-left: auto; max-width: 110px; color: #fbbf24; line-height: 1.4; text-align: right; }
 .filter-tabs { display: flex; gap: 0; padding: 0 16px; border-bottom: 1px solid #e5e7eb; background: #fff; }.filter-tab { flex: 1; margin: 0; padding: 0 8px; border-radius: 0; border-bottom: 3px solid transparent; color: #71717a; font-size: 14px; line-height: 46px; background: #fff; }.filter-tab.active { border-bottom-color: #2563eb; color: #1d4ed8; }.filter-tab::after { border: 0; }

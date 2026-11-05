@@ -5,22 +5,38 @@ import SurfaceCard from '../../components/SurfaceCard.vue'
 import { session } from '../../shared/session'
 import { useHouseholdPage } from '../../shared/useHouseholdPage'
 import type { InventoryLot } from '../../shared/types'
+import { request } from '../../shared/transport'
 
 export default defineComponent({
   name: 'FridgePage',
   components: { AppHeader, SurfaceCard },
-  data() { return { session, search: '', ...useHouseholdPage<InventoryLot>((id) => `/households/${id}/inventory-lots`) } },
+  data() { return { session, search: '', totalCount: 0, unknownTotal: 0, ...useHouseholdPage<InventoryLot>((id) => `/households/${id}/inventory-lots?limit=100`) } },
   computed: {
     filtered(): InventoryLot[] { return this.state.items.filter((item) => item.name.includes(this.search.trim())) },
-    unknownCount(): number { return this.state.items.filter((item) => item.quantity_status === 'unknown').length },
+    unknownCount(): number { return this.unknownTotal },
   },
-  onShow() { void this.refresh() },
-  watch: { 'session.householdId'() { void this.refresh() } },
-  onPullDownRefresh() { void this.refresh().finally(() => uni.stopPullDownRefresh()) },
+  onShow() { void this.refreshAll() },
+  watch: { 'session.householdId'() { void this.refreshAll() } },
+  onPullDownRefresh() { void this.refreshAll().finally(() => uni.stopPullDownRefresh()) },
   methods: {
+    async refreshAll() {
+      await this.refresh()
+      const sequence = this.state.sequence
+      if (!session.householdId || this.state.error) { this.totalCount = 0; this.unknownTotal = 0; return }
+      try {
+        const summary = await request<{ total: number; unknown: number }>(`/households/${session.householdId}/inventory-summary`)
+        if (sequence !== this.state.sequence) return
+        this.totalCount = summary.total
+        this.unknownTotal = summary.unknown
+      } catch (error) {
+        if (sequence === this.state.sequence) this.state.error = error instanceof Error ? error.message : '统计加载失败'
+      }
+    },
     openFamily() { uni.switchTab({ url: '/pages/family/index' }) },
     openInventory() { uni.navigateTo({ url: '/pages/fridge/inventory' }) },
     openReview() { uni.navigateTo({ url: '/pages/fridge/review' }) },
+    openDevice() { uni.navigateTo({ url: '/pages/fridge/device' }) },
+    openRecipes() { uni.navigateTo({ url: '/pages/shopping/recipes' }) },
   },
 })
 </script>
@@ -29,17 +45,18 @@ export default defineComponent({
   <view class="page-scroll">
     <AppHeader eyebrow="HOME" title="智慧冰箱" description="" />
     <view class="home-status"><view class="fridge-art" aria-label="冰箱产品示意图"><view class="fridge-top"><view class="fridge-display"></view><view class="fridge-handle"></view></view><view class="fridge-bottom"><view class="fridge-handle"></view></view></view><view class="status-copy"><text class="service-tag">摄像头与识别服务尚未接入</text><text class="hero-caption">示意图，非实时画面</text></view></view>
-    <view class="stats-panel"><view><text class="stat-label">已载入确认记录</text><text class="stat-number">{{ session.householdId && !state.loading && !state.error ? state.items.length : '—' }}</text></view><view><text class="stat-label">数量未知 / 待核对</text><text class="stat-number amber">{{ session.householdId && !state.loading && !state.error ? unknownCount : '—' }}</text></view></view>
+    <view class="stats-panel"><view><text class="stat-label">已确认库存</text><text class="stat-number">{{ session.householdId && !state.loading && !state.error ? totalCount : '—' }}</text></view><view><text class="stat-label">数量未知 / 待核对</text><text class="stat-number amber">{{ session.householdId && !state.loading && !state.error ? unknownCount : '—' }}</text></view></view>
     <view class="home-actions"><button class="inventory-button" @tap="openInventory"><text class="inventory-icon">▤</text><text>冰箱库存</text><text class="inventory-arrow">›</text></button></view>
-    <SurfaceCard title="已确认食材预览" :action="state.loading ? '读取中' : '刷新'" @action="refresh">
+    <SurfaceCard title="已确认食材预览" :action="state.loading ? '读取中' : '刷新'" @action="refreshAll">
       <view v-if="state.loading" aria-label="正在读取食材"><view v-for="n in 3" :key="n" class="skeleton"></view></view>
-      <view v-else-if="state.error" class="error-state"><text>{{ state.error }}</text><text class="inline-action" @tap.stop="refresh">重试</text></view>
+      <view v-else-if="state.error" class="error-state"><text>{{ state.error }}</text><text class="inline-action" @tap.stop="refreshAll">重试</text></view>
       <view v-else-if="!session.householdId" class="empty-state"><text class="empty-title">选择家庭查看共享食材</text><text>登录并选择家庭后，这里会显示已确认的库存记录。</text><button class="action-button" @tap="openFamily">前往家庭</button></view>
       <view v-else-if="!state.items.length" class="empty-state"><text class="empty-title">暂无已确认食材</text><text>摄像头与识别服务尚未接入，库存需由家庭确认后记录。</text><button class="secondary-button" @tap="openReview">识别核对（目标态）</button></view>
       <view v-else-if="!filtered.length" class="empty-state"><text>没有查到记录，请尝试其他名称。</text></view>
       <view v-else class="food-list"><view v-for="item in filtered.slice(0, 5)" :key="item.id" class="food-row"><view><text class="food-name">{{ item.name }}</text><text class="food-meta">{{ item.quantity_status === 'known' ? `${item.quantity} ${item.unit || ''}` : '数量未知 / 待核对' }}</text></view><text class="food-quantity">确认于 {{ new Date(item.confirmed_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}</text></view><view class="all-inventory" @tap="openInventory">查看全部库存 ({{ state.items.length }})　›</view></view>
       <text class="footnote">展示已确认记录，搜索限已载入的最多 100 条。数量未知的食材请使用前核对。</text>
     </SurfaceCard>
+    <view class="scene-grid"><button class="scene-card" @tap="openDevice"><text class="scene-title">设备与环境　›</text><text class="scene-copy">分区温湿度与告警</text></button><button class="scene-card" @tap="openRecipes"><text class="scene-title">今天吃什么　›</text><text class="scene-copy">浏览菜谱与烹饪步骤</text></button></view>
     <view class="bottom-space"></view>
   </view>
 </template>

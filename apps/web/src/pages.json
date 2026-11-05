@@ -1,6 +1,8 @@
 {
   "pages": [
     { "path": "pages/fridge/index", "style": { "navigationStyle": "custom", "enablePullDownRefresh": true, "backgroundColor": "#FFFFFF" } },
+    { "path": "pages/fridge/device", "style": { "navigationStyle": "custom", "backgroundColor": "#FFFFFF" } },
+    { "path": "pages/shopping/recipes", "style": { "navigationStyle": "custom", "backgroundColor": "#FFFFFF" } },
     { "path": "pages/assistant/index", "style": { "navigationStyle": "custom", "backgroundColor": "#FFFFFF", "app-plus": { "softinputMode": "adjustResize" } } },
     { "path": "pages/shopping/index", "style": { "navigationStyle": "custom", "enablePullDownRefresh": true, "backgroundColor": "#FFFFFF" } },
     { "path": "pages/family/index", "style": { "navigationStyle": "custom", "backgroundColor": "#FFFFFF" } },

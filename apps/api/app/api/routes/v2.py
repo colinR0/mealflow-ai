@@ -2,16 +2,20 @@
 
 import asyncio
 import json
-from typing import Annotated
+from datetime import UTC, date, datetime
+from decimal import Decimal
+from hashlib import sha256
+from typing import Annotated, Literal
+from uuid import uuid4
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, Response
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy import select
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+from sqlalchemy import func, or_, select
 
 from app.core.config import get_settings
 from app.db.session import SessionLocal
-from app.db.v2_models import AgentEvent, AuthSession, InventoryLot, ShoppingItem
+from app.db.v2_models import AgentEvent, AuthSession, InventoryLot, InventoryMovement, ShoppingItem
 from app.services import turn_history
 from app.services import v2_runtime as runtime
 from app.services.household_profiles import (
@@ -53,6 +57,60 @@ class Decision(Input):
 
 class InviteAcceptance(Input):
     token: str = Field(min_length=1, max_length=200)
+
+
+# Match Numeric(12, 3) before writing; excess fractional digits must never be rounded.
+InventoryQuantity = Annotated[Decimal, Field(
+    ge=0, le=Decimal("999999999.999"), max_digits=12, decimal_places=3,
+)]
+
+
+class InventoryPayload(Input):
+    name: str = Field(min_length=1, max_length=120)
+    ingredient_key: str | None = Field(default=None, max_length=80)
+    quantity_status: Literal["known", "unknown"] = "unknown"
+    quantity: InventoryQuantity | None = None
+    unit: str | None = Field(default=None, max_length=20)
+    expires_on: date | None = None
+    notes: str = Field(default="", max_length=300)
+
+    @model_validator(mode="after")
+    def validate_quantity(self):
+        if self.quantity_status == "unknown":
+            self.quantity = None
+            self.unit = None
+        elif self.quantity is None or not self.unit or not self.unit.strip():
+            raise ValueError("known quantity requires quantity and unit")
+        return self
+
+
+class InventoryPatch(Input):
+    name: str | None = Field(default=None, min_length=1, max_length=120)
+    quantity_status: Literal["known", "unknown"] | None = None
+    quantity: InventoryQuantity | None = None
+    unit: str | None = Field(default=None, max_length=20)
+    expires_on: date | None = None
+    notes: str | None = Field(default=None, max_length=300)
+    expected_version: int = Field(ge=1)
+
+    @model_validator(mode="after")
+    def validate_quantity(self):
+        fields = self.model_fields_set
+        if any(field in fields and getattr(self, field) is None
+               for field in ("name", "quantity_status", "notes")):
+            raise ValueError("name, quantity_status and notes cannot be null")
+        if self.quantity_status == "unknown":
+            self.quantity = None
+            self.unit = None
+        if self.quantity_status == "known" and (
+            self.quantity is None or not self.unit or not self.unit.strip()
+        ):
+            raise ValueError("known quantity requires quantity and unit")
+        return self
+
+
+class InventoryTransition(Input):
+    expected_version: int = Field(ge=1)
 
 
 def check_origin(request: Request) -> None:
@@ -169,23 +227,166 @@ def remove_profile(
     delete_archive(actor[0], household_id, profile_id, expected_version)
 
 
+def _lot_view(row: InventoryLot) -> dict:
+    return {"id": row.id, "name": row.name, "ingredient_key": row.ingredient_key,
+            "quantity_status": row.quantity_status,
+            "quantity": str(row.quantity) if row.quantity is not None else None,
+            "unit": row.unit, "expires_on": row.expires_on.isoformat() if row.expires_on else None,
+            "notes": row.notes, "status": row.status,
+            "confirmed_at": row.confirmed_at.isoformat(), "version": row.version}
+
+
+def _movement(session, actor_id: str, row: InventoryLot, kind: str, before: dict):
+    session.add(InventoryMovement(workspace_id=row.workspace_id, lot_id=row.id,
+        actor_id=actor_id, kind=kind, before=before, after=_lot_view(row),
+        source_type="mobile", source_id=uuid4().hex))
+
+
 @router.get("/households/{household_id}/inventory-lots")
-def inventory(household_id: str, actor: Identity):
+def inventory(household_id: str, actor: Identity,
+              offset: int = Query(default=0, ge=0), limit: int = Query(default=50, ge=1, le=100),
+              search: str = Query(default=""),
+              quantity_status: Literal["known", "unknown"] | None = None,
+              status: Literal["active", "consumed", "removed", "all"] = "active"):
     with SessionLocal() as session:
         runtime.authorized_workspace(session, actor[0], household_id)
-        return [
-            {
-                "id": row.id,
-                "name": row.name,
-                "quantity_status": row.quantity_status,
-                "quantity": str(row.quantity) if row.quantity is not None else None,
-                "unit": row.unit,
-                "confirmed_at": row.confirmed_at.isoformat(),
-            }
-            for row in session.scalars(
-                select(InventoryLot).where(InventoryLot.workspace_id == household_id).limit(100)
-            )
-        ]
+        query = select(InventoryLot).where(InventoryLot.workspace_id == household_id)
+        if status != "all":
+            query = query.where(InventoryLot.status == status)
+        if search.strip():
+            term = f"%{search.strip()}%"
+            query = query.where(or_(
+                InventoryLot.name.ilike(term), InventoryLot.ingredient_key.ilike(term)
+            ))
+        if quantity_status:
+            query = query.where(InventoryLot.quantity_status == quantity_status)
+        total = session.scalar(select(func.count()).select_from(query.subquery())) or 0
+        items = [_lot_view(row) for row in session.scalars(
+            query.order_by(InventoryLot.name, InventoryLot.id).offset(offset).limit(limit)
+        )]
+        return {"items": items, "total": total, "offset": offset, "limit": limit,
+                "has_more": offset + len(items) < total}
+
+
+@router.get("/households/{household_id}/inventory-summary")
+def inventory_summary(household_id: str, actor: Identity):
+    with SessionLocal() as session:
+        runtime.authorized_workspace(session, actor[0], household_id)
+        rows = session.execute(select(InventoryLot.quantity_status, func.count()).where(
+            InventoryLot.workspace_id == household_id, InventoryLot.status == "active"
+        ).group_by(InventoryLot.quantity_status)).all()
+        counts = {status: count for status, count in rows}
+        return {"total": sum(counts.values()), "known": counts.get("known", 0),
+                "unknown": counts.get("unknown", 0)}
+
+
+@router.get("/households/{household_id}/inventory-lots/{lot_id}")
+def inventory_detail(household_id: str, lot_id: str, actor: Identity):
+    with SessionLocal() as session:
+        runtime.authorized_workspace(session, actor[0], household_id)
+        row = session.scalar(select(InventoryLot).where(
+            InventoryLot.id == lot_id, InventoryLot.workspace_id == household_id
+        ))
+        if row is None:
+            raise HTTPException(404, detail={"code": "INVENTORY_NOT_FOUND"})
+        return _lot_view(row)
+
+
+@router.post("/households/{household_id}/inventory-lots", status_code=201)
+def create_inventory(household_id: str, body: InventoryPayload, actor: Identity):
+    with SessionLocal() as session:
+        runtime.authorized_workspace(session, actor[0], household_id)
+        row = InventoryLot(
+            # Preserve existing short keys; long display names get a stable bounded key.
+            workspace_id=household_id, ingredient_key=body.ingredient_key or (
+                body.name if len(body.name) <= 80 else sha256(body.name.encode()).hexdigest()
+            ),
+            name=body.name, quantity_status=body.quantity_status, quantity=body.quantity,
+            unit=body.unit, expires_on=body.expires_on, notes=body.notes,
+            confirmed_at=datetime.now(UTC), source_type="mobile",
+            source_id=uuid4().hex, version=1)
+        session.add(row)
+        session.flush()
+        _movement(session, actor[0], row, "added", {})
+        session.commit()
+        return _lot_view(row)
+
+
+@router.patch("/households/{household_id}/inventory-lots/{lot_id}")
+def update_inventory(household_id: str, lot_id: str, body: InventoryPatch, actor: Identity):
+    with SessionLocal() as session:
+        runtime.authorized_workspace(session, actor[0], household_id)
+        # Hold the row lock through the movement insert and commit so stale writers see 409.
+        row = session.scalar(select(InventoryLot).where(
+            InventoryLot.id == lot_id, InventoryLot.workspace_id == household_id
+        ).with_for_update())
+        if row is None:
+            raise HTTPException(404, detail={"code": "INVENTORY_NOT_FOUND"})
+        if row.version != body.expected_version:
+            raise HTTPException(409, detail={"code": "INVENTORY_VERSION_CONFLICT"})
+        before = _lot_view(row)
+        fields = body.model_fields_set
+        next_status = body.quantity_status or row.quantity_status
+        next_quantity = body.quantity if "quantity" in fields else row.quantity
+        next_unit = body.unit if "unit" in fields else row.unit
+        if next_status == "known" and (
+            next_quantity is None or not next_unit or not next_unit.strip()
+        ):
+            raise HTTPException(422, detail={"code": "KNOWN_QUANTITY_REQUIRED"})
+        for field in ("name", "quantity_status", "quantity", "unit", "expires_on", "notes"):
+            if field in fields:
+                setattr(row, field, getattr(body, field))
+        if row.quantity_status == "unknown":
+            row.quantity = None
+            row.unit = None
+        row.version += 1
+        row.confirmed_at = datetime.now(UTC)
+        _movement(session, actor[0], row, "updated", before)
+        session.commit()
+        return _lot_view(row)
+
+
+@router.post("/households/{household_id}/inventory-lots/{lot_id}/consume")
+def consume_inventory(household_id: str, lot_id: str, body: InventoryTransition, actor: Identity):
+    with SessionLocal() as session:
+        runtime.authorized_workspace(session, actor[0], household_id)
+        row = session.scalar(select(InventoryLot).where(
+            InventoryLot.id == lot_id, InventoryLot.workspace_id == household_id
+        ).with_for_update())
+        if row is None:
+            raise HTTPException(404, detail={"code": "INVENTORY_NOT_FOUND"})
+        if row.version != body.expected_version:
+            raise HTTPException(409, detail={"code": "INVENTORY_VERSION_CONFLICT"})
+        if row.status != "active":
+            raise HTTPException(409, detail={"code": "INVENTORY_STATE_CONFLICT"})
+        before = _lot_view(row)
+        # Terminal transitions are single-shot; never create movements after leaving active.
+        row.status = "consumed"
+        row.version += 1
+        _movement(session, actor[0], row, "consumed", before)
+        session.commit()
+        return _lot_view(row)
+
+
+@router.delete("/households/{household_id}/inventory-lots/{lot_id}", status_code=204)
+def remove_inventory(household_id: str, lot_id: str, body: InventoryTransition, actor: Identity):
+    with SessionLocal() as session:
+        runtime.authorized_workspace(session, actor[0], household_id)
+        row = session.scalar(select(InventoryLot).where(
+            InventoryLot.id == lot_id, InventoryLot.workspace_id == household_id
+        ).with_for_update())
+        if row is None:
+            raise HTTPException(404, detail={"code": "INVENTORY_NOT_FOUND"})
+        if row.version != body.expected_version:
+            raise HTTPException(409, detail={"code": "INVENTORY_VERSION_CONFLICT"})
+        if row.status != "active":
+            raise HTTPException(409, detail={"code": "INVENTORY_STATE_CONFLICT"})
+        before = _lot_view(row)
+        # Terminal transitions are single-shot; never create movements after leaving active.
+        row.status = "removed"
+        row.version += 1
+        _movement(session, actor[0], row, "removed", before)
+        session.commit()
 
 
 @router.get("/households/{household_id}/procurement-items")

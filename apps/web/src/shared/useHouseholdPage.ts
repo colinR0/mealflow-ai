@@ -11,8 +11,8 @@ export function useHouseholdPage<T>(path: (householdId: string) => string) {
     state.loading = false
     if (!session.householdId) return
     state.loading = true
-    await request<T[]>(path(session.householdId))
-      .then((items) => { if (sequence === state.sequence) state.items = items })
+    await request<T[] | { items: T[] }>(path(session.householdId))
+      .then((page) => { if (sequence === state.sequence) state.items = Array.isArray(page) ? page : page.items })
       .catch((error: unknown) => { if (sequence === state.sequence) state.error = error instanceof Error ? error.message : '加载失败' })
       .finally(() => { if (sequence === state.sequence) state.loading = false })
   }

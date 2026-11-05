@@ -6,7 +6,11 @@ export interface InventoryLot {
   quantity: string | null
   unit: string | null
   confirmed_at: string
+  status: 'active' | 'consumed' | 'removed'
+  version: number
+  notes: string
 }
+export interface InventoryPage { items: InventoryLot[]; total: number; offset: number; limit: number; has_more: boolean }
 export interface ShoppingItem {
   id: string
   name: string

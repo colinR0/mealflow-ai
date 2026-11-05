@@ -30,11 +30,12 @@ export function requestLogin<T>(path: string, data: unknown): Promise<T> {
   })
 }
 
-export function request<T>(path: string, data?: unknown, authenticated = true, extraHeaders: Record<string, string> = {}, method?: 'GET' | 'POST' | 'DELETE'): Promise<T> {
+export function request<T>(path: string, data?: unknown, authenticated = true, extraHeaders: Record<string, string> = {}, method?: 'GET' | 'POST' | 'PATCH' | 'DELETE'): Promise<T> {
   return new Promise((resolve, reject) => {
     uni.request({
       url: `${API_BASE}${path}`,
-      method: method || (data === undefined ? 'GET' : 'POST'),
+      // uni-app supports PATCH at runtime; its RequestOptions union omits it.
+      method: (method || (data === undefined ? 'GET' : 'POST')) as UniApp.RequestOptions['method'],
       data: data as UniApp.RequestOptions['data'],
       header: {
         'Content-Type': 'application/json',

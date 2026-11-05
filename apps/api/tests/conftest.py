@@ -1,7 +1,10 @@
 import os
 import re
+from pathlib import Path
 
 import pytest
+from alembic.config import Config
+from alembic.script import ScriptDirectory
 from sqlalchemy import create_engine, text
 
 # Tests require an explicitly provisioned, disposable PostgreSQL database.
@@ -38,9 +41,16 @@ def _database_schema():
             "CREATE TABLE IF NOT EXISTS alembic_version (version_num VARCHAR(32) NOT NULL)"
         ))
         connection.execute(text("DELETE FROM alembic_version"))
+        # metadata creates the current schema; record its real heads for the startup guard.
+        api_root = Path(__file__).resolve().parents[1]
+        config = Config(str(api_root / "alembic.ini"))
+        config.set_main_option("script_location", str(api_root / "migrations"))
+        head = ScriptDirectory.from_config(config).get_current_head()
+        if head is None:
+            raise RuntimeError("Expected one Alembic head for the ORM test schema")
         connection.execute(text(
-            "INSERT INTO alembic_version (version_num) VALUES ('3c6d8e0f1a2b')"
-        ))
+            "INSERT INTO alembic_version (version_num) VALUES (:head)"
+        ), {"head": head})
 
 
 @pytest.fixture(autouse=True)

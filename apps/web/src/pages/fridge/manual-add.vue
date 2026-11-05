@@ -2,23 +2,39 @@
 import { defineComponent } from 'vue'
 import SubpageHeader from '../../components/SubpageHeader.vue'
 import BottomNav from '../../components/BottomNav.vue'
+import { request } from '../../shared/transport'
+import { session } from '../../shared/session'
 
 export default defineComponent({
   name: 'FridgeManualAddPage',
   components: { SubpageHeader, BottomNav },
-  data() { return { name: '', quantityStatus: 'unknown' as 'known' | 'unknown', quantity: '', unit: '个', note: '', error: '' } },
+  data() { return { name: '', quantityStatus: 'unknown' as 'known' | 'unknown', quantity: '', unit: '个', note: '', error: '', busy: false, saved: false } },
   computed: {
-    canSubmit(): boolean { return Boolean(this.name.trim()) && (this.quantityStatus === 'unknown' || (Boolean(this.quantity) && Number(this.quantity) >= 0)) },
+    canSubmit(): boolean { return Boolean(this.name.trim()) && (this.quantityStatus === 'unknown' || (Boolean(this.quantity.trim()) && Number.isFinite(Number(this.quantity)) && Number(this.quantity) >= 0 && Boolean(this.unit.trim()))) },
   },
   methods: {
     selectQuantityStatus(value: 'known' | 'unknown') { this.quantityStatus = value; if (value === 'unknown') this.quantity = '' },
-    submit() {
+    async submit() {
+      if (this.busy || this.saved) return
       this.error = ''
       if (!this.name.trim()) { this.error = '请填写食材名称'; return }
       if (!this.canSubmit) { this.error = '请填写有效数量，或选择数量未知'; return }
-      uni.showToast({ title: '目标态演示：尚未写入库存', icon: 'none' })
+      if (!session.householdId) { this.error = '尚未选择家庭'; return }
+      const householdId = session.householdId
+      const payload = {
+        name: this.name.trim(), quantity_status: this.quantityStatus,
+        quantity: this.quantityStatus === 'known' ? this.quantity : null,
+        unit: this.quantityStatus === 'known' ? this.unit : null, notes: this.note.trim(),
+      }
+      this.busy = true
+      try {
+        await request(`/households/${householdId}/inventory-lots`, payload)
+        this.saved = true
+        uni.showToast({ title: '已保存', icon: 'success' })
+        setTimeout(() => { if (householdId === session.householdId) uni.navigateBack({ delta: 1 }) }, 400)
+      } catch (error) { this.error = error instanceof Error ? error.message : '保存失败' } finally { this.busy = false }
     },
-    cancel() { uni.navigateBack({ delta: 1 }) },
+    cancel() { if (!this.busy) uni.navigateBack({ delta: 1 }) },
   },
 })
 </script>
@@ -26,13 +42,13 @@ export default defineComponent({
 <template>
   <view class="manual-page">
     <SubpageHeader title="手动新增库存" />
-    <view class="target-banner"><text class="target-label">目标态 / 尚未接入</text><text>这是手动录入预览。当前后端暂无库存新增接口，提交不会伪造保存成功。</text></view>
+     <view class="target-banner"><text class="target-label">手动录入</text><text>数量未知时不会写入数量或单位。</text></view>
     <scroll-view scroll-y class="manual-scroll">
       <view class="form-panel"><text class="panel-title">食材信息</text><view class="form-row"><text>食材名称</text><input v-model="name" maxlength="80" placeholder="例如：鸡蛋、番茄" /></view><view class="form-section"><text class="field-label">数量状态</text><view class="segmented"><text :class="{ selected: quantityStatus === 'known' }" @tap="selectQuantityStatus('known')">已知数量</text><text :class="{ selected: quantityStatus === 'unknown' }" @tap="selectQuantityStatus('unknown')">数量未知</text></view></view><view v-if="quantityStatus === 'known'" class="form-row"><text>实际数量</text><view class="quantity-field"><input v-model="quantity" type="number" placeholder="输入数量" /><picker :range="['个', '盒', '袋', '瓶', '克', '千克']" @change="unit = ['个', '盒', '袋', '瓶', '克', '千克'][Number($event.detail.value)]"><text>{{ unit }}　⌄</text></picker></view></view><view v-else class="unknown-hint">数量暂不确定，保存后会显示为“数量未知 / 待核对”，不会按 0 处理。</view><view class="form-section"><text class="field-label">备注（可选）</text><textarea v-model="note" maxlength="200" placeholder="例如：放在冷藏室第二层" /></view></view>
       <view v-if="error" class="error-copy">{{ error }}</view>
       <view class="preview-panel"><text class="preview-title">确认前预览</text><view class="preview-row"><text>食材</text><text>{{ name.trim() || '未填写' }}</text></view><view class="preview-row"><text>数量</text><text>{{ quantityStatus === 'known' ? `${quantity || '未填写'} ${unit}` : '数量未知 / 待核对' }}</text></view><view v-if="note.trim()" class="preview-row"><text>备注</text><text>{{ note.trim() }}</text></view></view>
     </scroll-view>
-    <view class="form-footer"><button class="cancel-button" @tap="cancel">取消</button><button class="submit-button" :disabled="!canSubmit" @tap="submit">预览录入</button></view>
+     <view class="form-footer"><button class="cancel-button" :disabled="busy" @tap="cancel">取消</button><button class="submit-button" :disabled="!canSubmit || busy || saved" :loading="busy" @tap="submit">{{ saved ? '已保存' : '保存库存' }}</button></view>
     <BottomNav active="fridge" />
   </view>
 </template>
