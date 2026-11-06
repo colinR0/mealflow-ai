@@ -9,7 +9,7 @@ export function useHouseholdPage<T>(path: (householdId: string) => string) {
     state.items = []
     state.error = ''
     state.loading = false
-    if (!session.householdId) return
+    if (!session.restored || !session.householdId) return
     state.loading = true
     await request<T[] | { items: T[] }>(path(session.householdId))
       .then((page) => { if (sequence === state.sequence) state.items = Array.isArray(page) ? page : page.items })

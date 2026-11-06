@@ -12,7 +12,7 @@ export default defineComponent({
 
 <template>
   <view class="bottom-nav">
-    <view v-for="item in [{ id: 'fridge', label: '冰箱', path: '/pages/fridge/index', icon: '▣' }, { id: 'assistant', label: '助手', path: '/pages/assistant/index', icon: '▤' }, { id: 'shopping', label: '采购', path: '/pages/shopping/index', icon: '♧' }, { id: 'family', label: '家庭', path: '/pages/family/index', icon: '♙' }]" :key="item.id" class="nav-item" :class="{ active: active === item.id }" @tap="open(item.path)">
+    <view v-for="item in [{ id: 'fridge', label: '冰箱', path: '/pages/fridge/index', icon: '▣' }, { id: 'assistant', label: '助手', path: '/pages/assistant/index', icon: '▤' }, { id: 'shopping', label: '采购', path: '/pages/shopping/index', icon: '♧' }, { id: 'family', label: '我的', path: '/pages/family/index', icon: '♙' }]" :key="item.id" class="nav-item" :class="{ active: active === item.id }" @tap="open(item.path)">
       <text class="nav-icon">{{ item.icon }}</text><text>{{ item.label }}</text>
     </view>
   </view>

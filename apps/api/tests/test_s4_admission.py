@@ -9,7 +9,13 @@ from sqlalchemy import func, select
 from app.core.config import get_settings
 from app.db.models import User, WorkspaceMember
 from app.db.session import SessionLocal
-from app.db.v2_models import BackgroundJob, HouseholdInvite, IdempotencyRecord, TurnRun
+from app.db.v2_models import (
+    BackgroundJob,
+    HouseholdInvite,
+    HouseholdProfile,
+    IdempotencyRecord,
+    TurnRun,
+)
 from app.main import app
 from app.services import v2_runtime as runtime
 
@@ -96,13 +102,16 @@ def test_native_bearer_session_supports_reads_writes_and_revocation():
         result = response.json()
         assert "access_token" in result
         headers = {"Authorization": f"Bearer {result['access_token']}"}
-        assert client.get("/api/v2/auth/me", headers=headers).json() == {"user_id": user}
+        assert client.get("/api/v2/auth/me", headers=headers).json() == {
+            "user_id": user, "phone_masked": "139****0002"
+        }
         households = client.get("/api/v2/households", headers=headers).json()
         assert any(row["id"] == household for row in households)
         created = client.post(
             "/api/v2/households", json={"name": "Native home"}, headers=headers
         )
-        assert created.status_code == 201
+        assert created.status_code == 409
+        assert created.json()["detail"]["code"] == "HOUSEHOLD_LIMIT"
         assert client.post("/api/v2/auth/logout", headers=headers).status_code == 200
         assert client.get("/api/v2/auth/me", headers=headers).status_code == 401
 
@@ -137,3 +146,51 @@ def test_invalid_password_hash_is_not_credential():
     with pytest.raises(HTTPException) as error:
         runtime.login(phone, "invalid-password-hash")
     assert error.value.status_code == 401
+
+
+def test_personal_household_is_created_once_and_second_household_is_rejected():
+    with SessionLocal.begin() as session:
+        user = User(phone="13900000005", display_name="Personal",
+                    password_hash=PasswordHasher().hash("personal-password"))
+        session.add(user)
+        session.flush()
+        user_id = user.id
+    with TestClient(app) as client:
+        login = client.post('/api/v2/auth/login', headers={'X-MealFlow-Client': 'native-app'},
+                            json={'phone': '13900000005', 'password': 'personal-password'})
+        headers = {'Authorization': f"Bearer {login.json()['access_token']}"}
+        first_response = client.post('/api/v2/households/personal/ensure', headers=headers)
+        assert first_response.status_code == 200
+        first = first_response.json()['id']
+        again = client.post('/api/v2/households/personal/ensure', headers=headers)
+        assert again.json()['id'] == first
+    with SessionLocal() as session:
+        assert session.scalar(select(func.count()).select_from(WorkspaceMember).where(
+            WorkspaceMember.user_id == user_id, WorkspaceMember.status == "active"
+        )) == 1
+        assert session.scalar(select(func.count()).select_from(HouseholdProfile).where(
+            HouseholdProfile.workspace_id == first, HouseholdProfile.linked_user_id == user_id
+        )) == 1
+    with pytest.raises(HTTPException) as error:
+        runtime.create_single_household(user_id, "Second")
+    assert error.value.detail["code"] == "HOUSEHOLD_LIMIT"
+
+
+def test_invite_cannot_add_user_to_second_household():
+    owner, household = actor()
+    token = runtime.create_invite(owner, household)
+    with SessionLocal.begin() as session:
+        user = User(phone="13900000006", display_name="Already linked",
+                    password_hash=PasswordHasher().hash("other-password"))
+        session.add(user)
+        session.flush()
+        user_id = user.id
+    personal = runtime.ensure_personal_household(user_id)
+    with pytest.raises(HTTPException) as error:
+        runtime.accept_invite(user_id, token)
+    assert error.value.detail["code"] == "HOUSEHOLD_LIMIT"
+    assert runtime.household_list(user_id)[0]["id"] == personal
+    with SessionLocal() as session:
+        assert session.scalar(select(HouseholdInvite.used_at).where(
+            HouseholdInvite.token_hash == runtime.digest(token)
+        )) is None

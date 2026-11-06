@@ -1,5 +1,6 @@
 import { API_BASE } from './config'
 import { session } from './session'
+import { handleExpiredSession } from './transport'
 
 export interface AgentEvent { schema_version: string; run_id: string; seq: number; type: string; payload: Record<string, unknown> }
 interface ChunkedRequestTask extends UniApp.RequestTask { onChunkReceived(callback: (chunk: { data: ArrayBuffer }) => void): void }
@@ -19,6 +20,7 @@ export function streamRun(
     headers: { Accept: 'text/event-stream', 'Last-Event-ID': `${runId}:${cursor}` },
     signal: controller.signal,
   }).then(async (response) => {
+    if (response.status === 401) { handleExpiredSession(); return }
     if (!response.ok) throw new Error(`事件连接失败：${response.status}`)
     const reader = response.body!.getReader()
     const decoder = new TextDecoder()
@@ -57,7 +59,10 @@ export function streamRun(
       ...(session.accessToken ? { Authorization: `Bearer ${session.accessToken}` } : {}),
       'Last-Event-ID': `${runId}:${cursor}`,
     },
-    success: () => { if (!stopped) onEnd(lastSeq) },
+    success: (response) => {
+      if (response.statusCode === 401) { handleExpiredSession(); return }
+      if (!stopped) onEnd(lastSeq)
+    },
     fail: () => { if (!stopped) onEnd(lastSeq) },
   } as UniApp.RequestOptions)
   let buffer = ''

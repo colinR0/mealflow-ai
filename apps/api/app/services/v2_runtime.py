@@ -141,18 +141,40 @@ def household_list(user_id: str) -> list[dict[str, str]]:
 
 def create_household(user_id: str, name: str) -> str:
     with SessionLocal() as session, session.begin():
-        household = Workspace(id=new_id(), name=name, kind="personal")
-        session.add(household)
-        session.flush()
-        session.add(
-            WorkspaceMember(
-                workspace_id=household.id, user_id=user_id, role="user", status="active"
-            )
-        )
-        session.add(
-            HouseholdProfile(workspace_id=household.id, display_name="我", linked_user_id=user_id)
-        )
-        return household.id
+        return _insert_household(session, user_id, name)
+
+
+def _insert_household(session: Session, user_id: str, name: str) -> str:
+    household = Workspace(id=new_id(), name=name, kind="personal")
+    session.add(household)
+    session.flush()
+    session.add(WorkspaceMember(
+        workspace_id=household.id, user_id=user_id, role="user", status="active"
+    ))
+    session.add(HouseholdProfile(
+        workspace_id=household.id, display_name="我", linked_user_id=user_id
+    ))
+    return household.id
+
+
+def ensure_personal_household(user_id: str) -> str:
+    with SessionLocal() as session, session.begin():
+        # Serialise first-login provisioning so two devices cannot create two spaces.
+        session.get(User, user_id, with_for_update=True)
+        existing = session.scalar(select(WorkspaceMember.workspace_id).where(
+            WorkspaceMember.user_id == user_id, WorkspaceMember.status == "active"
+        ).order_by(WorkspaceMember.created_at))
+        return existing or _insert_household(session, user_id, "我的家庭")
+
+
+def create_single_household(user_id: str, name: str) -> str:
+    with SessionLocal() as session, session.begin():
+        session.get(User, user_id, with_for_update=True)
+        if session.scalar(select(WorkspaceMember.workspace_id).where(
+            WorkspaceMember.user_id == user_id, WorkspaceMember.status == "active"
+        )):
+            raise HTTPException(409, detail={"code": "HOUSEHOLD_LIMIT"})
+        return _insert_household(session, user_id, name)
 
 
 def create_invite(user_id: str, workspace_id: str) -> str:
@@ -178,6 +200,13 @@ def accept_invite(user_id: str, token: str) -> str:
         )
         if invite is None or aware(invite.expires_at) <= utc_now():
             raise HTTPException(410, detail={"code": "INVITE_EXPIRED"})
+        # A user may share one household, but cannot join a second one.
+        session.get(User, user_id, with_for_update=True)
+        active = session.scalar(select(WorkspaceMember.workspace_id).where(
+            WorkspaceMember.user_id == user_id, WorkspaceMember.status == "active"
+        ))
+        if active and active != invite.workspace_id:
+            raise HTTPException(409, detail={"code": "HOUSEHOLD_LIMIT"})
         # Different invitations accepted concurrently must not race the member unique key.
         session.get(Workspace, invite.workspace_id, with_for_update=True)
         invite.used_at = utc_now()

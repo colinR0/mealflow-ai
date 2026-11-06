@@ -132,7 +132,7 @@ export default defineComponent({
 </script>
 
 <template>
-  <view class="secondary-page"><SubpageHeader title="冰箱库存" /><scroll-view scroll-y class="secondary-scroll">
+  <view class="secondary-page"><SubpageHeader title="冰箱库存" /><view class="secondary-scroll">
     <view class="search-box"><text>⌕</text><input v-model="search" placeholder="搜索食材" /></view>
     <view class="filter-tabs">
       <text :class="{ selected: status === 'active' }" @tap="status = 'active'">在库</text>
@@ -141,7 +141,7 @@ export default defineComponent({
       <text :class="{ selected: status === 'all' }" @tap="status = 'all'">全部</text>
     </view>
     <view class="filter-tabs"><text :class="{ selected: filter === 'all' }" @tap="filter = 'all'">全部数量</text><text :class="{ selected: filter === 'unknown' }" @tap="filter = 'unknown'">数量未知</text></view>
-    <view v-if="error" class="error-copy">{{ error }}<button :disabled="loading || Boolean(busyId)" @tap="retryError()">{{ errorRetry === 'refresh' ? '刷新库存' : '重试本页' }}</button></view>
+    <view v-if="error" class="error-copy">{{ error }}<button :disabled="loading || Boolean(busyId)" @tap="retryError()">重试</button></view>
     <view class="list-panel">
       <text class="panel-title">已确认食材 · 匹配 {{ total }} 条</text>
       <view v-if="loading && !items.length" class="state-copy">正在读取库存…</view>
@@ -156,7 +156,7 @@ export default defineComponent({
       </view>
     </view>
     <button v-if="hasMore" :disabled="loading || Boolean(busyId)" class="more-button" @tap="load()">{{ loading ? '加载中…' : '加载更多' }}</button><view class="entry-panel"><button :disabled="Boolean(busyId)" class="entry-button" @tap="openManualAdd">＋ 手动新增</button><button :disabled="Boolean(busyId)" class="entry-button" @tap="openReview">⌗ 识别录入</button></view>
-  </scroll-view><BottomNav active="fridge" />
+  </view><BottomNav active="fridge" />
   <view v-if="editing" class="modal-mask"><view class="modal">
     <text class="panel-title">编辑库存</text>
     <input v-model="editName" :disabled="Boolean(busyId)" maxlength="120" placeholder="食材名称" />
@@ -171,4 +171,6 @@ export default defineComponent({
 
 <style scoped lang="scss">
 .secondary-page { min-height: 100vh; background: #f3f4f6; }.secondary-scroll { height: calc(100vh - 100px); padding: 18px 16px; }.search-box,.filter-tabs,.list-panel,.entry-panel,.modal { background:#fff; border-radius:12px; padding:14px; }.search-box { display:flex; gap:8px; background:#e5e7eb; }.search-box input { flex:1; }.filter-tabs { display:flex; margin:14px 0; padding:0; overflow:hidden; }.filter-tabs text { flex:1; padding:12px; text-align:center; }.selected { background:#eff6ff; color:#1d4ed8; }.panel-title,.food-name,.quantity,.unknown-tag { display:block; }.panel-title { font-weight:600; padding-bottom:10px; }.inventory-row { padding:14px 0; border-top:1px solid #e5e7eb; }.food-name { font-size:16px; }.quantity { margin-top:4px; }.unknown-tag { width:max-content; margin-top:5px; padding:3px 6px; background:#fef3c7; color:#92400e; font-size:12px; }.row-actions { display:flex; gap:6px; margin-top:10px; }.row-actions button,.entry-button,.more-button { margin:0; font-size:13px; }.entry-panel { display:flex; gap:8px; margin-top:16px; }.entry-button,.more-button { flex:1; background:#fff; }.more-button { width:100%; margin-top:14px; }.error-copy { color:#b91c1c; padding:8px 0; }.state-copy { padding:30px 0; color:#71717a; }.modal-mask { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:#0006; }.modal { width:75%; }.modal input { margin:10px 0; padding:10px; background:#f3f4f6; }.modal button { margin-top:8px; }
+.secondary-page { min-height: 0; }
+.secondary-scroll { height: auto; }
 </style>

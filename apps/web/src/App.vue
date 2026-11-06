@@ -1,9 +1,14 @@
 <script lang="ts">
 import { defineComponent } from 'vue'
-import { restoreSession } from './shared/session'
+import { restoreSession, session } from './shared/session'
 
 export default defineComponent({
-  onLaunch() { void restoreSession() },
+  onLaunch() {
+    void restoreSession().then(() => {
+      if (!session.userId || session.restoreError) uni.reLaunch({ url: '/pages/auth/login' })
+      else uni.switchTab({ url: '/pages/fridge/index' })
+    })
+  },
 })
 </script>
 

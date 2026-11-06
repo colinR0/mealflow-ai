@@ -1,23 +1,18 @@
 <script lang="ts">
 import { defineComponent } from 'vue'
-import { session, selectHousehold } from '../shared/session'
 
 export default defineComponent({
   name: 'AppHeader',
   props: { eyebrow: { type: String, required: true }, title: { type: String, required: true }, description: { type: String, default: '' }, tone: { type: String, default: 'light' } },
-  data() { return { session } },
-  methods: { selectHousehold(event: { detail: { value: string } }) { selectHousehold(this.session.households[Number(event.detail.value)]?.id || '') } },
 })
 </script>
 
 <template>
   <view class="app-header" :class="`tone-${tone}`">
     <template v-if="tone === 'dark'">
-      <view class="brand-row"><view class="brand-name">智慧冰箱</view>
-        <picker v-if="session.households.length" class="picker-wrap" :range="session.households" range-key="name" :value="Math.max(0, session.households.findIndex((item) => item.id === session.householdId))" @change="selectHousehold"><view class="household-picker">{{ session.households.find((item) => item.id === session.householdId)?.name || '选择家庭' }} ⌄</view></picker>
-      </view>
+      <view class="brand-row"><view class="brand-name">智慧冰箱</view></view>
     </template>
-    <view v-else class="light-toolbar"><text class="heading-title">{{ title }}</text><picker v-if="session.households.length" class="picker-wrap" :range="session.households" range-key="name" :value="Math.max(0, session.households.findIndex((item) => item.id === session.householdId))" @change="selectHousehold"><view class="household-picker">{{ session.households.find((item) => item.id === session.householdId)?.name || '选择家庭' }}⌄</view></picker></view>
+    <view v-else class="light-toolbar"><text class="heading-title">{{ title }}</text></view>
     <text v-if="description && tone !== 'dark'" class="heading-description">{{ description }}</text>
   </view>
 </template>

@@ -21,7 +21,7 @@ export default defineComponent({
     return {
       session, input: '', sessionId: '', runs: [] as Run[], chats: [] as Chat[],
       historyOpen: false, historyLoading: false, historyMore: false, hasMore: false,
-      loading: false, sending: false, error: '', scrollTarget: '', followBottom: true,
+      loading: false, sending: false, error: '', scrollTarget: '', followBottom: true, conversationRefreshing: false,
       cursor: 0, reconnects: 0, generation: 0,
       conversationHeight: 0,
       stopStream: null as null | (() => void),
@@ -36,6 +36,7 @@ export default defineComponent({
   watch: {
     'session.householdId'() { this.restore() },
     'session.userId'() { this.restore() },
+    'session.restored'() { this.restore() },
   },
   onShow() {
     if (!this.sessionId && !this.loading) this.restore()
@@ -47,6 +48,19 @@ export default defineComponent({
   },
   onUnload() { this.generation++; this.stopStream?.() },
   methods: {
+    refreshConversation() {
+      if (!this.sessionId || this.busy) { this.conversationRefreshing = false; return }
+      this.conversationRefreshing = true
+      const id = this.sessionId
+      return request<Detail>(`${this.historyBase}/${id}`).then((data) => {
+        if (id !== this.sessionId) return
+        // A manual refresh replaces visible history only after the request succeeds.
+        this.runs = data.runs.map(this.decorate)
+        this.hasMore = data.has_more
+        this.error = ''
+      }, (error: Error) => { this.error = error.message })
+        .finally(() => { this.conversationRefreshing = false })
+    },
     activeStatus(status: string): boolean { return active(status) },
     label(status: string): string {
       return ({ queued: '等待开始', running: '正在回答', cancel_requested: '正在停止', succeeded: '已完成', failed: '未完成', cancelled: '已停止', waiting_input: '等待补充信息', waiting_confirmation: '等待确认' } as Record<string, string>)[status] || status
@@ -69,7 +83,7 @@ export default defineComponent({
       this.reset()
       this.chats = []
       this.historyOpen = false
-      if (!session.userId || !session.householdId) return
+      if (!session.restored || !session.userId || !session.householdId) return
       const saved = uni.getStorageSync(this.storageKey) as string
       if (saved) void this.openChat(saved)
     },
@@ -243,7 +257,6 @@ export default defineComponent({
       if (action.type === 'add_procurement') return [String(action.payload.name), action.payload.quantity_status === 'unknown' ? '数量待核对' : `${action.payload.quantity} ${action.payload.unit}`]
       return [String(action.payload.preference || '请核对后保存家庭偏好')]
     },
-    openFamily() { uni.switchTab({ url: '/pages/family/index' }) },
   },
 })
 </script>
@@ -253,9 +266,8 @@ export default defineComponent({
     <AppHeader eyebrow="" title="家庭食材助手" />
     <view class="chat-toolbar"><text class="toolbar-hint">食材、晚餐和采购，都可以聊聊</text><button :disabled="!session.householdId" @tap="showHistory">历史</button><button :disabled="loading" @tap="newChat">＋ 新对话</button></view>
     <view v-if="error" class="page-error">{{ error }}</view>
-    <scroll-view class="conversation" scroll-y :scroll-into-view="scrollTarget" :scroll-with-animation="false" @scroll="onScroll" @scrolltolower="followBottom = true">
-      <view v-if="!session.userId || !session.householdId" class="welcome"><text class="welcome-icon">✦</text><text class="welcome-title">登录后开始对话</text><text>你的对话会保存在当前账号和家庭中。</text><button class="primary" @tap="openFamily">前往家庭登录</button></view>
-      <view v-else-if="!runs.length && !loading" class="welcome"><text class="welcome-icon">✦</text><text class="welcome-title">今天，想为家里做点什么？</text><text>查查冰箱、聊聊晚餐，或整理采购清单。</text><view class="suggestions"><button v-for="suggestion in suggestions" :key="suggestion" @tap="input = suggestion">{{ suggestion }} ↗</button></view><text class="welcome-note">采购和偏好变更会先请你确认。</text></view>
+    <scroll-view class="conversation" scroll-y refresher-enabled :refresher-triggered="conversationRefreshing" :scroll-into-view="scrollTarget" :scroll-with-animation="false" @refresherrefresh="refreshConversation" @scroll="onScroll" @scrolltolower="followBottom = true">
+      <view v-if="session.restored && !runs.length && !loading" class="welcome"><text class="welcome-icon">✦</text><text class="welcome-title">今天，想为家里做点什么？</text><text>查查冰箱、聊聊晚餐，或整理采购清单。</text><view class="suggestions"><button v-for="suggestion in suggestions" :key="suggestion" @tap="input = suggestion">{{ suggestion }} ↗</button></view><text class="welcome-note">采购和偏好变更会先请你确认。</text></view>
       <button v-if="hasMore" class="older" :disabled="loading" @tap="loadOlder">加载更早的消息</button>
       <text v-if="loading" class="loading">正在读取对话…</text>
       <view v-for="(run, index) in runs" :id="`message-${run.run_id || index}`" :key="run.requestKey || run.run_id" class="turn">

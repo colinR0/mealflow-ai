@@ -14,6 +14,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from sqlalchemy import func, or_, select
 
 from app.core.config import get_settings
+from app.db.models import User
 from app.db.session import SessionLocal
 from app.db.v2_models import AgentEvent, AuthSession, InventoryLot, InventoryMovement, ShoppingItem
 from app.services import turn_history
@@ -173,7 +174,9 @@ def login(body: Login, request: Request, response: Response):
 
 @router.get("/auth/me")
 def me(actor: Identity):
-    return {"user_id": actor[0]}
+    with SessionLocal() as session:
+        phone = session.get(User, actor[0]).phone
+    return {"user_id": actor[0], "phone_masked": f"{phone[:3]}****{phone[-4:]}" if phone else ""}
 
 
 @router.post("/auth/logout")
@@ -191,7 +194,12 @@ def households(actor: Identity):
 
 @router.post("/households", status_code=201)
 def household(body: Name, actor: Identity):
-    return {"id": runtime.create_household(actor[0], body.name)}
+    return {"id": runtime.create_single_household(actor[0], body.name)}
+
+
+@router.post("/households/personal/ensure")
+def ensure_personal_household(actor: Identity):
+    return {"id": runtime.ensure_personal_household(actor[0])}
 
 
 @router.post("/households/{household_id}/invites", status_code=201)

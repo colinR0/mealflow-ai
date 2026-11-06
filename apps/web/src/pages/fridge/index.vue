@@ -16,10 +16,11 @@ export default defineComponent({
     unknownCount(): number { return this.unknownTotal },
   },
   onShow() { void this.refreshAll() },
-  watch: { 'session.householdId'() { void this.refreshAll() } },
+  watch: { 'session.householdId'() { void this.refreshAll() }, 'session.restored'() { void this.refreshAll() } },
   onPullDownRefresh() { void this.refreshAll().finally(() => uni.stopPullDownRefresh()) },
   methods: {
     async refreshAll() {
+      if (!session.restored) return
       await this.refresh()
       const sequence = this.state.sequence
       if (!session.householdId || this.state.error) { this.totalCount = 0; this.unknownTotal = 0; return }
@@ -32,10 +33,10 @@ export default defineComponent({
         if (sequence === this.state.sequence) this.state.error = error instanceof Error ? error.message : '统计加载失败'
       }
     },
-    openFamily() { uni.switchTab({ url: '/pages/family/index' }) },
     openInventory() { uni.navigateTo({ url: '/pages/fridge/inventory' }) },
     openReview() { uni.navigateTo({ url: '/pages/fridge/review' }) },
     openDevice() { uni.navigateTo({ url: '/pages/fridge/device' }) },
+    openCamera() { uni.navigateTo({ url: '/pages/fridge/camera' }) },
     openRecipes() { uni.navigateTo({ url: '/pages/shopping/recipes' }) },
   },
 })
@@ -44,25 +45,25 @@ export default defineComponent({
 <template>
   <view class="page-scroll">
     <AppHeader eyebrow="HOME" title="智慧冰箱" description="" />
-    <view class="home-status"><view class="fridge-art" aria-label="冰箱产品示意图"><view class="fridge-top"><view class="fridge-display"></view><view class="fridge-handle"></view></view><view class="fridge-bottom"><view class="fridge-handle"></view></view></view><view class="status-copy"><text class="service-tag">摄像头与识别服务尚未接入</text><text class="hero-caption">示意图，非实时画面</text></view></view>
+    <view class="camera-entry" @tap="openCamera"><view><text class="camera-title">冰箱画面　›</text><text class="camera-status">摄像头尚未接入，暂无实时画面</text></view><text class="camera-icon">▣</text></view>
     <view class="stats-panel"><view><text class="stat-label">已确认库存</text><text class="stat-number">{{ session.householdId && !state.loading && !state.error ? totalCount : '—' }}</text></view><view><text class="stat-label">数量未知 / 待核对</text><text class="stat-number amber">{{ session.householdId && !state.loading && !state.error ? unknownCount : '—' }}</text></view></view>
     <view class="home-actions"><button class="inventory-button" @tap="openInventory"><text class="inventory-icon">▤</text><text>冰箱库存</text><text class="inventory-arrow">›</text></button></view>
-    <SurfaceCard title="已确认食材预览" :action="state.loading ? '读取中' : '刷新'" @action="refreshAll">
-      <view v-if="state.loading" aria-label="正在读取食材"><view v-for="n in 3" :key="n" class="skeleton"></view></view>
+    <SurfaceCard title="已确认食材预览">
+      <view v-if="!session.restored || state.loading" aria-label="正在读取食材"><view v-for="n in 3" :key="n" class="skeleton"></view></view>
       <view v-else-if="state.error" class="error-state"><text>{{ state.error }}</text><text class="inline-action" @tap.stop="refreshAll">重试</text></view>
-      <view v-else-if="!session.householdId" class="empty-state"><text class="empty-title">选择家庭查看共享食材</text><text>登录并选择家庭后，这里会显示已确认的库存记录。</text><button class="action-button" @tap="openFamily">前往家庭</button></view>
       <view v-else-if="!state.items.length" class="empty-state"><text class="empty-title">暂无已确认食材</text><text>摄像头与识别服务尚未接入，库存需由家庭确认后记录。</text><button class="secondary-button" @tap="openReview">识别核对（目标态）</button></view>
       <view v-else-if="!filtered.length" class="empty-state"><text>没有查到记录，请尝试其他名称。</text></view>
       <view v-else class="food-list"><view v-for="item in filtered.slice(0, 5)" :key="item.id" class="food-row"><view><text class="food-name">{{ item.name }}</text><text class="food-meta">{{ item.quantity_status === 'known' ? `${item.quantity} ${item.unit || ''}` : '数量未知 / 待核对' }}</text></view><text class="food-quantity">确认于 {{ new Date(item.confirmed_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}</text></view><view class="all-inventory" @tap="openInventory">查看全部库存 ({{ state.items.length }})　›</view></view>
       <text class="footnote">展示已确认记录，搜索限已载入的最多 100 条。数量未知的食材请使用前核对。</text>
     </SurfaceCard>
     <view class="scene-grid"><button class="scene-card" @tap="openDevice"><text class="scene-title">设备与环境　›</text><text class="scene-copy">分区温湿度与告警</text></button><button class="scene-card" @tap="openRecipes"><text class="scene-title">今天吃什么　›</text><text class="scene-copy">浏览菜谱与烹饪步骤</text></button></view>
-    <view class="bottom-space"></view>
   </view>
 </template>
 
 <style scoped lang="scss">
 .home-status { display: flex; align-items: center; min-height: 300rpx; padding: 28rpx var(--page-gap) 46rpx; background: #f3f4f6; }
+.camera-entry { display: flex; align-items: center; justify-content: space-between; margin: 24rpx var(--page-gap) 46rpx; padding: 28rpx 32rpx; border-radius: 24rpx; background: #e8f0ff; color: #244d7b; }
+.camera-title, .camera-status { display: block; }.camera-title { font-size: 30rpx; font-weight: 650; }.camera-status { margin-top: 10rpx; color: #657b99; font-size: 23rpx; }.camera-icon { font-size: 48rpx; color: #3478f6; }
 .status-copy { flex: 1; min-width: 0; padding-left: 24rpx; }
 .service-tag { display: inline-block; padding: 10rpx 14rpx; border-radius: 20rpx; background: #fef3c7; color: #92400e; font-size: 21rpx; line-height: 1.4; }
 .hero-caption { display: block; margin-top: 14rpx; color: #71717a; font-size: 20rpx; }

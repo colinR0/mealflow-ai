@@ -1,11 +1,15 @@
 {
   "pages": [
     { "path": "pages/fridge/index", "style": { "navigationStyle": "custom", "enablePullDownRefresh": true, "backgroundColor": "#FFFFFF" } },
+    { "path": "pages/auth/login", "style": { "navigationStyle": "custom", "backgroundColor": "#FFFFFF" } },
     { "path": "pages/fridge/device", "style": { "navigationStyle": "custom", "backgroundColor": "#FFFFFF" } },
+    { "path": "pages/fridge/camera", "style": { "navigationStyle": "custom", "backgroundColor": "#FFFFFF" } },
     { "path": "pages/shopping/recipes", "style": { "navigationStyle": "custom", "backgroundColor": "#FFFFFF" } },
     { "path": "pages/assistant/index", "style": { "navigationStyle": "custom", "backgroundColor": "#FFFFFF", "app-plus": { "softinputMode": "adjustResize" } } },
     { "path": "pages/shopping/index", "style": { "navigationStyle": "custom", "enablePullDownRefresh": true, "backgroundColor": "#FFFFFF" } },
     { "path": "pages/family/index", "style": { "navigationStyle": "custom", "backgroundColor": "#FFFFFF" } },
+    { "path": "pages/family/people", "style": { "navigationStyle": "custom", "enablePullDownRefresh": true, "backgroundColor": "#FFFFFF" } },
+    { "path": "pages/family/household", "style": { "navigationStyle": "custom", "backgroundColor": "#FFFFFF" } },
     { "path": "pages/fridge/inventory", "style": { "navigationStyle": "custom", "enablePullDownRefresh": true, "backgroundColor": "#FFFFFF" } },
     { "path": "pages/fridge/review", "style": { "navigationStyle": "custom", "backgroundColor": "#FFFFFF" } },
     { "path": "pages/fridge/manual-add", "style": { "navigationStyle": "custom", "backgroundColor": "#FFFFFF" } },
@@ -22,7 +26,7 @@
       { "pagePath": "pages/fridge/index", "text": "冰箱", "iconPath": "static/tabs/fridge.png", "selectedIconPath": "static/tabs/fridge-active.png" },
       { "pagePath": "pages/assistant/index", "text": "助手", "iconPath": "static/tabs/assistant.png", "selectedIconPath": "static/tabs/assistant-active.png" },
       { "pagePath": "pages/shopping/index", "text": "采购", "iconPath": "static/tabs/shopping.png", "selectedIconPath": "static/tabs/shopping-active.png" },
-      { "pagePath": "pages/family/index", "text": "家庭", "iconPath": "static/tabs/family.png", "selectedIconPath": "static/tabs/family-active.png" }
+      { "pagePath": "pages/family/index", "text": "我的", "iconPath": "static/tabs/family.png", "selectedIconPath": "static/tabs/family-active.png" }
     ]
   },
   "globalStyle": {

@@ -1,5 +1,5 @@
 import { reactive } from 'vue'
-import { request, requestLogin } from './transport'
+import { ApiError, request, requestLogin } from './transport'
 import type { Household } from './types'
 
 interface StoredSession { userId: string; csrfToken: string; accessToken: string; householdId: string }
@@ -13,6 +13,8 @@ export const session = reactive({
   householdId: '',
   households: [] as Household[],
   restored: false,
+  restoreError: '',
+  phoneMasked: '',
 })
 
 function persist() {
@@ -20,25 +22,34 @@ function persist() {
   uni.setStorageSync(SESSION_KEY, data)
 }
 
-function clear() {
+export function clearSession() {
   session.userId = ''
   session.csrfToken = ''
   session.accessToken = ''
   session.householdId = ''
   session.households = []
+  session.phoneMasked = ''
+  session.restoreError = ''
   uni.removeStorageSync(SESSION_KEY)
 }
 
 export async function restoreSession() {
+  session.restoreError = ''
   const saved = uni.getStorageSync(SESSION_KEY) as StoredSession | ''
   if (saved) {
     session.userId = saved.userId
     session.csrfToken = saved.csrfToken
     session.accessToken = saved.accessToken || ''
     session.householdId = saved.householdId
-    await request<{ user_id: string }>('/auth/me')
-      .then(() => loadHouseholds())
-      .catch(() => clear())
+    try {
+      const account = await request<{ user_id: string; phone_masked: string }>('/auth/me')
+      session.phoneMasked = account.phone_masked
+      await loadHouseholds()
+    } catch (error) {
+      // A temporary network failure must keep the saved session for retry.
+      if (error instanceof ApiError && error.statusCode === 401) clearSession()
+      else session.restoreError = error instanceof Error ? error.message : '恢复登录失败'
+    }
   }
   session.restored = true
 }
@@ -48,16 +59,23 @@ export async function login(phone: string, password: string) {
   session.userId = result.user_id
   session.csrfToken = result.csrf_token
   session.accessToken = result.access_token || ''
+  session.restoreError = ''
   persist()
   await loadHouseholds()
+  const account = await request<{ phone_masked: string }>('/auth/me')
+  session.phoneMasked = account.phone_masked
 }
 
 export async function logout() {
-  return request('/auth/logout', {}).then(clear, clear)
+  return request('/auth/logout', {}).then(clearSession, clearSession)
 }
 
 export async function loadHouseholds() {
   session.households = await request<Household[]>('/households')
+  if (!session.households.length) {
+    await request('/households/personal/ensure', {}, true, {}, 'POST')
+    session.households = await request<Household[]>('/households')
+  }
   if (!session.households.some((household) => household.id === session.householdId)) {
     session.householdId = session.households[0]?.id || ''
   }
