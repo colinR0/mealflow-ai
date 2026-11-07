@@ -23,7 +23,6 @@ from app.db.v2_models import (
     HouseholdProfile,
     IdempotencyRecord,
     InventoryLot,
-    InventoryMovement,
     LoginAttempt,
     PendingAction,
     RuntimeAdmission,
@@ -31,6 +30,7 @@ from app.db.v2_models import (
     TurnRun,
     TurnSession,
 )
+from app.services import ingredient_catalog, inventory_lots
 
 
 def utc_now() -> datetime:
@@ -560,41 +560,37 @@ def decide_action(
                 )
             )
             if existing is None:
-                lot = InventoryLot(
+                ingredient = ingredient_catalog.resolve_ingredient(
+                    session,
+                    ingredient_key=body.get("ingredient_key"),
+                    name=body.get("name"),
+                    default_unit=body.get("unit"),
+                )
+                view, _outcome = inventory_lots.upsert_lot(
+                    session,
                     workspace_id=action.workspace_id,
-                    ingredient_key=body["ingredient_key"],
-                    name=body["name"],
+                    actor_id=user_id,
+                    ingredient=ingredient,
+                    name=body.get("name") or ingredient.name,
                     quantity_status=body.get("quantity_status", "unknown"),
                     quantity=body.get("quantity"),
                     unit=body.get("unit"),
-                    expires_on=date.fromisoformat(body["expires_on"])
-                    if body.get("expires_on")
-                    else None,
-                    confirmed_at=utc_now(),
-                    source_type="pending_action",
-                    source_id=action.id,
-                    version=1,
+                    expires_on=(
+                        date.fromisoformat(body["expires_on"])
+                        if body.get("expires_on")
+                        else None
+                    ),
+                    notes=body.get("notes", ""),
                 )
-                session.add(lot)
-                session.flush()
-                session.add(
-                    InventoryMovement(
-                        workspace_id=action.workspace_id,
-                        lot_id=lot.id,
-                        actor_id=user_id,
-                        kind="add_lot",
-                        before={},
-                        after={
-                            "id": lot.id,
-                            "quantity_status": lot.quantity_status,
-                            "quantity": str(lot.quantity) if lot.quantity is not None else None,
-                            "unit": lot.unit,
-                        },
-                        source_type="pending_action",
-                        source_id=action.id,
-                    )
-                )
-                result = {"action_id": action.id, "status": "confirmed", "inventory_lot_id": lot.id}
+                # Preserve pending_action idempotency markers on the resulting lot.
+                lot = session.get(InventoryLot, view["id"])
+                lot.source_type = "pending_action"
+                lot.source_id = action.id
+                result = {
+                    "action_id": action.id,
+                    "status": "confirmed",
+                    "inventory_lot_id": lot.id,
+                }
             else:
                 result = {
                     "action_id": action.id,

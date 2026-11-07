@@ -1,0 +1,9 @@
+{
+  "input_path": "D:\\Agent\\mealflow-ai\\output\\prechunk-audit-v1\\ready_for_chunking.jsonl",
+  "input_sha256": "ac860ea86e2aeccc87c8cf92d2616ecccdfc9bb930cf7542e12b91a3cbcff20d",
+  "chunks_sha256": "391ea06ef0f454318443ef6636c9e28d775564b4f5fe00f613243dbb391a49be",
+  "policy_version": "recipe-structure-v1",
+  "max_chars": 450,
+  "parent_count": 40,
+  "chunk_count": 47
+}

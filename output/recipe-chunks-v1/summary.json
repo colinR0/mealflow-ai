@@ -1,0 +1,20 @@
+{
+  "policy_version": "recipe-structure-v1",
+  "input_sha256": "ac860ea86e2aeccc87c8cf92d2616ecccdfc9bb930cf7542e12b91a3cbcff20d",
+  "chunks_sha256": "391ea06ef0f454318443ef6636c9e28d775564b4f5fe00f613243dbb391a49be",
+  "parent_count": 40,
+  "parents_chunked": 40,
+  "chunk_count": 47,
+  "section_counts": {
+    "full": 33,
+    "overview": 7,
+    "steps": 7
+  },
+  "min_chars": 78,
+  "max_chars_observed": 450,
+  "max_chars_limit": 450,
+  "error_count": 0,
+  "embedding_performed": false,
+  "database_write_performed": false,
+  "production_publishable": false
+}

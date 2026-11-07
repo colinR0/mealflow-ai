@@ -1,0 +1,109 @@
+{
+  "method": "string-overlap-v1",
+  "question_count": 40,
+  "answerable_count": 34,
+  "hit_at_5": 0.8824,
+  "mrr_at_10": 0.8407,
+  "evidence_section_rate": 0.7941,
+  "exclusion_violations": 5,
+  "unanswerable_false_positives": 2,
+  "by_intent": {
+    "按条件找菜": {
+      "questions": 14,
+      "answerable": 13,
+      "hit_at_5": 0.9231,
+      "mrr_at_10": 0.8654,
+      "evidence_section_rate": 0.9231,
+      "exclusion_violations": 5,
+      "unanswerable_false_positives": 1
+    },
+    "查菜": {
+      "questions": 12,
+      "answerable": 10,
+      "hit_at_5": 0.7,
+      "mrr_at_10": 0.7,
+      "evidence_section_rate": 0.7,
+      "exclusion_violations": 0,
+      "unanswerable_false_positives": 0
+    },
+    "问做法": {
+      "questions": 14,
+      "answerable": 11,
+      "hit_at_5": 1.0,
+      "mrr_at_10": 0.9394,
+      "evidence_section_rate": 0.7273,
+      "exclusion_violations": 0,
+      "unanswerable_false_positives": 1
+    }
+  },
+  "by_category": {
+    "别名": {
+      "questions": 4,
+      "answerable": 4,
+      "hit_at_5": 0.5,
+      "mrr_at_10": 0.3333,
+      "evidence_section_rate": 0.5,
+      "exclusion_violations": 0,
+      "unanswerable_false_positives": 0
+    },
+    "否定": {
+      "questions": 4,
+      "answerable": 3,
+      "hit_at_5": 0.6667,
+      "mrr_at_10": 0.4167,
+      "evidence_section_rate": 0.6667,
+      "exclusion_violations": 4,
+      "unanswerable_false_positives": 1
+    },
+    "无答案": {
+      "questions": 5,
+      "answerable": 0,
+      "hit_at_5": null,
+      "mrr_at_10": null,
+      "evidence_section_rate": null,
+      "exclusion_violations": 0,
+      "unanswerable_false_positives": 1
+    },
+    "模糊需求": {
+      "questions": 3,
+      "answerable": 3,
+      "hit_at_5": 0.6667,
+      "mrr_at_10": 0.6667,
+      "evidence_section_rate": 0.6667,
+      "exclusion_violations": 0,
+      "unanswerable_false_positives": 0
+    },
+    "步骤细节": {
+      "questions": 6,
+      "answerable": 6,
+      "hit_at_5": 1.0,
+      "mrr_at_10": 1.0,
+      "evidence_section_rate": 0.5,
+      "exclusion_violations": 0,
+      "unanswerable_false_positives": 0
+    },
+    "精确菜名": {
+      "questions": 10,
+      "answerable": 10,
+      "hit_at_5": 1.0,
+      "mrr_at_10": 1.0,
+      "evidence_section_rate": 1.0,
+      "exclusion_violations": 0,
+      "unanswerable_false_positives": 0
+    },
+    "食材组合": {
+      "questions": 8,
+      "answerable": 8,
+      "hit_at_5": 1.0,
+      "mrr_at_10": 1.0,
+      "evidence_section_rate": 1.0,
+      "exclusion_violations": 1,
+      "unanswerable_false_positives": 0
+    }
+  },
+  "embedding_performed": false,
+  "database_write_performed": false,
+  "quality_claim": false,
+  "questions_sha256": "14e7b0f38f3560ef37f46ae5927b4c0c4fcfeebb2bcaeb7cdfc53c8ad7b0b1d2",
+  "chunks_sha256": "391ea06ef0f454318443ef6636c9e28d775564b4f5fe00f613243dbb391a49be"
+}

@@ -1,0 +1,105 @@
+{
+  "mode": "dry_run",
+  "source_files": 12,
+  "counts": {
+    "scanned": 12
+  },
+  "records": [
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "format": "json",
+      "sha256": "49f708e73c2e1e094b2d3a5580ecd835059bed675890fdd6cc911001673548e9",
+      "size_bytes": 710510,
+      "result": "scanned",
+      "version": null
+    },
+    {
+      "source_key": "data/seed/recipes.json",
+      "format": "json",
+      "sha256": "c7d8104179b71fe3926ab2cc435b5962fc16792d74ebf91f84424e34a0fbee1c",
+      "size_bytes": 34672,
+      "result": "scanned",
+      "version": null
+    },
+    {
+      "source_key": "data/sources/pending/lin-chef-minced-pork-potato/source.pdf",
+      "format": "pdf",
+      "sha256": "2ed95e1854f63dcc1eb420b9df9ea451cba6f17b9b03d4552910b0a3618f1421",
+      "size_bytes": 176225,
+      "result": "scanned",
+      "version": null
+    },
+    {
+      "source_key": "output/pdf/recipe-loading-v1/rload-001.pdf",
+      "format": "pdf",
+      "sha256": "afdfcaa670c05d9334650567d90e2b302c3dd95cfaf923e287b0dd1a5db1ee4c",
+      "size_bytes": 54143,
+      "result": "scanned",
+      "version": null
+    },
+    {
+      "source_key": "output/pdf/recipe-loading-v1/rload-002.pdf",
+      "format": "pdf",
+      "sha256": "0fd1a63f986e9908494f0df7e0498a807f49e4f4683b70f3890bbfe6b3497c9d",
+      "size_bytes": 51022,
+      "result": "scanned",
+      "version": null
+    },
+    {
+      "source_key": "output/pdf/recipe-loading-v1/rload-003.pdf",
+      "format": "pdf",
+      "sha256": "c65bb9788facdf93e9c988046de24bc8cb4e7deadc48d64348c1e5e208143a0f",
+      "size_bytes": 49178,
+      "result": "scanned",
+      "version": null
+    },
+    {
+      "source_key": "output/recipe-loading-v1/md/rload-004.md",
+      "format": "md",
+      "sha256": "570aac6fabe167d63866215dfa81d6a2b8b38d4b45326b2c97f8fb64d8675c1f",
+      "size_bytes": 1563,
+      "result": "scanned",
+      "version": null
+    },
+    {
+      "source_key": "output/recipe-loading-v1/md/rload-005.md",
+      "format": "md",
+      "sha256": "7752116752c0468ffddd2ddac0409176e576e268b7c1b9cc7cf2c6910acdf57c",
+      "size_bytes": 1599,
+      "result": "scanned",
+      "version": null
+    },
+    {
+      "source_key": "output/recipe-loading-v1/md/rload-006.md",
+      "format": "md",
+      "sha256": "98fbd51beb05be5ed3193a8f22628ce6d388d02289c4d0cbfb9f8a8219acd1d7",
+      "size_bytes": 1690,
+      "result": "scanned",
+      "version": null
+    },
+    {
+      "source_key": "output/recipe-loading-v1/txt/rload-007.txt",
+      "format": "txt",
+      "sha256": "6b19391ab3c61384c74f28b9d9c544219e2a3cb1e05086a812b0b21ecbe5a3c7",
+      "size_bytes": 1473,
+      "result": "scanned",
+      "version": null
+    },
+    {
+      "source_key": "output/recipe-loading-v1/txt/rload-008.txt",
+      "format": "txt",
+      "sha256": "6a2c07ab0059ab57cc8a5853374033fc6c8d1accb179219937a1c3f93a22e95b",
+      "size_bytes": 1606,
+      "result": "scanned",
+      "version": null
+    },
+    {
+      "source_key": "output/recipe-loading-v1/txt/rload-009.txt",
+      "format": "txt",
+      "sha256": "b3f5cabb0b87959d2b5aea2b2de5fed654c0aa9643ddf3c3707b35248ac113d2",
+      "size_bytes": 1572,
+      "result": "scanned",
+      "version": null
+    }
+  ]
+}

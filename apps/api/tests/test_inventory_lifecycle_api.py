@@ -9,7 +9,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import func, select
 
-from app.db.models import User, WorkspaceMember
+from app.db.models import Ingredient, User, WorkspaceMember
 from app.db.session import SessionLocal
 from app.db.v2_models import AuthSession, InventoryLot, InventoryMovement
 from app.main import app
@@ -43,7 +43,9 @@ def base_path(household):
 def create_lot(client, household, **values):
     response = client.post(base_path(household), json={"name": "Test food", **values})
     assert response.status_code == 201, response.text
-    return response.json()
+    body = response.json()
+    assert body["outcome"] == "created"
+    return body
 
 
 def mutate(client, path, action, payload):
@@ -131,6 +133,54 @@ def test_concurrent_writers_commit_only_one_movement(inventory_client, actions):
     assert movement_count(lot["id"]) == 2
 
 
+def test_concurrent_first_upsert_creates_single_lot(inventory_client):
+    """Two first-time POSTs for the same workspace+ingredient must share one lot."""
+    client, household, _ = inventory_client
+    with SessionLocal() as session:
+        tomato = session.scalar(select(Ingredient).where(Ingredient.key == "tomato"))
+        assert tomato is not None
+        ingredient_id = tomato.id
+    barrier = Barrier(2, timeout=10)
+    quantities = ("1.000", "2.500")
+
+    def write(quantity):
+        with TestClient(app, headers=dict(client.headers)) as concurrent_client:
+            barrier.wait()
+            return concurrent_client.post(base_path(household), json={
+                "ingredient_id": ingredient_id,
+                "quantity_status": "known",
+                "quantity": quantity,
+                "unit": "kg",
+            })
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        responses = list(pool.map(write, quantities))
+
+    assert [response.status_code for response in responses] == [201, 201]
+    bodies = [response.json() for response in responses]
+    outcomes = sorted(body["outcome"] for body in bodies)
+    assert outcomes == ["created", "updated"]
+    assert bodies[0]["id"] == bodies[1]["id"]
+    assert bodies[0]["ingredient_id"] == ingredient_id
+    listing = client.get(base_path(household)).json()
+    assert listing["total"] == 1
+    final = client.get(base_path(household) + "/" + bodies[0]["id"]).json()
+    assert final["version"] == 2
+    assert final["status"] == "active"
+    assert Decimal(final["quantity"]) in {Decimal("1.000"), Decimal("2.500")}
+    with SessionLocal() as session:
+        lots = session.scalars(select(InventoryLot).where(
+            InventoryLot.workspace_id == household,
+            InventoryLot.ingredient_id == ingredient_id,
+        )).all()
+        assert len(lots) == 1
+        kinds = [row.kind for row in session.scalars(
+            select(InventoryMovement).where(InventoryMovement.lot_id == lots[0].id)
+            .order_by(InventoryMovement.created_at)
+        )]
+    assert kinds == ["added", "updated"]
+
+
 def test_quantity_validation_and_unknown_normalization(inventory_client):
     client, household, _ = inventory_client
     for values in (
@@ -171,28 +221,90 @@ def test_quantity_validation_and_unknown_normalization(inventory_client):
     assert movement_count(lot["id"]) == 5
 
 
-@pytest.mark.parametrize("length", [80, 81, 120])
-def test_display_name_generates_a_stable_bounded_key(inventory_client, length):
+def test_same_name_upserts_overwrite_quantity_not_accumulate(inventory_client):
     client, household, _ = inventory_client
-    name = "菜" * length
-    first = create_lot(client, household, name=name)
-    second = create_lot(client, household, name=name)
-    assert first["name"] == name
-    assert 0 < len(first["ingredient_key"]) <= 80
-    assert first["ingredient_key"] == second["ingredient_key"]
-    different = create_lot(client, household, name=name[:-1] + "肉")
-    assert different["ingredient_key"] != first["ingredient_key"]
-    explicit = create_lot(client, household, name=name, ingredient_key="custom-key")
-    assert explicit["ingredient_key"] == "custom-key"
-    assert client.post(base_path(household), json={"name": "菜" * 121}).status_code == 422
+    first = create_lot(
+        client, household, name="番茄", quantity_status="known", quantity="1.000", unit="kg",
+    )
+    second = client.post(base_path(household), json={
+        "name": "西红柿", "quantity_status": "known", "quantity": "2.500", "unit": "kg",
+    })
+    assert second.status_code == 201, second.text
+    body = second.json()
+    assert body["outcome"] == "updated"
+    assert body["id"] == first["id"]
+    assert body["ingredient_id"] == first["ingredient_id"]
+    assert Decimal(body["quantity"]) == Decimal("2.500")
+    assert client.get(base_path(household)).json()["total"] == 1
+    assert movement_count(first["id"]) == 2
+
+
+def test_terminal_lot_restores_only_via_upsert(inventory_client):
+    client, household, _ = inventory_client
+    lot = create_lot(client, household, name="鸡蛋")
+    path = base_path(household) + "/" + lot["id"]
+    assert mutate(client, path, "consume", {"expected_version": 1}).status_code == 200
+    patched = client.patch(path, json={"expected_version": 2, "notes": "still terminal"})
+    assert patched.status_code == 200
+    assert patched.json()["status"] == "consumed"
+    restored = client.post(base_path(household), json={
+        "name": "鸡蛋", "quantity_status": "known", "quantity": "6", "unit": "个",
+    })
+    assert restored.status_code == 201, restored.text
+    body = restored.json()
+    assert body["outcome"] == "restored"
+    assert body["id"] == lot["id"]
+    assert body["status"] == "active"
+    assert body["version"] == 4
+    assert Decimal(body["quantity"]) == Decimal("6")
+    kinds = []
+    with SessionLocal() as session:
+        kinds = [row.kind for row in session.scalars(
+            select(InventoryMovement).where(InventoryMovement.lot_id == lot["id"])
+            .order_by(InventoryMovement.created_at)
+        )]
+    assert kinds == ["added", "consumed", "updated", "restored"]
+
+
+def test_ingredient_id_is_validated_and_dictionary_search_works(inventory_client):
+    client, household, _ = inventory_client
+    missing = client.post(base_path(household), json={"ingredient_id": "missing-id"})
+    assert missing.status_code == 400
+    catalog = client.get("/api/v2/ingredients", params={"search": "西红柿"})
+    assert catalog.status_code == 200, catalog.text
+    rows = catalog.json()
+    assert rows and rows[0]["key"] == "tomato"
+    assert "西红柿" in rows[0]["aliases"]
+    created = client.post(base_path(household), json={
+        "ingredient_id": rows[0]["id"], "quantity_status": "known", "quantity": "1", "unit": "kg",
+    })
+    assert created.status_code == 201
+    assert created.json()["name"] == "番茄"
+    assert created.json()["ingredient_key"] == "tomato"
+
+
+def test_custom_name_gets_stable_reusable_ingredient(inventory_client):
+    client, household, _ = inventory_client
+    first = create_lot(client, household, name="蓝莓干")
+    second = client.post(base_path(household), json={"name": "蓝莓干", "notes": "again"})
+    assert second.status_code == 201
+    assert second.json()["outcome"] == "updated"
+    assert second.json()["id"] == first["id"]
+    with SessionLocal() as session:
+        ingredient = session.get(Ingredient, first["ingredient_id"])
+        assert ingredient is not None
+        assert ingredient.key.startswith("custom_")
 
 
 @pytest.mark.parametrize("quantity", ["999999999.999", "0.001", "1.2300"])
 def test_quantity_decimal_boundaries_round_trip_exactly(inventory_client, quantity):
     client, household, _ = inventory_client
-    lot = create_lot(client, household, quantity_status="known", quantity=quantity, unit="kg")
+    lot = create_lot(
+        client, household, name=f"Qty {quantity}", quantity_status="known",
+        quantity=quantity, unit="kg",
+    )
     assert Decimal(lot["quantity"]) == Decimal(quantity)
-    target = create_lot(client, household)
+    target = create_lot(client, household, name=f"Patch {quantity}")
     path = base_path(household) + "/" + target["id"]
     patched = client.patch(path, json={
         "expected_version": 1, "quantity_status": "known", "quantity": quantity, "unit": "kg",

@@ -85,6 +85,10 @@ class InventoryLot(TimestampMixin, Base):
     __table_args__ = (
         UniqueConstraint("workspace_id", "id"),
         UniqueConstraint("workspace_id", "source_type", "source_id"),
+        # One logical stock row per household ingredient.
+        UniqueConstraint(
+            "workspace_id", "ingredient_id", name="uq_inventory_lots_workspace_ingredient"
+        ),
         CheckConstraint(
             "(quantity_status = 'unknown' AND quantity IS NULL AND unit IS NULL) OR "
             "(quantity_status = 'known' AND quantity IS NOT NULL "
@@ -94,6 +98,7 @@ class InventoryLot(TimestampMixin, Base):
     )
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     workspace_id: Mapped[str] = mapped_column(ForeignKey("workspaces.id"), index=True)
+    ingredient_id: Mapped[str] = mapped_column(ForeignKey("ingredients.id"), index=True)
     ingredient_key: Mapped[str] = mapped_column(String(80))
     name: Mapped[str] = mapped_column(String(120))
     quantity_status: Mapped[str] = mapped_column(String(16))

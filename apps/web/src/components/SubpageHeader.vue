@@ -4,7 +4,7 @@ import { session, selectHousehold } from '../shared/session'
 
 export default defineComponent({
   name: 'SubpageHeader',
-  props: { title: { type: String, required: true }, back: { type: Boolean, default: true } },
+  props: { title: { type: String, required: true }, back: { type: Boolean, default: true }, switchable: { type: Boolean, default: true } },
   data() { return { session } },
   methods: {
     goBack() { uni.navigateBack({ delta: 1, fail: () => uni.switchTab({ url: '/pages/fridge/index' }) }) },
@@ -21,7 +21,8 @@ export default defineComponent({
     <view class="toolbar">
       <text v-if="back" class="back-button" aria-label="返回" @tap="goBack">‹</text>
       <text class="toolbar-title">{{ title }}</text>
-      <picker v-if="session.households.length" class="household-picker" :range="session.households" range-key="name" :value="Math.max(0, session.households.findIndex((item) => item.id === session.householdId))" @change="selectHousehold">
+      <view v-if="!switchable && session.householdId" class="household-label static">{{ session.households.find((item) => item.id === session.householdId)?.name || '当前家庭' }}</view>
+      <picker v-else-if="switchable && session.households.length" class="household-picker" :range="session.households" range-key="name" :value="Math.max(0, session.households.findIndex((item) => item.id === session.householdId))" @change="selectHousehold">
         <view class="household-label">{{ session.households.find((item) => item.id === session.householdId)?.name || '选择家庭' }} <text class="chevron">⌄</text></view>
       </picker>
     </view>

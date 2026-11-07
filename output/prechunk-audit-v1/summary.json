@@ -1,0 +1,62 @@
+{
+  "scope": "Pre-chunk parent loading and quality audit only; no chunking, embedding, pgvector, or business publish",
+  "rule_version": "prechunk-audit-v1",
+  "parser_version": "text-v2",
+  "registry_report": "output/source-registry/dry-run-final.json",
+  "started_at": "2026-11-07T11:53:51.870433+00:00",
+  "elapsed_seconds": 0.048,
+  "source_files_in_registry": 12,
+  "source_files_processed": 12,
+  "source_files_skipped_unchanged": 0,
+  "parent_records": 979,
+  "ready_for_chunking_count": 40,
+  "excluded_count": 939,
+  "exclusion_reason_counts": {
+    "INCOMPLETE_RECIPE": 568,
+    "INGREDIENT_PARSE_REVIEW": 1,
+    "NOT_LOADED": 938,
+    "SOURCE_NOT_CLEARED": 938
+  },
+  "by_source_kind": {
+    "external": 1,
+    "legacy": 937,
+    "sample": 9,
+    "seed": 32
+  },
+  "by_status": {
+    "loaded": 41,
+    "needs_review": 938
+  },
+  "issue_counts": {
+    "ALLERGENS_UNVERIFIED": 10,
+    "IDENTITY_FROM_NAME": 473,
+    "IMAGE_ALT_MISMATCH": 13,
+    "INGREDIENT_QUANTITY_UNCLEAR": 1,
+    "PORTION_UNKNOWN": 1,
+    "QUANTITY_UNKNOWN": 937,
+    "RIGHTS_UNVERIFIED": 938,
+    "STEPS_MISSING": 567
+  },
+  "severity_counts": {
+    "error": 580,
+    "warning": 2360
+  },
+  "capability_counts": {
+    "calculate_quantity": 40,
+    "chunkable": 411,
+    "discoverable": 979,
+    "publishable_candidate": 41
+  },
+  "publishable_count": 0,
+  "chunkable_count": 411,
+  "identity_conflicts": 473,
+  "manual_review_rows": 944,
+  "manual_review_seed": 20261107,
+  "sample_manifest_parent_count_ok": true,
+  "sample_parent_count": 9,
+  "publication_performed": false,
+  "vectorization_performed": false,
+  "database_write_performed": false,
+  "dry_run": false,
+  "output_dir": "output/prechunk-audit-v1"
+}

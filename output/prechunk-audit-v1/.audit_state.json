@@ -1,0 +1,3392 @@
+{
+  "rule_version": "prechunk-audit-v1",
+  "parser_version": "text-v2",
+  "manifest_sha256": "770ef2708f1fc39878e709cc121b02da75515ae773d0f6287bc0fe0277930df3",
+  "sources": {
+    "apps/web/public/data/recipes_merged.json": {
+      "sha256": "49f708e73c2e1e094b2d3a5580ecd835059bed675890fdd6cc911001673548e9",
+      "rule_version": "prechunk-audit-v1",
+      "parser_version": "text-v2",
+      "status": "failed"
+    },
+    "data/seed/recipes.json": {
+      "sha256": "c7d8104179b71fe3926ab2cc435b5962fc16792d74ebf91f84424e34a0fbee1c",
+      "rule_version": "prechunk-audit-v1",
+      "parser_version": "text-v2",
+      "status": "ok"
+    },
+    "data/sources/pending/lin-chef-minced-pork-potato/source.pdf": {
+      "sha256": "2ed95e1854f63dcc1eb420b9df9ea451cba6f17b9b03d4552910b0a3618f1421",
+      "rule_version": "prechunk-audit-v1",
+      "parser_version": "text-v2",
+      "status": "failed"
+    },
+    "output/pdf/recipe-loading-v1/rload-001.pdf": {
+      "sha256": "afdfcaa670c05d9334650567d90e2b302c3dd95cfaf923e287b0dd1a5db1ee4c",
+      "rule_version": "prechunk-audit-v1",
+      "parser_version": "text-v2",
+      "status": "ok"
+    },
+    "output/pdf/recipe-loading-v1/rload-002.pdf": {
+      "sha256": "0fd1a63f986e9908494f0df7e0498a807f49e4f4683b70f3890bbfe6b3497c9d",
+      "rule_version": "prechunk-audit-v1",
+      "parser_version": "text-v2",
+      "status": "ok"
+    },
+    "output/pdf/recipe-loading-v1/rload-003.pdf": {
+      "sha256": "c65bb9788facdf93e9c988046de24bc8cb4e7deadc48d64348c1e5e208143a0f",
+      "rule_version": "prechunk-audit-v1",
+      "parser_version": "text-v2",
+      "status": "ok"
+    },
+    "output/recipe-loading-v1/md/rload-004.md": {
+      "sha256": "570aac6fabe167d63866215dfa81d6a2b8b38d4b45326b2c97f8fb64d8675c1f",
+      "rule_version": "prechunk-audit-v1",
+      "parser_version": "text-v2",
+      "status": "ok"
+    },
+    "output/recipe-loading-v1/md/rload-005.md": {
+      "sha256": "7752116752c0468ffddd2ddac0409176e576e268b7c1b9cc7cf2c6910acdf57c",
+      "rule_version": "prechunk-audit-v1",
+      "parser_version": "text-v2",
+      "status": "ok"
+    },
+    "output/recipe-loading-v1/md/rload-006.md": {
+      "sha256": "98fbd51beb05be5ed3193a8f22628ce6d388d02289c4d0cbfb9f8a8219acd1d7",
+      "rule_version": "prechunk-audit-v1",
+      "parser_version": "text-v2",
+      "status": "ok"
+    },
+    "output/recipe-loading-v1/txt/rload-007.txt": {
+      "sha256": "6b19391ab3c61384c74f28b9d9c544219e2a3cb1e05086a812b0b21ecbe5a3c7",
+      "rule_version": "prechunk-audit-v1",
+      "parser_version": "text-v2",
+      "status": "ok"
+    },
+    "output/recipe-loading-v1/txt/rload-008.txt": {
+      "sha256": "6a2c07ab0059ab57cc8a5853374033fc6c8d1accb179219937a1c3f93a22e95b",
+      "rule_version": "prechunk-audit-v1",
+      "parser_version": "text-v2",
+      "status": "ok"
+    },
+    "output/recipe-loading-v1/txt/rload-009.txt": {
+      "sha256": "b3f5cabb0b87959d2b5aea2b2de5fed654c0aa9643ddf3c3707b35248ac113d2",
+      "rule_version": "prechunk-audit-v1",
+      "parser_version": "text-v2",
+      "status": "ok"
+    }
+  },
+  "identity_conflicts": [
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:BBQ烤鸡腿",
+      "document_id": "d2955b32-50f5-58eb-8dea-0582c02d3f1a",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 2
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:乡村啤酒鸭",
+      "document_id": "cd0430f2-2d17-5139-ba4f-b51936bd443b",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 6
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:农家一碗香",
+      "document_id": "761d2acc-683d-5b2c-833f-d2de9220c781",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 9
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:冬瓜桑拿鸡",
+      "document_id": "d7c32504-5866-536d-a2e8-3fac5d4d198e",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 10
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:冬瓜酿肉",
+      "document_id": "e7a68755-f33c-54fa-884b-ef681c6330cf",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 11
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:冷吃兔",
+      "document_id": "fd55765f-45ba-590d-8dc0-85ff149e41a6",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 12
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:凉拌胸丝",
+      "document_id": "12a5e9eb-5199-56ed-86c8-e18ec3358c51",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 13
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:凉拌鸡丝",
+      "document_id": "a8b422ed-2c2d-5d90-8832-3f1030727ad0",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 14
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:千层土豆烘蛋",
+      "document_id": "4bd35a4c-13a0-56a3-b645-01a1c985dfd4",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 20
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:南派红烧肉",
+      "document_id": "31f9c4c5-a69b-56e7-b8ca-4579f881a211",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 25
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:卤菜",
+      "document_id": "05e5b104-1e6c-53e9-a463-b0f5129a4b04",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 26
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:口水鸡",
+      "document_id": "f3d93431-ac16-5653-9ed4-001e642fc7da",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 27
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:台式卤肉饭",
+      "document_id": "5b1ad48c-4181-58b0-9cd8-1b4c00e84857",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 30
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:咕噜肉",
+      "document_id": "debaad7a-ae01-5e65-8e04-9518c4774d7a",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 32
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:咖喱肥牛",
+      "document_id": "46efeb9f-1628-5f8f-886c-9d97efb10048",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 33
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:商芝肉",
+      "document_id": "5c9694ea-a40e-5d23-b7c9-7961c4cabf9c",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 34
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:啤酒鸭",
+      "document_id": "9ba22774-2c5f-5146-b4d5-287e8f4fc57f",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 35
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:回锅肉",
+      "document_id": "56dcbe30-ce15-52c1-8f29-af2a31f20d4d",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 36
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:土豆炖排骨",
+      "document_id": "a9371c5c-4615-5bda-92c0-66a1acc57a6e",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 39
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:土豆烧红肉",
+      "document_id": "b0e1dc29-b485-577d-9f25-4d0c4382d571",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 41
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:土豆芝士棒",
+      "document_id": "20196cbf-3458-575b-88a3-3ced155f9558",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 43
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:奥尔良风味烤鸡腿",
+      "document_id": "3487661c-2f82-5202-a444-86da38893350",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 44
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:奶酪培根通心粉",
+      "document_id": "5b2ef5d5-d637-5738-ac3a-65104fd5c135",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 45
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:姜炒鸡",
+      "document_id": "68d4508b-5448-56d2-947b-7cab9c522590",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 47
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:姜葱捞鸡",
+      "document_id": "e6a5208c-2828-5eab-adef-93c8f39e37bc",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 48
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:孜然牛肉",
+      "document_id": "658204e4-0c43-50a3-9deb-f813a5c1cec6",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 51
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:小炒肉",
+      "document_id": "32bf5756-d623-59af-99d5-9b6b672fe648",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 57
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:小炒鸡肝",
+      "document_id": "759ba4e1-2bec-5498-8101-eeffdd146109",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 58
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:小炒黄牛肉",
+      "document_id": "e75d76d0-422f-560c-b4f2-c5b1db41c7d3",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 60
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:小米辣炒肉",
+      "document_id": "cdb8cf20-7804-5c4e-907f-8319391cd59e",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 61
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:小酥肉",
+      "document_id": "549fb3c9-025e-5e54-b66a-bf2321a98062",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 62
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:尖叫牛蛙",
+      "document_id": "3ad601c6-85b1-553c-8ece-1ac95db83e4b",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 63
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:尖椒炒牛肉",
+      "document_id": "5de48c5a-3491-5fe6-b691-f9fba8a6e9a7",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 64
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:山西过油肉",
+      "document_id": "f89d131f-ddf6-59e2-83ec-eeece250b189",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 65
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:巴基斯坦牛肉咖喱",
+      "document_id": "21893acc-d256-5c91-9ce3-9da18c73ff7f",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 66
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:带把肘子",
+      "document_id": "e3d437af-f933-5d17-9f01-a52bcc56148d",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 67
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:干煸仔鸡",
+      "document_id": "6688960b-8555-5929-a961-b14b5fbb987c",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 68
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:广式萝卜牛腩",
+      "document_id": "40e36c7f-9fa4-5e1f-a90b-364766466c37",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 72
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:微波炉版FKC同款嫩牛五方",
+      "document_id": "a74e3e09-0fd5-59e0-bbe7-237ba8a56e08",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 73
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:微波炉版日式嫩蒸鸡胸肉",
+      "document_id": "c1a917a5-32bf-5757-bafe-315faa5dc64c",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 77
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:微波炉版烤鸡翅",
+      "document_id": "1b25aa50-b3cb-551c-a9ee-8b75f10f409a",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 78
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:微波炉版香嫩鸡胸肉",
+      "document_id": "08fda7ac-8e37-5346-a805-d50f37f93c20",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 81
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:微波炉版鸡胸肉丸",
+      "document_id": "b3523734-c3d9-52b9-bd24-f9f8c443e9a7",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 82
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:微波炉版鸡胸肉脆片",
+      "document_id": "dffda88e-b2e9-51a7-b66f-ebdf1d052ff0",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 83
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:徽派红烧肉",
+      "document_id": "9bb36fa9-9760-54ca-a6bf-ab72fca44ea9",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 85
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:意式烤鸡",
+      "document_id": "fd3117db-0603-5f29-9bb4-632705fbf41a",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 86
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:新疆大盘鸡",
+      "document_id": "f7c533ad-b7c2-5dff-b064-45c086ba517b",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 88
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:无骨鸡爪",
+      "document_id": "73e9822c-e455-5bdc-8394-da2397fecdf6",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 89
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:杀猪菜",
+      "document_id": "6f2ce658-eae2-52aa-81e2-5deda6356adc",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 90
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:枝竹羊腩煲",
+      "document_id": "cef367a1-e221-575e-a1ac-8bb29ff7e785",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 91
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:柱候牛腩",
+      "document_id": "e1b5e208-29d9-53a6-8139-fc213d0ffa7d",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 92
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:桂林十八酿",
+      "document_id": "1ecce13d-3ee8-55a3-80e4-abf6a6c9b6ec",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 93
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:梅菜扣肉",
+      "document_id": "cf9edb14-934f-53c5-82a8-2c855c5dc0bd",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 94
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:椒盐排条",
+      "document_id": "f9f627c3-ab9a-5745-b45b-7a609d8b4835",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 95
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:法式炒蛋",
+      "document_id": "44d75494-a20f-5a6b-98a5-1a4c6248ece9",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 101
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:法式胡萝卜炖牛肉",
+      "document_id": "9eaac1e5-9192-583b-a556-e0473eb43da2",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 102
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:泰式卤蛋",
+      "document_id": "41e02521-7cc8-5101-871f-2ec7f707dd33",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 103
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:洋葱炒猪肉",
+      "document_id": "fe8cb09f-ef0a-5fbd-8299-f51f1bb77031",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 106
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:淄博烧烤",
+      "document_id": "545508a5-4c12-536a-b3c0-5e0db196e0b1",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 110
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:清蒸鳜鱼",
+      "document_id": "3ac6c741-bd8f-5377-b7aa-a8608c1524bf",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 113
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:湖南家常红烧肉",
+      "document_id": "30a9ab6a-de7b-59c3-a420-367bf94880f8",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 114
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:湘祁米夫鸭",
+      "document_id": "80bc7b40-9507-5eed-8d91-849d119341ba",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 115
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:澳门湿版免治牛肉饭",
+      "document_id": "55096d5d-7397-5c6d-9589-34138d2624dc",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 118
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:火烧云油焖鸡",
+      "document_id": "d6f05ced-2b47-5c79-807e-f521a85c8c56",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 120
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:炸蛋",
+      "document_id": "95a450e4-c2ca-5622-ab8d-74327fa3a6aa",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 125
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:烤箱版烤串",
+      "document_id": "890f0bdd-b818-5312-be13-7aa7a2ca3944",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 134
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:烤箱版爆浆鸡腿",
+      "document_id": "5e48b5cd-905e-5839-b256-1ba398ed7fef",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 136
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:烤鸡翅",
+      "document_id": "7afbf26f-32c2-5d95-a73a-f77b5c1f0bf9",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 144
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:煎烤羊排",
+      "document_id": "a480255d-cc4a-5edc-a22f-8f4aad3e5eea",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 146
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:爆浆鸡腿",
+      "document_id": "21d7c1d5-5548-5dae-988b-b1ea4e5c349f",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 150
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:牛排",
+      "document_id": "b37cb741-b699-5a47-a2a0-16d53f5fe0ce",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 152
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:牧羊人派",
+      "document_id": "75f4080f-2d87-5d53-ab27-83285d58c439",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 154
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:猪皮冻",
+      "document_id": "583e047c-ca8f-5935-80e8-b8ba32e78137",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 155
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:猪肉烩酸菜",
+      "document_id": "41d856b9-285e-57a8-8e81-99ccf7c5f077",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 156
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:班尼迪克蛋",
+      "document_id": "debc81a7-be11-549b-838a-a37086b49a02",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 158
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:甜辣烤全翅",
+      "document_id": "1d1bb0c7-fa83-5d0f-9ff1-4f4e4dd3b8fb",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 159
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:田螺酿",
+      "document_id": "d08d5213-ac4f-52ab-98e1-771df8823d01",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 160
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:电饭煲版蜜汁鸡翅",
+      "document_id": "28af36aa-056c-5303-adb5-93980b799bd2",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 177
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:番茄红酱",
+      "document_id": "5868a853-55a3-570a-a56c-8b14ea5de6ed",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 183
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:番茄肥牛",
+      "document_id": "2faad643-8179-5594-952c-f0b42fdfb6e2",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 184
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:番茄鸡蛋",
+      "document_id": "f04cfaf0-6ae4-598e-8edb-470d6c8db5cb",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 186
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:瘦肉土豆片",
+      "document_id": "05bea6a8-7e25-5449-af9f-e9d6f8cfe7c1",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 187
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:白菜猪肉炖粉条",
+      "document_id": "18889703-949e-5da1-8537-a28c424e0857",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 190
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:白菜鸡胸肉",
+      "document_id": "6c48969a-1d26-52b1-bd20-0452478f0d47",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 194
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:白菜鸡胸肉卷",
+      "document_id": "9efa290b-56b6-5c73-b02d-e350a6b64fd7",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 195
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:空气炸锅炸五花肉花菜",
+      "document_id": "35a2c0a2-1418-5b34-8576-01b5aa805a0e",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 208
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:空气炸锅炸小吃一条街",
+      "document_id": "4b78daef-6b94-5244-8f67-60e05a057ef3",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 210
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:空气炸锅炸香肠串",
+      "document_id": "87831900-1294-57f4-89cd-02cee0b9d004",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 214
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:空气炸锅烤五花肉",
+      "document_id": "d510bcac-b203-507f-a942-0e334b72a338",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 219
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:空气炸锅烤鸡腿",
+      "document_id": "a04ede11-681f-5606-9142-3bec098d2d29",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 225
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:空气炸锅甜点（没酵母别选）",
+      "document_id": "ddf0b32a-d5bd-5a0f-8c01-3c543d2fe758",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 228
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:空气炸锅脆皮现腌炸鸡",
+      "document_id": "94b2335a-e73c-5b07-9377-4e00ad3f6b16",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 232
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:粉蒸肉",
+      "document_id": "a88a4589-8a4e-581a-9344-7517767789f5",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 237
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:糖醋排骨",
+      "document_id": "7cad5348-c171-5388-b84f-30a53aef6cad",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 238
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:糖醋荷包蛋",
+      "document_id": "bac24478-67a8-5d60-9911-0af64f3d07e7",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 239
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:红烧猪蹄",
+      "document_id": "7fc1ecf8-ec15-59b3-9010-3e12c230edd1",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 242
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:红烧鸡翅",
+      "document_id": "435ea893-d88d-50bf-9be6-506f5265dea3",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 244
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:羊排焖面",
+      "document_id": "c80ba82d-a161-5670-8243-7212051982d2",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 245
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:老妈蹄花",
+      "document_id": "69120fb9-e1ac-5838-9bd4-7468fd96b06c",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 246
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:老式锅包肉",
+      "document_id": "66de9390-e90a-5e82-a577-62ca9e961834",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 247
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:肉饼炖蛋",
+      "document_id": "3a9ff8d7-18a2-5cd8-9dc7-a1717c4a4ef2",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 252
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:胡萝卜炒肉",
+      "document_id": "61221290-700c-579d-b021-bfdf0797d333",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 254
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:胡萝卜炒里脊肉",
+      "document_id": "7e8f6eae-ca95-5e24-8a21-9659791fc2a3",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 256
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:胡萝卜炖牛肉",
+      "document_id": "07eefe4a-74e4-5d94-9047-a4e10ff7fa7b",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 257
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:腐乳肉",
+      "document_id": "ae498b71-ae72-59ae-8116-60f61014f4e7",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 267
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:芥末罗氏虾",
+      "document_id": "aea3a693-5d8b-5927-823f-721515eb1152",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 269
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:英式炒蛋",
+      "document_id": "6470bf68-2de2-5c3a-bd04-60fa34562092",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 278
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:茭白炒肉",
+      "document_id": "ad1f3672-b190-5183-85fc-0a321c4da8eb",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 281
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:荔枝肉",
+      "document_id": "08d36d15-7eb3-59da-9b24-27aed40383ca",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 282
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:荷兰豆炒腊肠",
+      "document_id": "96f908ed-b040-5fe1-a557-2bb54a176824",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 283
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:菜包鸡胸",
+      "document_id": "a2a07285-416c-5d3e-a540-3cfaffdaa0eb",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 290
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:萝卜炖羊排",
+      "document_id": "60f6f6fa-660e-5e3d-b2f2-ed06f230b4af",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 292
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:葱烧鸡腿",
+      "document_id": "49d3a910-b96b-5068-aa54-b4e25c2c93f5",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 297
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:蒜苔炒肉末",
+      "document_id": "630c57f3-5150-5a6e-9187-7585150124a1",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 298
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:蒜香蜂胸扒",
+      "document_id": "4113f596-8241-52f1-9324-cc00151ad918",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 301
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:虎皮肘子",
+      "document_id": "ba72fe22-2bb0-5878-b348-15c5d3d3eac2",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 305
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:蚂蚁上树",
+      "document_id": "5eb6cabc-41d0-5d13-b26a-8ff73580fa54",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 306
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:血浆鸭",
+      "document_id": "699ba4b9-a20c-5c1b-98bd-245ecbaf58e5",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 308
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:西红柿土豆炖牛肉",
+      "document_id": "5102aeeb-a79b-59ef-8d35-7a81d900d3ed",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 309
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:西红柿牛腩",
+      "document_id": "c5e75b57-9c85-5bb6-be2c-d1e35e5453ed",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 310
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:豆豉鲮鱼油麦菜",
+      "document_id": "a6a0a74d-8061-5df3-ba92-c70fe373b510",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 314
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:豉汁排骨",
+      "document_id": "738baa69-3d9d-5fb1-b6f8-ba986933a722",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 315
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:豉汁蒸白鱔",
+      "document_id": "84480a83-6f25-582a-a317-c8d3fd84ea80",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 316
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:贵州辣子鸡",
+      "document_id": "50bda893-fb76-5b80-9f6e-3e0ad0d2247c",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 317
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:辣椒炒肉",
+      "document_id": "e05ba32c-ed2a-5314-8b7d-ac8bdb9562ee",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 320
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:酱排骨",
+      "document_id": "6606ac5a-0153-5fd6-a2d5-d2e6d61ce8e7",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 321
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:酱牛肉",
+      "document_id": "7ba20de3-e66a-5607-90ee-f0cffe2325de",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 322
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:醉排骨",
+      "document_id": "7710716a-484e-55fd-ad34-095b28dfd4df",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 324
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:铺盖打蛋",
+      "document_id": "f8795cf6-bff5-5678-9a30-b51fd282c2e1",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 326
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:青椒土豆炒肉",
+      "document_id": "74ff4d06-7435-5336-ba33-44147576a15d",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 327
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:青椒酿",
+      "document_id": "f0d0868b-b531-50be-bf51-f68e8b30b632",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 330
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:香干肉丝",
+      "document_id": "40464904-2502-5409-8ba2-e3a752695aac",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 333
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:香干芹菜炒肉",
+      "document_id": "636320c2-766b-5701-934e-3ab64b027b7f",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 334
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:香煎五花肉",
+      "document_id": "fbe732c7-ca19-5662-8ef3-96373f1e7a83",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 335
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:香菇滑鸡",
+      "document_id": "705d2939-24ca-5255-a0a7-0965c5a50ffe",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 337
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:香辣鸡爪煲",
+      "document_id": "099e855c-bb2e-5408-a701-ffc1d16d4316",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 339
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:鱼香肉丝",
+      "document_id": "9e84d094-c8d3-506e-ad38-d7d4bb01fe0e",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 342
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:鸡蛋蒜",
+      "document_id": "68d8714e-3820-584e-bee1-397b01f9fa48",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 346
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:麻辣香锅",
+      "document_id": "59f6a4b5-f68a-500b-a9df-cc42887f06c7",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 348
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:黄油鸡",
+      "document_id": "52f90185-f830-57fd-b816-d7d9e148ea05",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 349
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:黄瓜炒肉",
+      "document_id": "99cdd44d-54bc-5ed6-a6e4-c8168a4dbe01",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 351
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:黑椒牛柳",
+      "document_id": "6c6ae575-0683-5b47-8a2a-b4f19ee00041",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 356
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:黔式腊肠娃娃菜",
+      "document_id": "1587d103-4af8-54c1-93e2-dc5d1b4ba72f",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 358
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:一口酥豆腐",
+      "document_id": "b256e29a-9e92-5e86-ac6c-056adcafb491",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 360
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:上汤娃娃菜",
+      "document_id": "9a372a7f-0281-5ea8-a50e-fe729474c8bb",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 361
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:乾隆白菜",
+      "document_id": "d851f7d4-b425-5503-bb8f-bcf9141329dd",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 363
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:凉拌木耳",
+      "document_id": "4fdf86f8-8908-5c0d-8371-c1e082f804fd",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 365
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:凉拌油麦菜",
+      "document_id": "a8ab818d-f197-556f-9ad3-2ba6d2cbce06",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 366
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:凉拌莴笋",
+      "document_id": "e46b48bf-642f-5ed0-9d93-66836735b41d",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 369
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:凉拌西葫芦",
+      "document_id": "618641cc-9dc6-5f5a-bc06-9cf979a05689",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 372
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:凉拌豆腐",
+      "document_id": "c6d55069-c367-5df6-8f30-982b97f7efe2",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 373
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:凉拌金针菇",
+      "document_id": "8b7f9470-e84d-5517-b620-8ccd618d939f",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 374
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:凉拌黄瓜",
+      "document_id": "91ad5cc7-f2ce-5475-bef1-1eb63e1948c5",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 375
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:包菜炒鸡蛋粉丝",
+      "document_id": "a45a1045-60f3-5955-960c-05163d26690c",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 377
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:印度土豆花菜",
+      "document_id": "7f72cbd3-36a0-5a55-aa7a-64a48f7d7dc0",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 380
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:印度葫芦丸子",
+      "document_id": "ed4b2b9a-3f78-5639-a317-06d0a82bd1da",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 381
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:土豆挞",
+      "document_id": "4411a184-14fe-5f39-86ea-11cd792019be",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 383
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:土豆派",
+      "document_id": "dc3ef55d-27e4-503c-b367-3202bd0a748f",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 384
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:家常日本豆腐",
+      "document_id": "563fd1b3-ca16-577c-bd4f-8da0bba21db6",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 389
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:小炒藕丁",
+      "document_id": "2d11ddf7-72ac-5bf3-ace2-0de140a090aa",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 390
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:微波炉版KFC同款土豆泥",
+      "document_id": "ee2ac741-8845-58a3-9840-05de39b4c1b2",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 395
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:微波炉版烧烤茄子",
+      "document_id": "168f6467-2056-52f7-9656-0d024cd20f9b",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 398
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:微波炉版红烧茄子",
+      "document_id": "1597774f-51d4-56e3-bb85-de6e624fa4e9",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 400
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:微波炉版蒜香烤茄子",
+      "document_id": "85fd2b1a-8ea7-5de9-acbc-b1849e0e639e",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 402
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:微波炉版香辣豆腐",
+      "document_id": "4039fde1-0c51-5cd5-9231-37e14b3534da",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 406
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:微波炉鸡蛋羹",
+      "document_id": "15c5769e-3c53-5dbc-850a-08a939a798b6",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 407
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:手撕包菜",
+      "document_id": "33b248dd-1664-5e12-b453-c300bb31675e",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 408
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:拔丝土豆",
+      "document_id": "1b3cd24b-0718-5627-bb66-2f0a2756ad12",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 410
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:松仁玉米",
+      "document_id": "edf26578-cbb9-5cd1-83aa-e3df235f0d71",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 414
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:椒盐玉米",
+      "document_id": "2b3eb495-aa23-54ff-8405-c160d577bbc8",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 415
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:榄菜肉末四季豆",
+      "document_id": "26cad707-e736-5c5d-ba93-b23cd6c414d2",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 416
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:水油焖蔬菜",
+      "document_id": "4e700110-2132-57fa-a726-09e218070ec6",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 418
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:油醋爆蛋",
+      "document_id": "daa80dcf-7229-5664-8b4f-e2d080e8e957",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 420
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:洋芋擦擦",
+      "document_id": "fbad5c0e-92c2-5574-97c8-0cfe305bda4f",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 422
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:清炒花菜",
+      "document_id": "4122f5e8-2c33-5a32-b1bc-613e2d4de70d",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 427
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:清蒸南瓜",
+      "document_id": "8e54da1c-86ce-52da-ac7a-97fd3b7ed802",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 429
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:炒土豆和胡萝卜蒸菜",
+      "document_id": "4621190e-4086-5f7b-bede-707a0b3d7b15",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 432
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:炒滑蛋",
+      "document_id": "4ec5f19b-6b75-5e57-849a-25138c751b92",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 433
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:炒茄子",
+      "document_id": "2ab3540d-1dd3-584c-9f35-2633816fdd97",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 435
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:炒青菜",
+      "document_id": "d0092c81-9fe9-5a66-8347-d6062b98f9c7",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 436
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:烤箱版M记同款薯条",
+      "document_id": "2448af42-be0d-58b2-87c4-ebe2434c9037",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 443
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:烤箱版烤洋葱",
+      "document_id": "6eece4b0-e5de-5445-a052-fbb038c6e8b2",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 445
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:烤箱版烤花菜",
+      "document_id": "26e6f463-cd65-52de-a083-fd20b271c492",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 446
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:烤箱版烤西葫芦",
+      "document_id": "b24ed597-0f53-5f0b-af8c-247a7403a924",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 447
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:烤箱版薯条",
+      "document_id": "6aea45ac-0e61-5a70-b0fa-22f9dc1c1b68",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 449
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:烤茄子",
+      "document_id": "217b180c-7008-5568-9aaf-5fa27cd61843",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 451
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:热拌莴笋叶",
+      "document_id": "bf70e713-4f3f-5d8d-8ed2-037c53b512d4",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 452
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:热炒莴笋叶",
+      "document_id": "c95b093c-2d11-54b6-96e8-8c92c25806af",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 453
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:白灼菜心",
+      "document_id": "51e1fa0c-08d1-57fd-94c4-04e3587bbe87",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 459
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:皮蛋豆腐",
+      "document_id": "4ed0fcdb-1bf6-585c-8c20-aad4f5c2ccad",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 464
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:空气炸锅炸包菜",
+      "document_id": "fdf29bac-0cf2-59e6-b0e7-db7c0ac432dd",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 468
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:空气炸锅炸包菜串",
+      "document_id": "283fcf8f-a988-5b35-a84c-025ab1cf3f4b",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 469
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:空气炸锅炸薯条",
+      "document_id": "774f1818-ead8-54b6-916e-e08c175eaf45",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 470
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:空气炸锅炸薯角",
+      "document_id": "ecb13143-a487-56d0-a7d0-bd30f1afef1f",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 471
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:空气炸锅炸豆腐",
+      "document_id": "4988877b-a183-59be-8920-2ab4aac74eb2",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 472
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:空气炸锅烤蘑菇",
+      "document_id": "04c19f9a-676c-599d-9f56-1fc783b5de33",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 477
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:空气炸锅版M记同款薯条",
+      "document_id": "35d49caa-b26f-565c-929c-0fdef9cb6ecd",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 479
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:空气炸锅蒜蓉茄子",
+      "document_id": "3ba451c3-be0e-582f-ac6f-05a0657a927b",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 480
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:糖拌西红柿",
+      "document_id": "880c290f-1c53-51ff-b42b-95040f25cb3a",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 481
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:素炒豆角",
+      "document_id": "d90178e4-e4a7-5be1-a427-f83795516716",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 483
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:红烧冬瓜",
+      "document_id": "5503f667-a49b-5234-8666-86dbf83f215a",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 485
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:老奶洋芋",
+      "document_id": "210b1890-0a6e-57a2-acaf-b7ee90eb0c3b",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 488
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:脆皮糖醋豆腐",
+      "document_id": "fa1bb5d0-c241-596d-b565-bb0df755f4dc",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 491
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:脆皮豆腐",
+      "document_id": "8917fa64-f0cb-56a6-8e72-d27dd7d0b315",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 492
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:芹菜拌茶树菇",
+      "document_id": "8af2073a-0553-5cda-b4f1-9bd375e3d850",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 493
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:茄子炖土豆",
+      "document_id": "8d9052a7-be0f-5410-9ee3-23ec812277fa",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 497
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:莴笋叶煎饼",
+      "document_id": "ea26682a-4f6b-599f-b829-12813791d7c3",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 502
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:菠菜炒鸡蛋",
+      "document_id": "d34c0910-93f8-5ed8-9134-807e2a107a9b",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 504
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:葱煎豆腐",
+      "document_id": "b38e0e8b-af21-510d-8dda-054c42f5c55c",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 507
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:蒜蓉炒芹菜",
+      "document_id": "2891d369-8c53-56a7-b3a7-c04321b79d9c",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 508
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:蒜蓉空心菜",
+      "document_id": "f5e7703d-e0e8-5326-b969-dc4ae8399128",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 509
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:蒸箱鸡蛋羹",
+      "document_id": "6fe8d62c-2ad4-5b7f-8b87-f60adb44fb18",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 512
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:薯条",
+      "document_id": "3d84f2d5-5cb5-539f-9cbf-7ebe1a89298d",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 517
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:薯球",
+      "document_id": "eaf8a076-ab04-5f2d-b2d1-372941e72f1e",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 518
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:虎皮青椒",
+      "document_id": "3630e85c-912e-5def-b77f-c0c77c37ad95",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 519
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:蚝油三鲜菇",
+      "document_id": "8712eaf1-ee47-50ce-83ba-e36e3b29783d",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 520
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:蚝油生菜",
+      "document_id": "75142c24-eb01-5e65-a45f-e8bf7815808d",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 521
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:西红柿炒鸡蛋",
+      "document_id": "1ef43bd3-ba90-5609-bb79-c5113b4069c4",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 522
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:西红柿豆腐汤羹",
+      "document_id": "f5bffd30-3fd2-5130-8bb8-377a45244ba1",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 523
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:西葫芦炒鸡蛋",
+      "document_id": "c0fedac6-bb40-54e8-b8bf-6e650c61d6a4",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 524
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:话梅煮毛豆",
+      "document_id": "3e947e12-fc8d-5d00-bc54-82f5a76cb011",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 525
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:酱土豆",
+      "document_id": "ec23993f-93dc-5443-a093-f089d20bbb8b",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 526
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:酱爆西葫芦",
+      "document_id": "ce5bd37a-d2a8-568b-95c0-503fa19f007b",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 528
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:金针菇日本豆腐煲",
+      "document_id": "3a98b9b6-e6f9-5413-93c4-cacb2264a8ee",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 535
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:金钱蛋",
+      "document_id": "444ad25f-86be-512d-bab6-fc29fda5bb60",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 537
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:铁板豆腐",
+      "document_id": "7a479cd4-0ebc-5175-9178-248b2b857d68",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 538
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:陕北熬豆角",
+      "document_id": "e06cc9d1-5ba5-53ae-a9b2-e0e732289c89",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 539
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:雷椒皮蛋",
+      "document_id": "b9b92528-e6ab-5139-a715-140ac59706b4",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 540
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:韭菜炒蛋",
+      "document_id": "f691ec87-e302-56fe-b170-6fbdc4c0ce43",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 541
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:鸡蛋火腿炒黄瓜",
+      "document_id": "9c1f7cc5-6d19-5f9f-8419-0f627e9e5f80",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 545
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:鸡蛋羹",
+      "document_id": "303dfbbd-ab47-5125-a60b-9c50ed8aa831",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 546
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:鸡蛋花",
+      "document_id": "666e9a15-ed96-5c40-91d9-04a3e54a4476",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 547
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:麻辣土豆片",
+      "document_id": "6918fe74-8436-534c-a828-95a01c7dde65",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 549
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:勾芡香菇汤",
+      "document_id": "87c9db9e-dbc8-5b70-a570-95839f40afdd",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 553
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:奶汤方便面",
+      "document_id": "22da33b9-4575-5490-909d-5d59d4d32c55",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 555
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:奶油蘑菇汤",
+      "document_id": "59275bf9-9666-5e61-8f6e-b1413f9f89be",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 556
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:小米粥",
+      "document_id": "6cd1b1e9-68cb-51a3-9761-640b91d524a4",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 557
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:山药南瓜炖鸡汤",
+      "document_id": "fc8518da-6dcf-5c41-bb76-5cf1245a79f3",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 558
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:微波炉版土豆浓汤",
+      "document_id": "dac0b184-343e-573c-8acd-f80ecebb15fa",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 559
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:微波炉版鸡蛋羹",
+      "document_id": "6948b72d-3474-5693-9655-c0fcb064f0d3",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 562
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:排骨山药玉米汤",
+      "document_id": "3c612dad-029e-548a-8475-44a7963de9bf",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 563
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:排骨苦瓜汤",
+      "document_id": "024e0ee1-5d02-5e9e-be5b-bc7db2a3a3f6",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 564
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:昂刺鱼豆腐汤",
+      "document_id": "dfa9d2c8-3106-5b7c-bac4-e702f195e564",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 565
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:朱雀汤",
+      "document_id": "b5003ccd-5d20-5769-b548-926e2d51b0ed",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 566
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:玉米排骨汤",
+      "document_id": "eaaa18d9-2c1c-5618-ae22-edf5e8f6f704",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 569
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:生汆丸子汤",
+      "document_id": "3a0d99f1-64ba-5046-8235-835b695e7d62",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 570
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:电饭煲版牛腩萝卜清汤",
+      "document_id": "c29bcd16-7ec2-5cd3-8b10-734b198c4715",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 571
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:电饭煲版罗宋汤",
+      "document_id": "0fc7bc1f-7ac9-5396-af41-93877c190eae",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 572
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:番茄排骨汤",
+      "document_id": "cd7e87ae-beac-57a9-b9b6-77d3ee9cb5ee",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 573
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:番茄牛肉蛋花汤",
+      "document_id": "a35aa070-539d-56b5-9904-5978fe53c088",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 575
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:皮蛋瘦肉粥",
+      "document_id": "9215c859-21c6-5487-a6a2-d31f2c20d8c3",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 581
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:米粥",
+      "document_id": "c20973d2-062a-57ef-ab07-570fe2e31caf",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 583
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:紫菜蛋花汤",
+      "document_id": "44cd49a6-665b-5ef3-b5e0-881b2bafaf33",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 584
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:羊肉汤",
+      "document_id": "962cd2ca-5715-58eb-a799-7facf45ce21c",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 586
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:腊八粥",
+      "document_id": "0f3886a1-a7f5-51c2-8128-76a59b90db38",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 587
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:茄汁蛋黄浓汤面",
+      "document_id": "804a0b9a-d3c4-568e-b324-cff1b6453a62",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 589
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:菌菇炖乳鸽",
+      "document_id": "ce2e9362-752a-5c73-aa37-ecb7e358c77d",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 590
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:西红柿鸡蛋汤",
+      "document_id": "6544545e-a35c-516a-83a2-d03bff0d8da3",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 593
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:金针菇汤",
+      "document_id": "e6bc65fc-b870-5eaf-b790-eacf7a43bcba",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 595
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:银耳莲子粥",
+      "document_id": "9e45f830-359a-5729-9491-85bc8801f4ed",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 596
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:陈皮排骨汤",
+      "document_id": "517362df-59bc-5a70-baeb-509b263d6348",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 597
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:骨汤面",
+      "document_id": "83d2cbf3-400b-5616-8ffb-1f5faa8f07b6",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 600
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:黄瓜皮蛋汤",
+      "document_id": "bc291281-048e-5a94-b175-31896dce1d13",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 602
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:中式馅饼",
+      "document_id": "3d7b99d9-9ea7-5eb3-9001-c58f44ddc99d",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 606
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:丸子面",
+      "document_id": "6341c580-40f5-5a88-9f23-16b28e1a4a8d",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 607
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:凉粉",
+      "document_id": "d6b298bb-5bb5-5a17-a221-12cfd5662160",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 608
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:利提巧卡",
+      "document_id": "3d5fbb3e-42a9-5f11-b02b-7fd0f1cd69a2",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 609
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:印度烤饼",
+      "document_id": "29196770-ee4a-5c54-8f61-69519eb4c10b",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 613
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:印度焖饭",
+      "document_id": "ed7f0376-6e96-51c1-b8f4-6a90793af3fd",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 614
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:可乐炒饭",
+      "document_id": "c929a34c-73dd-5f4d-bfc2-29ab323e3fb4",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 615
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:咸肉菜饭",
+      "document_id": "5bb0c032-f0ed-5601-995d-deebb59442ac",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 618
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:土豆丝饼",
+      "document_id": "f2511038-8b57-579f-86c8-36f63a0e62ae",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 619
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:土豆拌饭",
+      "document_id": "21de5973-a78d-59fe-8c65-fa159351f75c",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 620
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:基础牛奶面包",
+      "document_id": "1d3b8022-0b9e-5f8d-8b48-5ca01125e27a",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 623
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:大餐口味方便面",
+      "document_id": "1b4f1b9d-49cb-56e2-ac27-dcb613c5236f",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 624
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:娼妇意面",
+      "document_id": "12e14132-92b0-5536-a9f3-21ec883358b2",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 625
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:川味泡面",
+      "document_id": "772a67e2-f502-5fa8-ab79-15259ed76aae",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 626
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:微波炉版一个番茄焖饭",
+      "document_id": "7bf81777-7f69-5729-b8f2-b4e7baa61d8c",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 627
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:微波炉版煮米饭",
+      "document_id": "a6db02a9-7fb0-5355-8402-9ba81fe1bf88",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 631
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:微波炉版番茄焖饭",
+      "document_id": "e7add1e1-437b-515b-a5cf-9ddf0844dba1",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 635
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:微波炉版菌菇鸡肉焖饭",
+      "document_id": "95e99909-8726-5fb8-b479-f3b4cc360b22",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 638
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:微波炉腊肠煲仔饭",
+      "document_id": "55a10a48-5ce5-5de3-bc82-0c8479eff9c5",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 640
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:意式肉酱面",
+      "document_id": "e090d0da-e0ff-5499-9fc3-b5877529d390",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 641
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:手工水饺",
+      "document_id": "732be889-93dc-5d21-b006-3abf9a5dbd73",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 642
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:扬州炒饭",
+      "document_id": "81db0dfc-77cb-51a5-8f42-9fdea9f7fd54",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 643
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:披萨饼皮",
+      "document_id": "0ee57f68-a5a6-5963-be1a-6750a8557267",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 644
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:方便面炒饭",
+      "document_id": "29467030-3814-5c4d-a88e-a159e3d8ae75",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 646
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:日式咖喱饭",
+      "document_id": "fb0feba5-66de-509a-acc3-ff988a4a679c",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 648
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:日式肥牛丼饭",
+      "document_id": "caf09e11-deef-5e09-86af-e900ff8d67d7",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 650
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:朝鲜冷面（方便面版）",
+      "document_id": "571dd695-65d5-51ec-bece-341e2d3d30ef",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 652
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:正确煮方便面",
+      "document_id": "cf52b937-9c92-566e-9b1c-c810df6aaf97",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 654
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:汤面",
+      "document_id": "e7ceb4ce-e1c4-5eea-852e-e8570655dc52",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 656
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:河南蒸面条",
+      "document_id": "22e1373e-3fe6-51d7-a5fa-b1d55dca1c63",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 657
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:海鲜泡面",
+      "document_id": "6eacc0d4-3504-51d3-8923-26f37a935be2",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 661
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:滕州菜煎饼",
+      "document_id": "0889d7a0-c4c0-5959-bb82-8ce763c7582d",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 662
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:火腿饭团",
+      "document_id": "6898670a-a5db-5ea7-a9ae-ae39aa1b7118",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 663
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:炒凉粉",
+      "document_id": "6a90ceaf-2e67-5fc5-bf79-e72118bb96d5",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 664
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:炒年糕",
+      "document_id": "45dd7c70-887e-5266-8358-d5903631ff19",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 665
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:炒意大利面",
+      "document_id": "900d8472-e2ad-5810-8671-463f6ed909f3",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 666
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:炒河粉",
+      "document_id": "4d4da06d-68bf-54d1-9cfe-16e85882d7de",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 668
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:炒馍",
+      "document_id": "9cecff0b-d915-593d-80ee-7c5163d6fea2",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 669
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:炸酱面",
+      "document_id": "e1de7071-a573-555e-b178-7bb986e81f0f",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 670
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:烙饼",
+      "document_id": "359bc807-6b7e-5493-bbf4-d5feb7443d4f",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 671
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:烤箱版黑椒牛肉土豆焖饭",
+      "document_id": "51e318ad-7759-5f64-ab39-f3f925658bc8",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 673
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:烤箱腊肠焖饭",
+      "document_id": "a9754cda-c2e1-52a8-96bb-91f2ab55606b",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 674
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:热干面",
+      "document_id": "262705ce-27ff-57ce-b6bd-55e1be9cb15f",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 676
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:焖泡面",
+      "document_id": "74e8437b-d3bc-580d-a1b8-37ac73fa8b96",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 677
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:煎蛋方便面",
+      "document_id": "1ec9ddfe-6840-5d55-9718-0fda74c023d7",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 679
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:照烧鸡腿饭",
+      "document_id": "809bcb8d-3f5f-5753-8881-70fc7f242935",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 681
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:煮泡面加蛋",
+      "document_id": "1faf93b2-da64-519e-82ba-175b5c27586b",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 682
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:煮锅蒸米饭",
+      "document_id": "463d7d22-9eb7-5c09-abcd-26d6ec52b7a5",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 683
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:猪油拌饭",
+      "document_id": "057c227b-8c00-5984-88f4-9cf939b4de5d",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 685
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:电饭煲三文鱼炊饭",
+      "document_id": "f4dbcb4d-9f46-5ada-9553-58263dda44b6",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 686
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:电饭煲排骨土豆焖饭",
+      "document_id": "0e1635a4-43e6-5080-ae3a-de8e6743ec8c",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 687
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:电饭煲版一只番茄饭",
+      "document_id": "4ef333ad-89c2-5618-bc08-89becbf3fdfd",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 689
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:电饭煲版南瓜鸡腿焖饭",
+      "document_id": "95f5084b-1d10-5e35-958c-783c1c4a7944",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 691
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:电饭煲版土豆排骨焖饭",
+      "document_id": "19c3467a-1a66-56da-83a7-32f5a7e9dabe",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 693
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:电饭煲版番茄牛腩焖饭",
+      "document_id": "8add98aa-5f00-5ba6-863b-db843943a1dc",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 697
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:电饭煲版香菇腊肠焖饭",
+      "document_id": "29cbb5fb-b883-5827-bfe7-ec84abb21dbd",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 700
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:电饭煲番茄牛肉焖饭",
+      "document_id": "e4c95746-10dd-5f75-9352-abb535fe6853",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 701
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:电饭煲蒸米饭",
+      "document_id": "a0c8c3fa-8a61-54ff-a130-0c4f0fb85f4d",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 704
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:番茄鸡蛋油泼面",
+      "document_id": "60c27ba8-5b32-5a9f-aa92-14ac8e05f97c",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 710
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:空气炸锅炸吐司",
+      "document_id": "dca80f50-2263-565c-84a9-6218ff5e079f",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 720
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:空气炸锅炸馒头",
+      "document_id": "00bc0a2b-8d3e-5fc9-bcb0-3208c2d27982",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 721
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:空气炸锅照烧鸡饭",
+      "document_id": "03ea2140-ee27-5103-ac60-305b14a2c52c",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 723
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:空气炸锅蜂蜜小面包",
+      "document_id": "f9f596d1-3665-5d6c-94da-2b8cdeaad12a",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 725
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:红芸豆拌饭",
+      "document_id": "9a8c59d4-1f42-5fea-b87b-d96b4103b3c4",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 727
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:老友猪肉粉",
+      "document_id": "0d8b6c02-0122-5a26-ae44-1cda87e81638",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 728
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:老干妈拌面",
+      "document_id": "13f4de75-7eb2-5dd4-828a-3ed73e061119",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 729
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:肉蛋盖饭",
+      "document_id": "8774fc9c-f7be-5a5d-86bc-057ac040c80f",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 730
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:芝麻烧饼",
+      "document_id": "940e4b10-f276-5751-809d-641183b1317a",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 732
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:茄子肉煎饼",
+      "document_id": "0ffd1a55-fe9a-5f71-8445-cb6b375c978b",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 739
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:蛋包饭",
+      "document_id": "e9e051f3-29e4-5003-9812-73c011dbeede",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 747
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:蛋炒饭",
+      "document_id": "cb095011-9619-5847-b4ee-6f273d6e36ff",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 748
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:螺蛳粉",
+      "document_id": "e85f8958-be1c-51dd-a6fe-4f6fa2635350",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 749
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:西红柿鸡蛋挂面",
+      "document_id": "8ee7829f-9dd0-5ec3-ab62-da0f7cf10415",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 751
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:豆腐饭（蛋炒饭）",
+      "document_id": "ed44a7d3-48e4-5e97-95d6-5dd6de8d8bfd",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 753
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:豆角焖面",
+      "document_id": "59370651-b616-5b35-992e-0fd13f56484d",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 754
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:酱拌荞麦面",
+      "document_id": "e8d9680b-ce17-5154-892d-ae1b01de7988",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 755
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:酸辣蕨根粉",
+      "document_id": "6688b252-4b3d-5c89-81c1-4e0e709c8943",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 756
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:醪糟小汤圆",
+      "document_id": "cb3aabb2-0bd1-5eb5-99c8-ecb83ad98538",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 758
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:陕西油泼面",
+      "document_id": "92f41265-041f-580f-926f-fc223014f6db",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 761
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:韩式拌饭",
+      "document_id": "e52a9582-af0b-5e22-a410-e9bde31cdc7a",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 763
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:韭菜盒子",
+      "document_id": "67cd7720-160b-575d-9e64-9c2846f44c71",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 764
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:鲜肉烧卖",
+      "document_id": "b3f7d2c2-4994-504d-a0f4-72b37bfaf588",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 766
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:鲣鱼海苔玉米饭",
+      "document_id": "5c3857df-ca67-52d8-997d-dca4eb09eb97",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 767
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:鸡蛋焖面",
+      "document_id": "5542b244-781e-56a1-9cc3-f72260d7acce",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 770
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:鸡蛋番茄拌面",
+      "document_id": "cc7f9477-c1a5-5083-bf1e-6f9dbe5e2c89",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 771
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:鸡蛋芝士泡面",
+      "document_id": "dada5471-d509-59a3-bec8-3cd6a4ce2479",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 773
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:鹰嘴豆炸饼",
+      "document_id": "ab2f92e1-233f-5500-8d4b-0db66152e5e0",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 775
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:麻油拌面",
+      "document_id": "d8f6ac9a-8630-5e33-9b2f-cc75c0be6de0",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 776
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:麻辣减脂荞麦面",
+      "document_id": "a3771013-3330-56d7-bac9-30175689d263",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 777
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:厚蛋烧",
+      "document_id": "2e153e4f-851f-5ac4-ba9d-214ea3e1625e",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 780
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:吐司果酱",
+      "document_id": "2d4fab9e-5784-5007-a162-2fa304113aad",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 781
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:土豆泥厚蛋烧",
+      "document_id": "22f2ed57-02b1-5a6d-a034-81cb1d32e2ec",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 782
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:太阳蛋",
+      "document_id": "caae7458-06f2-5b4e-85af-e02bcb6b8699",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 783
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:完美水煮蛋",
+      "document_id": "8597aec6-809c-580c-b7ff-4f0ec1e6180b",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 784
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:微波炉版厚蛋烧",
+      "document_id": "caf10f28-43f2-558b-b75d-08d7b274652c",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 785
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:微波炉荷包蛋",
+      "document_id": "009de8c0-389c-5936-885c-ca6a013aa83e",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 786
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:微波炉蒸蛋",
+      "document_id": "d28a0302-58c5-5198-a6ea-ba7553cc452f",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 787
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:微波炉蛋糕",
+      "document_id": "d9d54d15-fbd6-56e5-b153-109a37ce2ca1",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 788
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:意式香肠北非蛋",
+      "document_id": "d0d4f7dc-2491-5e98-a812-22e9533282e0",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 789
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:手抓饼",
+      "document_id": "78472479-ee59-5172-9983-015ce66a699f",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 790
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:桂圆红枣粥",
+      "document_id": "2e37abfd-b4a7-5e89-89ca-40b0472c711c",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 791
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:水波蛋",
+      "document_id": "832b20ba-4bc9-5905-99b4-4637202fa74d",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 792
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:水煮玉米",
+      "document_id": "2b3f7e5f-75b8-554d-86f3-f279f3caa8ff",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 793
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:温泉蛋",
+      "document_id": "14fe3667-a4a8-55e9-b1c5-5c1d628bb3f0",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 794
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:溏心蛋",
+      "document_id": "dd2cc883-4871-54c7-aa40-58acb859ecb4",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 795
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:煎饺",
+      "document_id": "76480825-3c0a-5f9c-b810-af27cd9ba241",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 796
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:燕麦鸡蛋饼",
+      "document_id": "2ce71819-f1c6-5e5b-ac7d-c1266ed94d5a",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 797
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:牛奶燕麦",
+      "document_id": "316913fd-36fa-5321-bf5e-2891a93b4099",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 798
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:空气炸锅面包片",
+      "document_id": "ce6c832b-dc04-556f-9314-5b4951ac4f4f",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 799
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:美式炒蛋",
+      "document_id": "f731f607-66a0-58e2-963e-bde6ddbb3424",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 800
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:苏格兰蛋",
+      "document_id": "e13afd7a-06fd-531e-a8f8-f29fde77f5cf",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 801
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:茶叶蛋",
+      "document_id": "3fd449f9-e914-5220-af76-ee65e7887b96",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 802
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:蒸水蛋",
+      "document_id": "bacbd8ff-25dc-5a30-b26b-e4a82503eca1",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 803
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:蛋煎糍粑",
+      "document_id": "7f59ae25-f37d-5862-8c3d-7ed1ce1a9456",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 805
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:金枪鱼酱三明治",
+      "document_id": "044b1e04-45ac-5eba-851a-12d9471e331a",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 806
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:韩国麻药鸡蛋",
+      "document_id": "3437a331-6a58-5729-9589-acb2c88aadd6",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 807
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:鸡蛋三明治",
+      "document_id": "778e23d1-6c2d-5e36-bbdb-c93819c70d20",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 808
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:咖喱炒蟹",
+      "document_id": "280e1aab-5023-590c-bf71-01f456bee96d",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 811
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:响油鳝丝",
+      "document_id": "34edbd96-7eef-5f53-9e30-d2ba4aad3914",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 812
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:小龙虾",
+      "document_id": "12625694-ed15-54d2-8d93-a8852c5b80a7",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 814
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:干煎阿根廷红虾",
+      "document_id": "a3c8e5b8-6922-5156-8f64-7607b4abc48f",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 815
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:微波炉版辣烤豆腐",
+      "document_id": "0854866b-a0c8-51f2-a8f3-dc9d61d01d61",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 818
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:微波葱姜黑鳕鱼",
+      "document_id": "62b66878-ac29-5ddb-9f56-91ce243977e0",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 820
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:水煮鱼",
+      "document_id": "ae8d1bec-01a7-5bf3-8a38-1c559023e3a0",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 821
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:清蒸生蚝",
+      "document_id": "6f389f71-aeee-53cf-affa-9c79000b06e9",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 824
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:清蒸鲈鱼",
+      "document_id": "8deff574-026b-50d1-baeb-ffa31b2b283b",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 825
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:烤箱烧烤",
+      "document_id": "4196c5f3-24c5-54b1-9236-27f43608995d",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 827
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:烤鱼",
+      "document_id": "97d148fe-bfb1-545c-8f59-c1aaf594f682",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 828
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:白灼虾",
+      "document_id": "da1b47a7-d0de-5111-9b87-f06d1da9dff7",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 830
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:糖醋鲤鱼",
+      "document_id": "a3238dc3-ece5-506a-acf7-bafd4985854c",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 838
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:红烧鱼",
+      "document_id": "b1a36603-9dd7-511d-aa50-3be2ff8ff302",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 839
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:红烧鱼头",
+      "document_id": "5ed4b593-4c84-5642-85cf-3ab14a95c549",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 840
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:红烧鲤鱼",
+      "document_id": "6c52bed2-2812-5164-b1bf-412a1ee693ce",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 841
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:肉蟹煲",
+      "document_id": "47f34f00-f7f7-59a6-ba93-2a2bdefbfff0",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 843
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:芥末黄油罗氏虾",
+      "document_id": "e84125f9-fe48-5d6b-8efb-a77c77ba77a8",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 845
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:葱油桂鱼",
+      "document_id": "5cb66db7-6bf4-5433-a982-1522edf7bd3d",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 849
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:葱烧海参",
+      "document_id": "fcc1379c-2836-53e3-ac15-91f1101ebd33",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 850
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:蒜蓉虾",
+      "document_id": "533f6d46-3017-5c85-8b97-1537325ae69c",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 852
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:蒜香黄油虾",
+      "document_id": "a610cdeb-c2fc-58cd-adf4-3d93a40ccb57",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 853
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:蛏抱蛋",
+      "document_id": "2dae3622-33d8-5675-9a47-14edc54e40e6",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 855
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:酱炖蟹",
+      "document_id": "53645889-705b-5e2a-98b3-94eabeb4f6ba",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 858
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:阳朔啤酒鱼",
+      "document_id": "c6804d5e-ed31-578f-a8d3-d43c03a1e66b",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 859
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:香煎翘嘴鱼",
+      "document_id": "ce11778f-65cf-5aaf-bfca-abecae4380ee",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 860
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:鲤鱼炖白菜",
+      "document_id": "c965f88a-6c21-59a4-a14e-2c4796484301",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 861
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:鳊鱼炖豆腐",
+      "document_id": "96b20283-67fe-5734-a6fc-b2cb1ee2a9bc",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 862
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:黄油煎虾",
+      "document_id": "20ece1d1-ff5b-5de7-a296-c278bb9c5340",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 863
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:反沙芋头",
+      "document_id": "d7d0fd32-d71c-5891-8bf7-f5b2413c4412",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 865
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:咖啡椰奶冻",
+      "document_id": "355710f8-c178-5835-827a-dcbb93ca17b6",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 866
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:奥利奥冰淇淋",
+      "document_id": "0d86eedf-17ee-507e-8938-3dc929658c0c",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 867
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:戚风蛋糕",
+      "document_id": "00e34868-883e-549a-a327-300f7ca7d15e",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 869
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:提拉米苏",
+      "document_id": "838cdeca-4e04-5d17-93b6-cbc176c4723a",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 870
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:无厨师机蜂蜜面包",
+      "document_id": "146a7181-a38d-512e-bb44-a799cb6f2fd1",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 871
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:炸鲜奶",
+      "document_id": "b3db60f9-793c-5fcb-a56e-bc319b93b34a",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 872
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:烤布丁",
+      "document_id": "6e874bbb-4598-5ea1-894c-b3f9ffa835da",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 873
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:烤箱版巴斯克芝士蛋糕",
+      "document_id": "65b23842-f399-59b6-88d1-6038437e44e0",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 874
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:烤蛋挞",
+      "document_id": "a61c212f-5105-521a-a7f5-2c749716155f",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 875
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:玛格丽特饼干",
+      "document_id": "dd3d2d5e-134d-5b30-8215-81c370dbc152",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 877
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:空气炸锅爆浆巴斯克芝士蛋糕",
+      "document_id": "b5fc0490-53be-5bb2-ad76-9eea0c9c839c",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 880
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:红柚蛋糕",
+      "document_id": "11711ee3-2f42-5996-9b87-012f30ce9585",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 882
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:胡萝卜甜糕",
+      "document_id": "9dc47904-aaf1-5309-83f1-6327421f047d",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 883
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:芋泥雪媚娘",
+      "document_id": "702b40e2-83ad-58a5-a04e-5c750b9f5a5e",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 884
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:英式司康",
+      "document_id": "75ec85ea-4ff7-56c8-9694-e0b625839501",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 885
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:草莓冰淇淋",
+      "document_id": "380e8efa-d7ea-5c52-ac68-84bc35357a01",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 886
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:酸奶意式奶冻",
+      "document_id": "b0a1162b-5dca-5e50-88be-274c957802d4",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 887
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:雪花酥",
+      "document_id": "ea4c6aa8-2644-50f5-a8df-53d7035535c3",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 888
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:魔芋蛋糕",
+      "document_id": "c3f94503-6cac-5786-ac05-9e68dce08ba8",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 889
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:龟苓膏",
+      "document_id": "6042654b-d1a7-52f7-98ed-303aa81ede55",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 890
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:东北鸡蛋酱",
+      "document_id": "7e910e08-fdfd-56aa-8a9d-f8be3174acbb",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 891
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:油泼辣子",
+      "document_id": "1d830054-1eac-5278-8944-f6d6e62fff56",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 892
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:油酥",
+      "document_id": "67f6232b-ebaa-5e07-b523-2aac5a68551a",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 893
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:炸串酱料",
+      "document_id": "419372ea-3040-506d-bff2-d918eebf27a8",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 894
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:番茄肉酱",
+      "document_id": "590156af-6397-5716-b130-15156b0e6952",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 895
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:简易版炒糖色",
+      "document_id": "f0e76420-06a9-55e2-8a76-0d6ffe0c6ff9",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 897
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:糖醋汁",
+      "document_id": "7c18fe89-bbf5-50e0-91b9-7112bdb36791",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 898
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:草莓酱",
+      "document_id": "91039b20-b1b7-56dd-ac1e-2eb2744cb099",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 899
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:葱油",
+      "document_id": "bb86ceaf-5935-5880-ac5a-32dc1865e83b",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 900
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:蒜香酱油",
+      "document_id": "887caa53-29bd-5402-8832-7009bab7e1dd",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 901
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:蔗糖糖浆",
+      "document_id": "7ca72824-af78-529e-aa0e-d61f38177937",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 902
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:B52轰炸机",
+      "document_id": "447675ec-a22b-5626-8079-e9c316a5eca0",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 903
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:Mojito莫吉托",
+      "document_id": "a717ef61-d841-5033-995b-a41be8ef6376",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 904
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:冬瓜茶",
+      "document_id": "7ecc172c-150c-5f3a-b1ff-89f5bb03101c",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 905
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:冰粉",
+      "document_id": "60194368-11e8-5b98-a2af-bcc504bd2490",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 906
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:印度奶茶",
+      "document_id": "1c5c539f-9d4d-5ccd-b780-a44adcaa8577",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 907
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:可乐桶",
+      "document_id": "a9bc2765-7f20-5e8f-88dc-0166e88b65cd",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 908
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:奇异果菠菜特调",
+      "document_id": "7db4de49-b1f0-59a5-9d66-15b4a01ab02c",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 909
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:奶茶",
+      "document_id": "a89abc9a-3fb5-5ad0-b5f8-ffa68282f4c0",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 910
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:杨枝甘露",
+      "document_id": "6f3e3e29-c295-5103-8704-f9dba6bec519",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 911
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:柠檬水",
+      "document_id": "cac79256-4829-537f-b4b8-2b1b752e06d8",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 912
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:泰国手标红茶",
+      "document_id": "bcb318f1-9fbe-5feb-bdc0-1f544bd23ad0",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 913
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:海边落日",
+      "document_id": "f7014956-7f19-5d4d-af12-5f1bccd0a251",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 914
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:牛油果拉西",
+      "document_id": "8e30923a-74c0-598e-9143-cc2cd1ba8fba",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 915
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:百香果橙子特调",
+      "document_id": "062db574-b036-5e8f-89f1-58dbcce18fa7",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 916
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:砂糖椰子冰沙",
+      "document_id": "aa7bc067-eb5b-59fb-a729-a69ae4102b07",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 917
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:耙耙柑茶",
+      "document_id": "7c77172a-94ad-5764-825c-1f7634b9f3db",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 920
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:菠萝咖啡特调",
+      "document_id": "ad47e839-4314-5115-8ace-2c7241fc47b9",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 921
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:酒酿醪糟",
+      "document_id": "3abb55fa-756b-5a33-91ae-c6dae8a34223",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 922
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:酸梅汤",
+      "document_id": "eb214045-66c0-5d78-9c07-9d0331f4f14c",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 923
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:金汤力",
+      "document_id": "d3c764c8-5cd2-5d2c-8ef8-8ecb501c5621",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 924
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:金菲士",
+      "document_id": "7a96359c-d93d-55c5-8b94-3b8df9321b57",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 925
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:长岛冰茶",
+      "document_id": "1bf52947-6376-5a7a-8ccc-ae9b4820e401",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 926
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:凉皮",
+      "document_id": "3f2fee93-14ad-5e41-a7ad-b785043facad",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 927
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:半成品意面",
+      "document_id": "5b77fd09-6987-55a3-bc0a-677f6f38f714",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 928
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:懒人蛋挞",
+      "document_id": "13841702-e952-5771-9a57-36de0a0623df",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 929
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:炸薯条",
+      "document_id": "d3107371-0e86-588d-aa45-9a8bdffec483",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 930
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:牛油火锅底料",
+      "document_id": "06935afc-468c-5476-9cd0-f1ae5a7ea5ff",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 931
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:空气炸锅羊排",
+      "document_id": "5b607624-00a7-5169-be43-6c9bb4091ae1",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 932
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:空气炸锅鸡翅中",
+      "document_id": "3dd7ce78-9ce6-5194-8418-5f5baf6d5d19",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 933
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:速冻水饺",
+      "document_id": "badad232-4be3-5274-b26f-df8fad909c74",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 934
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:速冻汤圆",
+      "document_id": "dc8c65a9-ee95-51a9-a57b-b064287c5405",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 935
+    },
+    {
+      "source_key": "apps/web/public/data/recipes_merged.json",
+      "source_record_key": "name:速冻馄饨",
+      "document_id": "d839ecf2-52af-5af3-9981-7a204c087437",
+      "code": "IDENTITY_FROM_NAME",
+      "ordinal": 936
+    }
+  ]
+}

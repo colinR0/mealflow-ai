@@ -32,6 +32,7 @@ from app.db.models import (
     WorkspaceMember,
 )
 from app.db.session import SessionLocal
+from app.services.ingredient_catalog import ensure_preset_aliases
 from app.services.recipe_taxonomy import IngredientFact, classify_recipe
 
 RECIPE_SEED_PATH = Path(__file__).resolve().parents[4] / "data" / "seed" / "recipes.json"
@@ -282,6 +283,7 @@ def seed_demo_data() -> dict[str, int]:
         ingredients: dict[str, Ingredient] = {}
         for key, name, category, unit, price in INGREDIENTS:
             ingredients[key] = _get_or_create_ingredient(session, key, name, category, unit, price)
+        ensure_preset_aliases(session)
 
         # 冰箱库存(含临期)
         for ingredient_key, quantity, unit, expires_after_days in INVENTORY:

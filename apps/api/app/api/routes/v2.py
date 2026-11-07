@@ -4,9 +4,7 @@ import asyncio
 import json
 from datetime import UTC, date, datetime
 from decimal import Decimal
-from hashlib import sha256
 from typing import Annotated, Literal
-from uuid import uuid4
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, Response
 from fastapi.responses import StreamingResponse
@@ -16,8 +14,8 @@ from sqlalchemy import func, or_, select
 from app.core.config import get_settings
 from app.db.models import User
 from app.db.session import SessionLocal
-from app.db.v2_models import AgentEvent, AuthSession, InventoryLot, InventoryMovement, ShoppingItem
-from app.services import turn_history
+from app.db.v2_models import AgentEvent, AuthSession, InventoryLot, ShoppingItem
+from app.services import ingredient_catalog, inventory_lots, turn_history
 from app.services import v2_runtime as runtime
 from app.services.household_profiles import (
     ProfileCreate,
@@ -67,7 +65,8 @@ InventoryQuantity = Annotated[Decimal, Field(
 
 
 class InventoryPayload(Input):
-    name: str = Field(min_length=1, max_length=120)
+    name: str | None = Field(default=None, min_length=1, max_length=120)
+    ingredient_id: str | None = Field(default=None, min_length=1, max_length=36)
     ingredient_key: str | None = Field(default=None, max_length=80)
     quantity_status: Literal["known", "unknown"] = "unknown"
     quantity: InventoryQuantity | None = None
@@ -77,10 +76,17 @@ class InventoryPayload(Input):
 
     @model_validator(mode="after")
     def validate_quantity(self):
+        self.name = (self.name or "").strip() or None
+        self.ingredient_id = (self.ingredient_id or "").strip() or None
+        self.ingredient_key = (self.ingredient_key or "").strip() or None
+        self.unit = (self.unit or "").strip() or None
+        self.notes = (self.notes or "").strip()
+        if not self.ingredient_id and not self.ingredient_key and not self.name:
+            raise ValueError("ingredient_id, ingredient_key or name is required")
         if self.quantity_status == "unknown":
             self.quantity = None
             self.unit = None
-        elif self.quantity is None or not self.unit or not self.unit.strip():
+        elif self.quantity is None or not self.unit:
             raise ValueError("known quantity requires quantity and unit")
         return self
 
@@ -236,18 +242,23 @@ def remove_profile(
 
 
 def _lot_view(row: InventoryLot) -> dict:
-    return {"id": row.id, "name": row.name, "ingredient_key": row.ingredient_key,
-            "quantity_status": row.quantity_status,
-            "quantity": str(row.quantity) if row.quantity is not None else None,
-            "unit": row.unit, "expires_on": row.expires_on.isoformat() if row.expires_on else None,
-            "notes": row.notes, "status": row.status,
-            "confirmed_at": row.confirmed_at.isoformat(), "version": row.version}
+    return inventory_lots.lot_view(row)
 
 
 def _movement(session, actor_id: str, row: InventoryLot, kind: str, before: dict):
-    session.add(InventoryMovement(workspace_id=row.workspace_id, lot_id=row.id,
-        actor_id=actor_id, kind=kind, before=before, after=_lot_view(row),
-        source_type="mobile", source_id=uuid4().hex))
+    inventory_lots.add_movement(session, actor_id, row, kind, before)
+
+
+@router.get("/ingredients")
+def ingredients(actor: Identity, search: str = Query(default=""),
+                limit: int = Query(default=30, ge=1, le=100)):
+    with SessionLocal() as session:
+        # Auth gate only; catalog is shared and not household-scoped.
+        _ = actor
+        if ingredient_catalog.ensure_preset_aliases(session):
+            session.commit()
+        rows = ingredient_catalog.search_ingredients(session, search, limit)
+        return [ingredient_catalog.ingredient_view(row, session) for row in rows]
 
 
 @router.get("/households/{household_id}/inventory-lots")
@@ -304,20 +315,32 @@ def inventory_detail(household_id: str, lot_id: str, actor: Identity):
 def create_inventory(household_id: str, body: InventoryPayload, actor: Identity):
     with SessionLocal() as session:
         runtime.authorized_workspace(session, actor[0], household_id)
-        row = InventoryLot(
-            # Preserve existing short keys; long display names get a stable bounded key.
-            workspace_id=household_id, ingredient_key=body.ingredient_key or (
-                body.name if len(body.name) <= 80 else sha256(body.name.encode()).hexdigest()
-            ),
-            name=body.name, quantity_status=body.quantity_status, quantity=body.quantity,
-            unit=body.unit, expires_on=body.expires_on, notes=body.notes,
-            confirmed_at=datetime.now(UTC), source_type="mobile",
-            source_id=uuid4().hex, version=1)
-        session.add(row)
-        session.flush()
-        _movement(session, actor[0], row, "added", {})
+        try:
+            ingredient = ingredient_catalog.resolve_ingredient(
+                session,
+                ingredient_id=body.ingredient_id,
+                ingredient_key=body.ingredient_key,
+                name=body.name,
+                default_unit=body.unit,
+            )
+        except ingredient_catalog.IngredientNotFoundError as exc:
+            raise HTTPException(
+                400, detail={"code": "INGREDIENT_NOT_FOUND", "message": str(exc)}
+            ) from exc
+        view, outcome = inventory_lots.upsert_lot(
+            session,
+            workspace_id=household_id,
+            actor_id=actor[0],
+            ingredient=ingredient,
+            name=body.name or ingredient.name,
+            quantity_status=body.quantity_status,
+            quantity=body.quantity,
+            unit=body.unit,
+            expires_on=body.expires_on,
+            notes=body.notes,
+        )
         session.commit()
-        return _lot_view(row)
+        return {**view, "outcome": outcome}
 
 
 @router.patch("/households/{household_id}/inventory-lots/{lot_id}")

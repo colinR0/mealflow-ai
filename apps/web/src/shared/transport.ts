@@ -56,7 +56,7 @@ export function request<T>(path: string, data?: unknown, authenticated = true, e
             handleExpiredSession()
           }
           const code = (response.data as { detail?: { code?: string } })?.detail?.code
-          const codes: Record<string, string> = { RUN_BUSY: '对话仍在执行，请先停止或等待完成', SESSION_NOT_FOUND: '对话已不存在，请新建对话', ACTION_STALE: '操作内容已变化，请刷新对话后核对', ACTION_EXPIRED: '操作已过期，请重新发起', HOUSEHOLD_RUN_LIMIT: '家庭任务正在处理中，请稍后再试', QUEUE_FULL: '服务繁忙，请稍后再试' }
+          const codes: Record<string, string> = { INVENTORY_VERSION_CONFLICT: '记录已变化，请刷新后重新确认', INVENTORY_STATE_CONFLICT: '当前状态不可执行该操作', INGREDIENT_NOT_FOUND: '所选食材无效，请重新选择', RUN_BUSY: '对话仍在执行，请先停止或等待完成', SESSION_NOT_FOUND: '对话已不存在，请新建对话', ACTION_STALE: '操作内容已变化，请刷新对话后核对', ACTION_EXPIRED: '操作已过期，请重新发起', HOUSEHOLD_RUN_LIMIT: '家庭任务正在处理中，请稍后再试', QUEUE_FULL: '服务繁忙，请稍后再试' }
           const messages: Record<number, string> = { 401: '登录已失效，请重新登录', 403: '无法访问当前家庭，请重新选择家庭', 404: '记录已不存在，请刷新后重试', 409: '记录已变化，请刷新后重试', 422: '填写内容有误，请检查输入' }
           reject(new ApiError((code && codes[code]) || messages[response.statusCode] || '请求未完成，请稍后重试', response.statusCode))
           return

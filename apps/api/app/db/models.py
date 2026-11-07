@@ -183,6 +183,17 @@ class Ingredient(TimestampMixin, Base):
     price_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)  # 参考价格最近更新时间
 
 
+
+class IngredientAlias(TimestampMixin, Base):
+    __tablename__ = "ingredient_aliases"
+    __table_args__ = (UniqueConstraint("normalized_alias"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    ingredient_id: Mapped[str] = mapped_column(ForeignKey("ingredients.id"), index=True)
+    alias: Mapped[str] = mapped_column(String(120))
+    normalized_alias: Mapped[str] = mapped_column(String(120), index=True)
+
+
 class InventoryItem(TimestampMixin, Base):
     __tablename__ = "inventory_items"
 
@@ -346,4 +357,5 @@ class CookingRecord(TimestampMixin, Base):
 
 
 from app.db import v2_models as v2_models  # noqa: E402,F401
+from app.db import source_registry_models as source_registry_models  # noqa: E402,F401
 

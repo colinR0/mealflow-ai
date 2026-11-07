@@ -51,7 +51,7 @@ export default defineComponent({
     <SurfaceCard title="已确认食材预览">
       <view v-if="!session.restored || state.loading" aria-label="正在读取食材"><view v-for="n in 3" :key="n" class="skeleton"></view></view>
       <view v-else-if="state.error" class="error-state"><text>{{ state.error }}</text><text class="inline-action" @tap.stop="refreshAll">重试</text></view>
-      <view v-else-if="!state.items.length" class="empty-state"><text class="empty-title">暂无已确认食材</text><text>摄像头与识别服务尚未接入，库存需由家庭确认后记录。</text><button class="secondary-button" @tap="openReview">识别核对（目标态）</button></view>
+      <view v-else-if="!state.items.length" class="empty-state"><text class="empty-title">暂无已确认食材</text><text>库存需由家庭手动确认后记录；识别与相机入口尚未接入。</text><button class="secondary-button" @tap="openInventory">去登记库存</button></view>
       <view v-else-if="!filtered.length" class="empty-state"><text>没有查到记录，请尝试其他名称。</text></view>
       <view v-else class="food-list"><view v-for="item in filtered.slice(0, 5)" :key="item.id" class="food-row"><view><text class="food-name">{{ item.name }}</text><text class="food-meta">{{ item.quantity_status === 'known' ? `${item.quantity} ${item.unit || ''}` : '数量未知 / 待核对' }}</text></view><text class="food-quantity">确认于 {{ new Date(item.confirmed_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}</text></view><view class="all-inventory" @tap="openInventory">查看全部库存 ({{ state.items.length }})　›</view></view>
       <text class="footnote">展示已确认记录，搜索限已载入的最多 100 条。数量未知的食材请使用前核对。</text>

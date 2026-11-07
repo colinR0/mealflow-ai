@@ -106,7 +106,8 @@ def seed(credential_file: Path | None) -> dict:
                 lot_id = demo_id("lot:" + key)
                 if session.get(InventoryLot, lot_id) is None:
                     session.add(InventoryLot(
-                        id=lot_id, workspace_id=workspace_id, ingredient_key=key, name=name,
+                        id=lot_id, workspace_id=workspace_id, ingredient_id=ingredient.id,
+                        ingredient_key=key, name=name,
                         quantity_status="known", quantity=500, unit="g", expires_on=None,
                         confirmed_at=datetime.now(UTC), source_type="s7_demo",
                         source_id=key, version=1,

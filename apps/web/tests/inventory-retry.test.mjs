@@ -4,6 +4,13 @@ import { test } from 'node:test'
 import { runInNewContext } from 'node:vm'
 import ts from 'typescript'
 
+class ApiError extends Error {
+  constructor(message, statusCode) {
+    super(message)
+    this.statusCode = statusCode
+  }
+}
+
 // Execute the actual page methods with transport and uni-app boundaries stubbed.
 function pageWith(request) {
   const source = readFileSync(new URL('../src/pages/fridge/inventory.vue', import.meta.url), 'utf8')
@@ -12,14 +19,17 @@ function pageWith(request) {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
   })
   const exports = {}
-  const session = { householdId: 'household-1' }
+  const session = { householdId: 'household-1', households: [{ id: 'household-1', name: '测试家庭' }] }
   runInNewContext(outputText, {
     exports, Error, setTimeout, clearTimeout,
-    uni: { showModal: ({ success }) => success({ confirm: true }) },
+    uni: {
+      showModal: ({ success }) => success({ confirm: true }),
+      navigateTo: () => undefined,
+    },
     require: (name) => {
       if (name === 'vue') return { defineComponent: (options) => options }
       if (name.endsWith('/session')) return { session }
-      if (name.endsWith('/transport')) return { request }
+      if (name.endsWith('/transport')) return { request, ApiError }
       if (name.endsWith('.vue')) return { default: {} }
       throw new Error(`Unexpected import: ${name}`)
     },
@@ -27,15 +37,17 @@ function pageWith(request) {
   const component = exports.default
   const page = component.data()
   for (const [key, method] of Object.entries(component.methods)) page[key] = method.bind(page)
-  Object.defineProperty(page, 'editCanSave', { get: () => component.computed.editCanSave.call(page) })
-  page.items = [{ id: 'lot-1', name: 'Food', version: 1, quantity_status: 'unknown', notes: '' }]
+  for (const [key, computed] of Object.entries(component.computed || {})) {
+    Object.defineProperty(page, key, { get: () => computed.call(page) })
+  }
+  page.items = [{ id: 'lot-1', name: 'Food', version: 1, quantity_status: 'unknown', notes: '', status: 'active', confirmed_at: '2026-11-06T00:00:00+00:00' }]
   page.offset = 30; page.total = 60; page.hasMore = true
   page.search = 'Food'; page.filter = 'unknown'; page.status = 'active'
   return page
 }
 
 function freshPage() {
-  return { items: [{ id: 'lot-1', name: 'Food', version: 2 }], total: 1, offset: 0, has_more: false }
+  return { items: [{ id: 'lot-1', name: 'Food', version: 2, quantity_status: 'unknown', notes: '', status: 'active', confirmed_at: '2026-11-06T00:00:00+00:00' }], total: 1, offset: 0, has_more: false }
 }
 
 for (const action of ['consume', 'remove', 'edit']) {
@@ -64,12 +76,27 @@ for (const action of ['consume', 'remove', 'edit']) {
   })
 }
 
+test('version conflict refreshes and asks the user to reconfirm', async () => {
+  const calls = []
+  const page = pageWith(async (url, payload) => {
+    calls.push({ url, payload })
+    if (payload && calls.filter((item) => item.payload).length === 1) {
+      throw new ApiError('冲突', 409)
+    }
+    if (payload) return { id: 'lot-1', version: 3 }
+    return freshPage()
+  })
+  await page.transition(page.items[0], 'consume')
+  assert.ok(calls.some((item) => !item.payload && /offset=0/.test(item.url)))
+  assert.equal(page.busyId, '')
+})
+
 test('failed pagination retries the same offset and keeps previously loaded records', async () => {
   const urls = []
   const page = pageWith(async (url) => {
     urls.push(url)
     if (urls.length === 1) throw new Error('Page unavailable')
-    return { items: [{ id: 'lot-2', version: 1 }], total: 31, offset: 30, has_more: false }
+    return { items: [{ id: 'lot-2', version: 1, name: 'More', quantity_status: 'unknown', notes: '', status: 'active', confirmed_at: '2026-11-06T00:00:00+00:00' }], total: 31, offset: 30, has_more: false }
   })
   await page.load()
   assert.equal(page.errorRetry, 'page')
@@ -111,4 +138,17 @@ test('edit sends the original decimal text without Number rounding', async () =>
   page.editQuantity = '999999999.99900001'; page.editUnit = 'kg'
   await page.saveEdit()
   assert.equal(submitted.quantity, '999999999.99900001')
+})
+
+test('known quantity filter is sent to the server', async () => {
+  const urls = []
+  const page = pageWith(async (url) => {
+    urls.push(url)
+    return { items: [], total: 0, offset: 0, has_more: false }
+  })
+  page.filter = 'known'
+  page.offset = 0
+  page.items = []
+  await page.load()
+  assert.match(urls[0], /quantity_status=known/)
 })

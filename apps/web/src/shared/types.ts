@@ -1,7 +1,19 @@
 export interface Household { id: string; name: string }
+export interface IngredientDictItem {
+  id: string
+  key: string
+  name: string
+  category: string
+  default_unit: string
+  aliases: string[]
+}
+
 export interface InventoryLot {
   id: string
+  ingredient_id?: string
   name: string
+  ingredient_key?: string
+  outcome?: 'created' | 'updated' | 'restored'
   quantity_status: 'known' | 'unknown'
   quantity: string | null
   unit: string | null
