@@ -152,14 +152,17 @@ def test_no_index_and_native_retrieval_do_not_fallback():
         options(retrieval_mode="auto")
 
 
-def test_real_profile_requires_explicit_matching_provider():
+def test_real_profile_requires_matching_settings_and_provider():
     seed_demo()
     with SessionLocal.begin() as session:
         profile = session.get(EmbeddingProfile, "demo-profile")
         profile.model, profile.is_fake = "approved-real-model", False
     result = gateway.search("番茄", sessions=SessionLocal,
-        settings=options(retrieval_embedding_model="approved-real-model"))
+        settings=options(retrieval_embedding_model="other-real-model"))
     assert result.error_code == "EMBEDDING_PROFILE_MISMATCH"
+    result = gateway.search("番茄", sessions=SessionLocal,
+        settings=options(retrieval_embedding_model="approved-real-model"))
+    assert result.error_code == "DEMO_REQUIRES_FAKE_PROVIDER"
     provider = replace(gateway.FAKE_EMBEDDER, model="approved-real-model", fake=False,
                        embed_query=lambda query: fake_embedding(query))
     result = gateway.search("番茄", sessions=SessionLocal, provider=provider,
