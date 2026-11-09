@@ -10,6 +10,7 @@ from __future__ import annotations
 from collections.abc import Callable, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
+from functools import lru_cache
 
 from sqlalchemy import Connection, select, text
 
@@ -28,6 +29,7 @@ from app.services.hybrid_retrieval import (
     fake_embedding,
     reciprocal_rank_fusion,
 )
+from app.services.local_embedding import LocalEmbedding
 from app.services.native_retrieval import NativeRetriever, vector_literal
 
 
@@ -45,9 +47,65 @@ class QueryEmbedder:
     template_version: str
     tokenizer_version: str
     fake: bool
+    embed_document: Callable[[str], Sequence[float]] | None = None
 
 
-FAKE_EMBEDDER = QueryEmbedder(fake_embedding, "fake", 64, "v1", "v1", True)
+FAKE_EMBEDDER = QueryEmbedder(
+    fake_embedding, "fake", 64, "v1", "v1", True, embed_document=fake_embedding
+)
+
+
+@lru_cache(maxsize=4)
+def _local_provider(
+    model: str,
+    dimensions: int,
+    template_version: str,
+    tokenizer_version: str,
+    query_prefix: str,
+    device: str,
+    batch_size: int,
+    local_files_only: bool,
+    max_seq_length: int | None,
+) -> QueryEmbedder:
+    local = LocalEmbedding(
+        model_name=model,
+        dimensions=dimensions,
+        query_prefix=query_prefix,
+        device=device,
+        batch_size=batch_size,
+        local_files_only=local_files_only,
+        max_seq_length=max_seq_length,
+    )
+    return QueryEmbedder(
+        local.embed_query,
+        model,
+        dimensions,
+        template_version,
+        tokenizer_version,
+        False,
+        embed_document=local.embed_document,
+    )
+
+
+def configured_embedder(settings: Settings) -> QueryEmbedder:
+    """Build the provider selected by settings; weights load on first inference."""
+    if settings.retrieval_embedding_model == "fake":
+        return FAKE_EMBEDDER
+    return _local_provider(
+        settings.retrieval_embedding_model,
+        settings.retrieval_embedding_dimensions,
+        settings.retrieval_template_version,
+        settings.retrieval_tokenizer_version,
+        settings.retrieval_embedding_query_prefix,
+        settings.retrieval_embedding_device,
+        settings.retrieval_embedding_batch_size,
+        settings.retrieval_embedding_local_files_only,
+        settings.retrieval_embedding_max_seq_length,
+    )
+
+
+def document_embedder(provider: QueryEmbedder) -> Callable[[str], Sequence[float]]:
+    return provider.embed_document or provider.embed_query
 
 
 @contextmanager
@@ -109,10 +167,13 @@ def active_profile(connection, settings, provider):
     return dict(row)
 
 
-def evidence_rows(connection, generation_id, chunk_ids=None):
+def evidence_rows(connection, generation_id, chunk_ids=None, document_type=None):
     statement = (
         select(
             KnowledgeDocument.recipe_id,
+            KnowledgeDocument.id.label("document_id"),
+            KnowledgeDocument.document_type,
+            KnowledgeDocument.title,
             KnowledgeDocument.content_version,
             KnowledgeDocument.content,
             KnowledgeDocument.capabilities,
@@ -133,6 +194,8 @@ def evidence_rows(connection, generation_id, chunk_ids=None):
     )
     if chunk_ids is not None:
         statement = statement.where(KnowledgeChunk.id.in_(chunk_ids))
+    if document_type is not None:
+        statement = statement.where(KnowledgeDocument.document_type == document_type)
     return connection.execute(statement).mappings().all()
 
 
@@ -143,20 +206,20 @@ def demo_hits(rows, query, embedding, limit):
         if overlap:
             keyword.append((overlap, row))
         similarity = cosine(embedding, row["embedding"])
-        if similarity > 0:
+        if similarity > 0 and (row["document_type"] != "cooking_skill" or overlap):
             vector.append((similarity, row))
     channels = []
     best = {}
     for candidates in (keyword, vector):
-        candidates.sort(key=lambda item: (-item[0], item[1]["recipe_id"], item[1]["chunk_id"]))
+        candidates.sort(key=lambda item: (-item[0], item[1]["document_id"], item[1]["chunk_id"]))
         hits = []
         for rank, (score, row) in enumerate(candidates[:40], 1):
             hits.append(
-                RetrievalHit(row["recipe_id"], row["chunk_id"], rank, score, row["excerpt"])
+                RetrievalHit(row["document_id"], row["chunk_id"], rank, score, row["excerpt"])
             )
             choice = (rank, row["chunk_id"])
-            if row["recipe_id"] not in best or choice < best[row["recipe_id"]][0]:
-                best[row["recipe_id"]] = (choice, row)
+            if row["document_id"] not in best or choice < best[row["document_id"]][0]:
+                best[row["document_id"]] = (choice, row)
         channels.append(hits)
     return [
         (best[recipe_id][1], score) for recipe_id, score in reciprocal_rank_fusion(channels)[:limit]
@@ -171,12 +234,16 @@ def search(
     settings: Settings | None = None,
     provider: QueryEmbedder | None = None,
     limit: int = 8,
+    document_type: str | None = None,
 ) -> ToolResult:
     if not isinstance(query, str) or not query.strip() or len(query) > 500:
         return ToolResult(status="error", error_code="INVALID_QUERY")
     if type(limit) is not int or not 1 <= limit <= 100:
         return ToolResult(status="error", error_code="INVALID_LIMIT")
-    settings, provider = settings or get_settings(), provider or FAKE_EMBEDDER
+    if document_type not in {None, "recipe", "cooking_skill"}:
+        return ToolResult(status="error", error_code="INVALID_DOCUMENT_TYPE")
+    settings = settings or get_settings()
+    provider = provider or configured_embedder(settings)
     try:
         with database_connection(sessions=sessions, connection=connection) as db:
             if settings.retrieval_mode == "native" and db.dialect.name != "postgresql":
@@ -189,8 +256,11 @@ def search(
                     )
                     if not available:
                         raise RetrievalUnavailable("NATIVE_VECTOR_UNAVAILABLE")
-            # No DB transaction spans a possibly remote embedding request.
-            embedding = provider.embed_query(query)
+            # No DB transaction spans a possibly remote/local embedding request.
+            try:
+                embedding = provider.embed_query(query)
+            except Exception as exc:
+                raise RetrievalUnavailable("EMBEDDING_PROVIDER_FAILED") from exc
             if len(embedding) != provider.dimensions:
                 raise RetrievalUnavailable("EMBEDDING_DIMENSION_MISMATCH")
             vector_literal(embedding)  # Reject bool, NaN, infinity and nonnumeric values.
@@ -201,33 +271,39 @@ def search(
                 if settings.retrieval_mode == "native":
                     hits = NativeRetriever(
                         db, profile_id=profile["profile_id"], dimensions=profile["dimensions"]
-                    ).search(query, embedding, limit)
+                    ).search(query, embedding, limit, document_type)
                     rows = evidence_rows(
-                        db, profile["generation_id"], [hit.chunk_id for hit in hits]
+                        db, profile["generation_id"], [hit.chunk_id for hit in hits], document_type
                     )
                     by_chunk = {row["chunk_id"]: row for row in rows}
                     ranked = []
                     for hit in hits:
                         row = by_chunk.get(hit.chunk_id)
                         if row is None or (
+                            row["document_id"],
                             row["recipe_id"],
                             row["source_id"],
                             row["content_version"],
                             row["excerpt"],
-                        ) != (hit.recipe_id, hit.source_id, hit.content_version, hit.excerpt):
+                        ) != (hit.document_id, hit.recipe_id, hit.source_id,
+                              hit.content_version, hit.excerpt):
                             raise RetrievalUnavailable("EVIDENCE_CHANGED")
                         ranked.append((row, float(hit.score)))
                 else:
-                    rows = evidence_rows(db, profile["generation_id"])
+                    rows = evidence_rows(db, profile["generation_id"], document_type=document_type)
                     ranked = demo_hits(rows, query, embedding, limit)
                 # Detect switches/revocation between SQL statements before returning evidence.
                 if active_profile(db, settings, provider) != profile:
                     raise RetrievalUnavailable("INDEX_CHANGED")
                 evidence = [
                     {
-                        "id": f"recipe:{row['recipe_id']}:v{row['content_version']}",
-                        "kind": "recipe",
+                        "id": (f"recipe:{row['recipe_id']}:v{row['content_version']}"
+                               if row["document_type"] == "recipe" else
+                               f"knowledge:{row['document_id']}:v{row['content_version']}"),
+                        "kind": row["document_type"],
+                        "document_id": row["document_id"],
                         "recipe_id": row["recipe_id"],
+                        "title": row["title"],
                         "content_version": row["content_version"],
                         "chunk_id": row["chunk_id"],
                         "source_id": row["source_id"],

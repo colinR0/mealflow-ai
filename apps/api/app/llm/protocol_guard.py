@@ -13,6 +13,10 @@ DEFAULT_TOOLS = {
     "get_member_constraints",
     "get_inventory_summary",
     "search_recipes",
+    "search_cooking_skills",
+    "find_ingredient_substitute",
+    "get_flavor_template",
+    "check_food_risk",
     "get_recipe_detail",
     "check_recipe_availability",
     "get_preference_summary",
@@ -21,6 +25,10 @@ DEFAULT_TOOLS = {
 
 _REQUIRED_TEXT = {
     "search_recipes": "query",
+    "search_cooking_skills": "query",
+    "find_ingredient_substitute": "query",
+    "get_flavor_template": "query",
+    "check_food_risk": "query",
     "get_recipe_detail": "recipe",
     "check_recipe_availability": "recipe",
 }
@@ -30,6 +38,9 @@ _ALIAS_KEYS = {
     "getrecipe": "get_recipe_detail",
     "recipedetail": "get_recipe_detail",
     "getrecipedetail": "get_recipe_detail",
+    "findsubstitute": "find_ingredient_substitute",
+    "getflavortemplate": "get_flavor_template",
+    "checkfoodrisk": "check_food_risk",
 }
 
 _LEAK = re.compile(

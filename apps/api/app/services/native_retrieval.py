@@ -28,6 +28,30 @@ CREATE INDEX IF NOT EXISTS ix_knowledge_chunks_embedding_hnsw
   WHERE embedding_vector IS NOT NULL;
 CREATE INDEX IF NOT EXISTS ix_knowledge_chunks_search_tsv
   ON knowledge_chunks USING gin (search_tsv);
+ALTER TABLE IF EXISTS ingredient_substitutions
+  ADD COLUMN IF NOT EXISTS embedding_vector vector({dimensions});
+ALTER TABLE IF EXISTS ingredient_substitutions ADD COLUMN IF NOT EXISTS search_tsv tsvector;
+CREATE INDEX IF NOT EXISTS ix_ingredient_substitutions_embedding_hnsw
+  ON ingredient_substitutions USING hnsw (embedding_vector vector_cosine_ops)
+  WHERE embedding_vector IS NOT NULL;
+CREATE INDEX IF NOT EXISTS ix_ingredient_substitutions_search_tsv
+  ON ingredient_substitutions USING gin (search_tsv);
+ALTER TABLE IF EXISTS flavor_templates
+  ADD COLUMN IF NOT EXISTS embedding_vector vector({dimensions});
+ALTER TABLE IF EXISTS flavor_templates ADD COLUMN IF NOT EXISTS search_tsv tsvector;
+CREATE INDEX IF NOT EXISTS ix_flavor_templates_embedding_hnsw
+  ON flavor_templates USING hnsw (embedding_vector vector_cosine_ops)
+  WHERE embedding_vector IS NOT NULL;
+CREATE INDEX IF NOT EXISTS ix_flavor_templates_search_tsv
+  ON flavor_templates USING gin (search_tsv);
+ALTER TABLE IF EXISTS food_risk_rules
+  ADD COLUMN IF NOT EXISTS embedding_vector vector({dimensions});
+ALTER TABLE IF EXISTS food_risk_rules ADD COLUMN IF NOT EXISTS search_tsv tsvector;
+CREATE INDEX IF NOT EXISTS ix_food_risk_rules_embedding_hnsw
+  ON food_risk_rules USING hnsw (embedding_vector vector_cosine_ops)
+  WHERE embedding_vector IS NOT NULL;
+CREATE INDEX IF NOT EXISTS ix_food_risk_rules_search_tsv
+  ON food_risk_rules USING gin (search_tsv);
 """
 
 
@@ -46,12 +70,44 @@ def vector_literal(values: Sequence[float]) -> str:
     return "[" + ",".join(str(float(value)) for value in values) + "]"
 
 
+VECTOR_TABLES = (
+    "knowledge_chunks",
+    "ingredient_substitutions",
+    "flavor_templates",
+    "food_risk_rules",
+)
+
+
+def _existing_vector_dimensions(connection: Connection) -> dict[str, int]:
+    rows = connection.execute(
+        text("""
+            SELECT c.relname, a.atttypmod
+            FROM pg_attribute a
+            JOIN pg_class c ON c.oid = a.attrelid
+            JOIN pg_namespace n ON n.oid = c.relnamespace
+            WHERE n.nspname = current_schema()
+              AND c.relname = ANY(:tables)
+              AND a.attname = 'embedding_vector'
+              AND NOT a.attisdropped
+        """),
+        {"tables": list(VECTOR_TABLES)},
+    ).all()
+    return {row[0]: int(row[1]) for row in rows}
+
+
 def install_native_schema(connection: Connection, dimensions: int = 64) -> None:
     """Install native columns/indexes; raises a useful error when pgvector is absent."""
     if connection.dialect.name != "postgresql":
         raise RuntimeError("S5 native schema requires PostgreSQL")
     if isinstance(dimensions, bool) or not isinstance(dimensions, int) or dimensions < 1:
         raise ValueError("dimensions must be positive")
+    existing = _existing_vector_dimensions(connection)
+    mismatched = {table: size for table, size in existing.items() if size != dimensions}
+    if mismatched:
+        raise RuntimeError(
+            f"pgvector dimensions do not match the configured embedding: {mismatched}; "
+            "run the matching Alembic migration and rebuild the index"
+        )
     try:
         statements = [
             item.strip()
@@ -68,7 +124,8 @@ def install_native_schema(connection: Connection, dimensions: int = 64) -> None:
 
 @dataclass(frozen=True)
 class NativeHit:
-    recipe_id: str
+    document_id: str
+    recipe_id: str | None
     chunk_id: str
     score: float
     excerpt: str
@@ -82,12 +139,16 @@ class NativeRetriever:
         self.profile_id = profile_id
         self.dimensions = dimensions
 
-    def search(self, query: str, embedding: Sequence[float], limit: int = 8) -> list[NativeHit]:
+    def search(
+        self, query: str, embedding: Sequence[float], limit: int = 8,
+        document_type: str | None = None,
+    ) -> list[NativeHit]:
         if len(embedding) != self.dimensions:
             raise ValueError("query embedding dimension does not match the index profile")
         query_tokens = tokenize_chinese(query)
         params = {"profile_id": self.profile_id, "query": query_tokens,
-                  "vector": vector_literal(embedding), "channel_limit": max(limit * 8, 40)}
+                  "vector": vector_literal(embedding), "channel_limit": max(limit * 8, 40),
+                  "document_type": document_type}
         # Both candidate lists are ranked in SQL.  Approval/version predicates
         # are repeated in each channel so revoked content cannot leak through RRF.
         sql = text("""
@@ -95,32 +156,36 @@ class NativeRetriever:
               SELECT g.id FROM index_generations g
               WHERE g.active = true AND g.status = 'ready' AND g.profile_id = :profile_id
             ), keyword AS (
-              SELECT c.id chunk_id, d.recipe_id, c.text excerpt, s.id source_id,
+               SELECT c.id chunk_id, c.document_id, d.recipe_id, c.text excerpt, s.id source_id,
                      d.content_version, row_number() OVER (
                        ORDER BY ts_rank(c.search_tsv, plainto_tsquery('simple', :query)) DESC,
-                                d.recipe_id, c.id) rank
+                                 c.document_id, c.id) rank
               FROM knowledge_chunks c
               JOIN knowledge_documents d ON d.id = c.document_id
               JOIN knowledge_sources s ON s.id = d.source_id
               JOIN active a ON a.id = c.generation_id
                 WHERE d.published = true AND s.approval = 'approved'
                 AND c.content_version = d.content_version
-                AND c.search_tsv @@ plainto_tsquery('simple', :query)
+                 AND c.search_tsv @@ plainto_tsquery('simple', :query)
+                 AND (CAST(:document_type AS text) IS NULL OR d.document_type = :document_type)
             ), vector AS (
-              SELECT c.id chunk_id, d.recipe_id, c.text excerpt, s.id source_id,
+               SELECT c.id chunk_id, c.document_id, d.recipe_id, c.text excerpt, s.id source_id,
                      d.content_version, row_number() OVER (
                        ORDER BY c.embedding_vector <=> CAST(:vector AS vector),
-                                d.recipe_id, c.id) rank
+                                 c.document_id, c.id) rank
               FROM knowledge_chunks c
               JOIN knowledge_documents d ON d.id = c.document_id
               JOIN knowledge_sources s ON s.id = d.source_id
               JOIN active a ON a.id = c.generation_id
-              WHERE d.published = true AND s.approval = 'approved'
+               WHERE d.published = true AND s.approval = 'approved'
+                 AND (CAST(:document_type AS text) IS NULL OR d.document_type = :document_type)
+                 AND (CAST(:document_type AS text) IS DISTINCT FROM 'cooking_skill'
+                      OR c.search_tsv @@ plainto_tsquery('simple', :query))
                 AND c.content_version = d.content_version AND c.embedding_vector IS NOT NULL
             ), keyword_best AS (
-              SELECT DISTINCT ON (recipe_id) * FROM keyword ORDER BY recipe_id, rank
+               SELECT DISTINCT ON (document_id) * FROM keyword ORDER BY document_id, rank
             ), vector_best AS (
-              SELECT DISTINCT ON (recipe_id) * FROM vector ORDER BY recipe_id, rank
+               SELECT DISTINCT ON (document_id) * FROM vector ORDER BY document_id, rank
             ), candidates AS (
               SELECT *, 'keyword' channel, 1.0 / (60 + rank) rrf
               FROM keyword_best WHERE rank <= :channel_limit
@@ -128,13 +193,13 @@ class NativeRetriever:
               SELECT *, 'vector' channel, 1.0 / (60 + rank) rrf
               FROM vector_best WHERE rank <= :channel_limit
             ), evidence AS (
-              SELECT *, sum(rrf) OVER (PARTITION BY recipe_id) score,
-                     row_number() OVER (
-                       PARTITION BY recipe_id ORDER BY rank, channel, chunk_id) evidence_rank
+               SELECT *, sum(rrf) OVER (PARTITION BY document_id) score,
+               row_number() OVER (
+                        PARTITION BY document_id ORDER BY rank, channel, chunk_id) evidence_rank
               FROM candidates
             )
-            SELECT recipe_id, chunk_id, score, excerpt, source_id, content_version
-            FROM evidence WHERE evidence_rank = 1 ORDER BY score DESC, recipe_id LIMIT :limit
+            SELECT document_id, recipe_id, chunk_id, score, excerpt, source_id, content_version
+            FROM evidence WHERE evidence_rank = 1 ORDER BY score DESC, document_id LIMIT :limit
         """)
         return [NativeHit(**dict(row._mapping)) for row in self.connection.execute(
             sql, {**params, "limit": min(100, max(1, limit))}

@@ -297,8 +297,15 @@ class IndexGeneration(TimestampMixin, Base):
 class KnowledgeDocument(TimestampMixin, Base):
     __tablename__ = "knowledge_documents"
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
-    recipe_id: Mapped[str] = mapped_column(ForeignKey("recipes.id"), unique=True)
+    recipe_id: Mapped[str | None] = mapped_column(
+        ForeignKey("recipes.id"), unique=True, nullable=True
+    )
     source_id: Mapped[str] = mapped_column(ForeignKey("knowledge_sources.id"))
+    document_type: Mapped[str] = mapped_column(
+        String(32), default="recipe", server_default="recipe", index=True
+    )
+    title: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    source_path: Mapped[str | None] = mapped_column(String(1024), nullable=True)
     content_version: Mapped[int] = mapped_column(Integer, default=1)
     published: Mapped[bool] = mapped_column(Boolean, default=False)
     capabilities: Mapped[dict] = mapped_column(JSON, default=dict)
@@ -319,3 +326,96 @@ class KnowledgeChunk(TimestampMixin, Base):
     text: Mapped[str] = mapped_column(Text)
     # Local demo fallback; native PostgreSQL vector/full-text indexing is not implemented yet.
     embedding: Mapped[list] = mapped_column(JSON)
+
+
+class StructuredKnowledgeMixin:
+    """Fields shared by isolated structured food-knowledge libraries."""
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    review_status: Mapped[str] = mapped_column(String(24), default="draft", index=True)
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    source_name: Mapped[str] = mapped_column(String(200), default="")
+    source_url: Mapped[str | None] = mapped_column(String(500))
+    notes: Mapped[str] = mapped_column(Text, default="")
+    # Only this field is embedded; decisions read the typed columns below.
+    rag_text: Mapped[str] = mapped_column(Text)
+    embedding: Mapped[list] = mapped_column(JSON, default=list)
+    embedding_profile_id: Mapped[str] = mapped_column(String(36), index=True)
+
+
+class IngredientSubstitution(TimestampMixin, StructuredKnowledgeMixin, Base):
+    __tablename__ = "ingredient_substitutions"
+    __table_args__ = (
+        UniqueConstraint(
+            "from_ingredient_key", "to_ingredient_key", name="uq_substitution_pair"
+        ),
+        CheckConstraint("conversion_factor > 0", name="ck_substitution_factor"),
+        CheckConstraint("priority >= 0", name="ck_substitution_priority"),
+        CheckConstraint(
+            "review_status IN ('draft', 'approved', 'revoked')",
+            name="ck_substitution_review_status",
+        ),
+    )
+    from_ingredient_key: Mapped[str] = mapped_column(String(80), index=True)
+    from_ingredient_name: Mapped[str] = mapped_column(String(80))
+    to_ingredient_key: Mapped[str] = mapped_column(String(80), index=True)
+    to_ingredient_name: Mapped[str] = mapped_column(String(80))
+    conversion_factor: Mapped[Decimal] = mapped_column(Numeric(8, 4), default=1)
+    unit: Mapped[str] = mapped_column(String(20), default="")
+    diet_tags: Mapped[list] = mapped_column(JSON, default=list)
+    exclude_tags: Mapped[list] = mapped_column(JSON, default=list)
+    flavor_impact: Mapped[str] = mapped_column(Text, default="")
+    priority: Mapped[int] = mapped_column(Integer, default=0)
+
+
+class FlavorTemplate(TimestampMixin, StructuredKnowledgeMixin, Base):
+    __tablename__ = "flavor_templates"
+    __table_args__ = (
+        CheckConstraint(
+            "review_status IN ('draft', 'approved', 'revoked')",
+            name="ck_flavor_template_review_status",
+        ),
+        CheckConstraint("ratio_basis IN ('parts', 'weight', 'volume')",
+                        name="ck_flavor_template_ratio_basis"),
+    )
+    name: Mapped[str] = mapped_column(String(80), unique=True, index=True)
+    aliases: Mapped[list] = mapped_column(JSON, default=list)
+    flavor_tags: Mapped[list] = mapped_column(JSON, default=list)
+    # [{"ingredient_key": "...", "name": "...", "parts": 2, "unit": "份", "role": "..."}]
+    components: Mapped[list] = mapped_column(JSON, default=list)
+    ratio_basis: Mapped[str] = mapped_column(String(16), default="parts")
+    usage: Mapped[str] = mapped_column(Text, default="")
+    cautions: Mapped[list] = mapped_column(JSON, default=list)
+
+
+class FoodRiskRule(TimestampMixin, StructuredKnowledgeMixin, Base):
+    __tablename__ = "food_risk_rules"
+    __table_args__ = (
+        CheckConstraint("severity IN ('info', 'warning', 'danger')",
+                        name="ck_food_risk_severity"),
+        CheckConstraint(
+            "evidence_level IN ('established', 'limited', 'unverified')",
+            name="ck_food_risk_evidence",
+        ),
+        CheckConstraint(
+            "review_status IN ('draft', 'approved', 'revoked')",
+            name="ck_food_risk_review_status",
+        ),
+        CheckConstraint("min_age_months IS NULL OR min_age_months >= 0",
+                        name="ck_food_risk_min_age"),
+        CheckConstraint(
+            "max_age_months IS NULL OR min_age_months IS NULL "
+            "OR max_age_months >= min_age_months",
+            name="ck_food_risk_age_range",
+        ),
+    )
+    risk_type: Mapped[str] = mapped_column(String(32), index=True)
+    title: Mapped[str] = mapped_column(String(200))
+    severity: Mapped[str] = mapped_column(String(16), default="info")
+    applies_to: Mapped[list] = mapped_column(JSON, default=list)
+    min_age_months: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    max_age_months: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    condition_tags: Mapped[list] = mapped_column(JSON, default=list)
+    ingredient_keys: Mapped[list] = mapped_column(JSON, default=list)
+    advice: Mapped[str] = mapped_column(Text, default="")
+    evidence_level: Mapped[str] = mapped_column(String(24), default="unverified")

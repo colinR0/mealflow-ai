@@ -7,12 +7,13 @@ import { streamRun, type AgentEvent } from '../../shared/stream'
 import { request } from '../../shared/transport'
 
 interface Action { id: string; type: string; payload: Record<string, unknown>; payload_hash: string; version: number }
-interface Result { text?: string; pending_action?: Action; action_result?: { status: string }; warnings?: string[]; status?: string }
+interface Evidence { id: string; kind: string; title?: string; source_url?: string; source_name?: string; notes?: string; content?: { name?: string; title?: string; source_name?: string; steps?: string[]; markdown?: string; snippet?: string; conversion_factor?: string; unit?: string; severity?: string; applies_to?: string[] } }
+interface Result { text?: string; pending_action?: Action; action_result?: { status: string }; warnings?: string[]; status?: string; citations?: string[]; evidence?: Evidence[] }
 interface Run { run_id: string; text: string; status: string; result: Result; error_code?: string; steps: string[]; expanded: boolean; error: string; deciding: boolean; requestKey: string }
 interface Chat { id: string; title: string; updated_at: string; status: string }
 interface Detail { session_id: string; has_more: boolean; runs: Run[] }
 const active = (status: string) => ['queued', 'running', 'cancel_requested'].includes(status)
-const toolNames: Record<string, string> = { get_inventory_summary: '查询冰箱库存', get_member_constraints: '读取家庭限制', recommend_menu: '整理菜单', prepare_procurement_action: '整理采购建议', get_preference_summary: '查询家庭偏好', prepare_preference_action: '整理偏好建议', search_recipes: '搜索菜谱', get_recipe_detail: '读取菜谱', check_recipe_availability: '核对食材' }
+const toolNames: Record<string, string> = { get_inventory_summary: '查询冰箱库存', get_member_constraints: '读取家庭限制', recommend_menu: '整理菜单', prepare_procurement_action: '整理采购建议', get_preference_summary: '查询家庭偏好', prepare_preference_action: '整理偏好建议', search_recipes: '搜索菜谱', search_cooking_skills: '查询烹饪技能', find_ingredient_substitute: '查询食材替换', get_flavor_template: '查询风味模板', check_food_risk: '查询禁忌风险', get_recipe_detail: '读取菜谱', check_recipe_availability: '核对食材' }
 
 export default defineComponent({
   name: 'AssistantPage',
@@ -253,6 +254,12 @@ export default defineComponent({
         .finally(() => { run.deciding = false })
     },
     copy(text: string) { uni.setClipboardData({ data: text }) },
+    recipeSources(result: Result): Evidence[] {
+      return (result.evidence || []).filter((item) => ['recipe', 'cooking_skill', 'web', 'substitution', 'flavor_template', 'food_risk'].includes(item.kind) && (result.citations || []).includes(item.id))
+    },
+    sourceLabel(kind: string): string {
+      return ({ recipe: '菜谱来源', cooking_skill: '烹饪技能来源', web: '联网搜索摘要', substitution: '食材替换依据', flavor_template: '风味配比模板', food_risk: '风险规则' } as Record<string, string>)[kind] || '资料来源'
+    },
     actionLines(action: Action): string[] {
       if (action.type === 'add_procurement') return [String(action.payload.name), action.payload.quantity_status === 'unknown' ? '数量待核对' : `${action.payload.quantity} ${action.payload.unit}`]
       return [String(action.payload.preference || '请核对后保存家庭偏好')]
@@ -277,6 +284,7 @@ export default defineComponent({
           <view v-if="run.steps.length" class="steps"><text class="steps-toggle" @tap="run.expanded = !run.expanded">{{ run.expanded ? '收起执行过程' : `已处理 ${Math.ceil(run.steps.length / 2)} 个步骤` }} {{ run.expanded ? '⌃' : '⌄' }}</text><template v-if="run.expanded"><text v-for="(step, stepIndex) in run.steps" :key="stepIndex" class="step">{{ step }}</text></template></view>
           <ChatContent v-if="run.result.text" :text="run.result.text" />
           <text v-else-if="activeStatus(run.status)" class="thinking">正在为你整理回答…</text>
+          <view v-for="source in recipeSources(run.result)" :key="source.id" class="recipe-source"><text class="source-title">{{ sourceLabel(source.kind) }} · {{ source.title || source.content?.name || source.content?.title || '资料' }}</text><text v-if="source.source_name || source.content?.source_name" class="source-name">{{ source.source_name || source.content?.source_name }}</text><text v-if="source.notes" class="source-name">{{ source.notes }}</text><text v-if="source.content?.conversion_factor" class="source-name">替换系数 {{ source.content.conversion_factor }} {{ source.content.unit }}</text><text v-if="source.content?.severity" class="source-name">风险等级：{{ source.content.severity }} · 适用：{{ (source.content.applies_to || []).join('、') || '未标注' }}</text><text v-if="source.content?.snippet" class="source-name">{{ source.content.snippet }}</text><text v-if="source.source_url" class="source-name" @tap="copy(source.source_url)">{{ source.source_url }}（点击复制链接）</text><button v-if="source.content?.markdown" @tap="copy(source.content.markdown)">复制技能原文</button><button v-if="source.content?.steps?.length" @tap="copy(source.content.steps.map((step, i) => `${i + 1}. ${step}`).join('\n'))">复制原始做法</button></view>
           <view v-if="run.result.pending_action" class="action-card"><text class="action-title">{{ run.result.pending_action.type === 'add_procurement' ? '加入采购清单' : '保存家庭偏好' }}</text><text v-for="line in actionLines(run.result.pending_action)" :key="line" class="action-line">{{ line }}</text><text class="action-note">尚未保存，确认后执行。</text><view class="action-buttons"><button :disabled="run.deciding" @tap="decide(run, false)">不保存</button><button class="primary" :disabled="run.deciding" @tap="decide(run, true)">{{ run.deciding ? '处理中…' : '确认并保存' }}</button></view></view>
           <text v-if="run.result.action_result" class="decision-result">{{ run.result.action_result.status === 'confirmed' ? '✓ 已确认并保存' : '已取消保存' }}</text>
           <text v-for="warning in run.result.warnings || []" :key="warning" class="warning">{{ warning }}</text>
@@ -293,6 +301,7 @@ export default defineComponent({
 </template>
 
 <style scoped lang="scss">
+.recipe-source { margin-top: 18rpx; padding: 18rpx 22rpx; background: #eef4fc; border-radius: 16rpx; }.source-title, .source-name { display: block; font-size: 23rpx; line-height: 1.7; color: #526780; }.source-name { color: #8793a4; font-size: 21rpx; }
 .assistant-page { height: calc(100vh - var(--window-bottom, 0px)); display: flex; flex-direction: column; background: #f8fafc; position: relative; }
 button { margin: 0; padding: 0 20rpx; border: 0; background: transparent; font-size: 24rpx; line-height: 68rpx; color: #526780; } button::after { border: 0; } button[disabled] { opacity: .45; }
 .chat-toolbar { display: flex; align-items: center; padding: 4rpx 24rpx; background: white; border-bottom: 1rpx solid #edf0f5; flex-shrink: 0; }.toolbar-hint { flex: 1; color: #8793a4; font-size: 21rpx; }

@@ -51,6 +51,14 @@ class Settings(BaseSettings):
     retrieval_embedding_dimensions: int = Field(default=64, ge=1)
     retrieval_template_version: str = "v1"
     retrieval_tokenizer_version: str = "v1"
+    retrieval_embedding_device: str = "cpu"
+    retrieval_embedding_batch_size: int = Field(default=16, ge=1, le=128)
+    # BGE 中文检索模型卡推荐的查询前缀；文档向量不加前缀。
+    retrieval_embedding_query_prefix: str = "为这个句子生成表示以用于检索相关文章："
+    retrieval_embedding_local_files_only: bool = False
+    retrieval_embedding_max_seq_length: int | None = Field(default=None, ge=1)
+    knowledge_web_search_enabled: bool = True
+    knowledge_web_search_timeout_seconds: float = Field(default=6, gt=0, le=15)
     kiosk_token_secret: str = "replace-in-real-environment"
 
     @field_validator("database_url", mode="after")

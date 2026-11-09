@@ -22,6 +22,12 @@ os.environ["DATABASE_URL"] = test_database_url
 os.environ["LLM_API_KEY"] = ""
 os.environ["AITECHFLUX_API_KEY"] = ""
 os.environ["BIGMODEL_API_KEY"] = ""
+# Never load or download a real embedding model in unit/integration tests.
+os.environ["RETRIEVAL_MODE"] = "demo"
+os.environ["RETRIEVAL_EMBEDDING_MODEL"] = "fake"
+os.environ["RETRIEVAL_EMBEDDING_DIMENSIONS"] = "64"
+os.environ["RETRIEVAL_TEMPLATE_VERSION"] = "v1"
+os.environ["RETRIEVAL_TOKENIZER_VERSION"] = "v1"
 
 # Configure the isolated database before importing application modules.
 from app.db.seed import seed_demo_data  # noqa: E402
