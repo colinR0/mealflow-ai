@@ -110,7 +110,7 @@
     },
     {
       "key": "white_sugar-to-rock_sugar",
-      "review_status": "draft",
+      "review_status": "approved",
       "source_name": "用户提供，已审核",
       "from_ingredient_key": "white_sugar",
       "from_ingredient_name": "白砂糖",
@@ -177,7 +177,7 @@
     },
     {
       "key": "light_soy_sauce-to-weijixian",
-      "review_status": "draft",
+      "review_status": "approved",
       "source_name": "用户提供，已审核",
       "from_ingredient_key": "light_soy_sauce",
       "from_ingredient_name": "生抽",
@@ -194,7 +194,7 @@
     },
     {
       "key": "sea_bass-to-mandarin_fish",
-      "review_status": "draft",
+      "review_status": "approved",
       "source_name": "用户提供，已审核",
       "from_ingredient_key": "sea_bass",
       "from_ingredient_name": "鲈鱼",
@@ -211,7 +211,7 @@
     },
     {
       "key": "gluten-to-firm_tofu",
-      "review_status": "draft",
+      "review_status": "approved",
       "source_name": "用户提供，已审核",
       "from_ingredient_key": "gluten",
       "from_ingredient_name": "面筋",
@@ -228,7 +228,7 @@
     },
     {
       "key": "gluten-to-fried_tofu",
-      "review_status": "draft",
+      "review_status": "approved",
       "source_name": "用户提供，已审核",
       "from_ingredient_key": "gluten",
       "from_ingredient_name": "面筋",
@@ -245,7 +245,7 @@
     },
     {
       "key": "corn_starch-to-potato_starch",
-      "review_status": "draft",
+      "review_status": "approved",
       "source_name": "用户提供，已审核",
       "from_ingredient_key": "corn_starch",
       "from_ingredient_name": "玉米淀粉",
@@ -262,7 +262,7 @@
     },
     {
       "key": "cooking_wine-to-huangjiu",
-      "review_status": "draft",
+      "review_status": "approved",
       "source_name": "用户提供，已审核",
       "from_ingredient_key": "cooking_wine",
       "from_ingredient_name": "料酒",
@@ -281,7 +281,7 @@
   "flavor_templates": [
     {
       "key": "酸甜口",
-      "review_status": "draft",
+      "review_status": "approved",
       "source_name": "用户提供，已审核",
       "name": "酸甜口",
       "aliases": [],
@@ -455,7 +455,7 @@
     },
     {
       "key": "豉香",
-      "review_status": "draft",
+      "review_status": "approved",
       "source_name": "用户提供，已审核",
       "name": "豉香",
       "aliases": [],
@@ -769,7 +769,7 @@
     },
     {
       "key": "鱼香风味",
-      "review_status": "draft",
+      "review_status": "approved",
       "source_name": "用户提供，已审核",
       "name": "鱼香风味",
       "aliases": [],
@@ -846,7 +846,7 @@
     },
     {
       "key": "麻辣川香",
-      "review_status": "draft",
+      "review_status": "approved",
       "source_name": "用户提供，已审核",
       "name": "麻辣川香",
       "aliases": [],
@@ -916,7 +916,7 @@
     },
     {
       "key": "红烧咸甜底",
-      "review_status": "draft",
+      "review_status": "approved",
       "source_name": "用户提供，已审核",
       "name": "红烧咸甜底",
       "aliases": [],
@@ -979,7 +979,7 @@
     },
     {
       "key": "白灼清鲜",
-      "review_status": "draft",
+      "review_status": "approved",
       "source_name": "用户提供，已审核",
       "name": "白灼清鲜",
       "aliases": [],
@@ -1035,7 +1035,7 @@
     },
     {
       "key": "酱香焖炖",
-      "review_status": "draft",
+      "review_status": "approved",
       "source_name": "用户提供，已审核",
       "name": "酱香焖炖",
       "aliases": [],
@@ -1105,7 +1105,7 @@
     },
     {
       "key": "蒜香爆炒",
-      "review_status": "draft",
+      "review_status": "approved",
       "source_name": "用户提供，已审核",
       "name": "蒜香爆炒",
       "aliases": [],
@@ -1395,7 +1395,7 @@
     },
     {
       "key": "pregnancy",
-      "review_status": "draft",
+      "review_status": "approved",
       "source_name": "用户提供，已审核",
       "risk_type": "pregnancy",
       "title": "孕期生食存在李斯特菌风险；酒精会影响胎儿发育，严格禁止。",
@@ -1417,7 +1417,7 @@
     },
     {
       "key": "infant_under_12m",
-      "review_status": "draft",
+      "review_status": "approved",
       "source_name": "用户提供，已审核",
       "risk_type": "infant",
       "title": "1 岁以下蜂蜜有肉毒杆菌风险；整颗硬物极易呛噎。",
@@ -1439,7 +1439,7 @@
     },
     {
       "key": "gout",
-      "review_status": "draft",
+      "review_status": "approved",
       "source_name": "用户提供，已审核",
       "risk_type": "disease",
       "title": "高嘌呤食物，容易诱发痛风急性发作，建议严格控制或不吃。",
@@ -1463,7 +1463,7 @@
     },
     {
       "key": "diabetes",
-      "review_status": "draft",
+      "review_status": "approved",
       "source_name": "用户提供，已审核",
       "risk_type": "disease",
       "title": "高升糖食材，需要控制总碳水与添加糖摄入。",
@@ -1487,7 +1487,7 @@
     },
     {
       "key": "nitrite_risk",
-      "review_status": "draft",
+      "review_status": "approved",
       "source_name": "用户提供，已审核",
       "risk_type": "nitrite",
       "title": "长时间存放、自然发酵腌制容易积累亚硝酸盐；自制泡菜风险高于工业包装。",
@@ -1507,7 +1507,7 @@
     },
     {
       "key": "hypertension_kidney",
-      "review_status": "draft",
+      "review_status": "approved",
       "source_name": "用户提供，已审核",
       "risk_type": "disease",
       "title": "发酵腌制品钠含量极高，高血压、肾病人群需要限盐。",
@@ -1533,7 +1533,7 @@
     },
     {
       "key": "fermentation_high_risk",
-      "review_status": "draft",
+      "review_status": "approved",
       "source_name": "用户提供，已审核",
       "risk_type": "fermentation",
       "title": "家庭自制发酵容易污染肉毒杆菌、杂菌，属于高风险；不建议自动生成完整配方。",

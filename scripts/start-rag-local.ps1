@@ -22,6 +22,8 @@ $env:RETRIEVAL_EMBEDDING_MODEL = $EmbeddingModel
 $env:RETRIEVAL_EMBEDDING_DIMENSIONS = '512'
 $env:RETRIEVAL_TEMPLATE_VERSION = 'bge-zh-query-v1'
 $env:RETRIEVAL_TOKENIZER_VERSION = 'v1'
+# 走国内镜像下载 HuggingFace 权重（如 BGE 模型），避免直连超时。
+$env:HF_ENDPOINT = 'https://hf-mirror.com'
 if ($LocalFilesOnly) {
     $env:RETRIEVAL_EMBEDDING_LOCAL_FILES_ONLY = 'true'
 } else {
