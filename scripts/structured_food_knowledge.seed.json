@@ -1,9 +1,9 @@
 {
   "substitutions": [
     {
-      "key": "soy-sauce-to-fresh-soy-sauce",
+      "key": "light_soy_sauce-to-fresh_soy_sauce",
       "review_status": "approved",
-      "source_name": "用户本轮提供的替换示例",
+      "source_name": "用户提供，已审核",
       "from_ingredient_key": "light_soy_sauce",
       "from_ingredient_name": "生抽",
       "to_ingredient_key": "fresh_soy_sauce",
@@ -12,14 +12,15 @@
       "unit": "份",
       "diet_tags": [],
       "exclude_tags": [],
-      "flavor_impact": "鲜味相近，成菜颜色可能更浅；按等量示例录入。",
+      "flavor_impact": "味极鲜略咸，可少量减；三者适合爆炒、红烧、凉拌",
       "priority": 10,
-      "notes": "用户给出的示例；具体品牌咸度不同，使用前仍需试味。"
+      "notes": "",
+      "rag_text": "食材替换组：生抽、鲜酱油、味极鲜；折算系数依次 1.0、1.0、0.9；味极鲜偏咸，使用时酌情减量，适用于爆炒、红烧、凉拌。"
     },
     {
       "key": "butter-to-lard",
       "review_status": "approved",
-      "source_name": "用户本轮提供的替换示例",
+      "source_name": "用户提供，已审核",
       "from_ingredient_key": "butter",
       "from_ingredient_name": "黄油",
       "to_ingredient_key": "lard",
@@ -27,26 +28,28 @@
       "conversion_factor": 1.0,
       "unit": "份",
       "diet_tags": [],
-      "exclude_tags": ["素食", "清真"],
-      "flavor_impact": "奶香减弱，动物油脂香气增强；按等量示例录入。",
+      "exclude_tags": [],
+      "flavor_impact": "猪油香气重，不适合甜品；适合中式煎、炒、焖",
       "priority": 10,
-      "notes": "猪油不适合素食或清真饮食；烘烤起酥效果可能不同。"
+      "notes": "限制场景：甜品、西式烘焙",
+      "rag_text": "食材替换组：黄油、猪油；折算系数 1.0:1.0；猪油不适合西式甜品烘焙，适合中式煎炒焖制。"
     },
     {
-      "key": "sea-bass-to-turbot",
+      "key": "sea_bass-to-turbot",
       "review_status": "approved",
-      "source_name": "用户本轮提供的替换示例",
+      "source_name": "用户提供，已审核",
       "from_ingredient_key": "sea_bass",
       "from_ingredient_name": "鲈鱼",
       "to_ingredient_key": "turbot",
       "to_ingredient_name": "多宝鱼",
-      "conversion_factor": 1.0,
+      "conversion_factor": 1.05,
       "unit": "份",
       "diet_tags": [],
-      "exclude_tags": ["鱼类过敏"],
-      "flavor_impact": "肉质更细嫩、腥味较轻；按等量示例录入，蒸制时间需按鱼体大小调整。",
+      "exclude_tags": [],
+      "flavor_impact": "多宝鱼肉更厚，蒸制时间略加长；适合清蒸",
       "priority": 10,
-      "notes": "鱼类过敏者禁用；不能把替换比例套用到其他海鲜。"
+      "notes": "",
+      "rag_text": "食材替换组：鲈鱼、多宝鱼、鳜鱼；折算系数 1.0、1.05、0.95；多宝鱼肉厚，清蒸需要适当延长时间，适合清蒸做法。"
     },
     {
       "key": "gluten-to-tofu",
@@ -58,51 +61,345 @@
       "to_ingredient_name": "豆腐",
       "conversion_factor": 1.0,
       "unit": "份",
-      "diet_tags": ["素食"],
-      "exclude_tags": ["大豆过敏"],
+      "diet_tags": [
+        "素食"
+      ],
+      "exclude_tags": [
+        "大豆过敏"
+      ],
       "flavor_impact": "口感更软、吸汁能力不同；按等量示例录入，烧制时需减少翻动。",
       "priority": 10,
       "notes": "大豆过敏者禁用；豆腐含水量会影响最终口感。"
+    },
+    {
+      "key": "garlic-to-garlic-sprout",
+      "review_status": "draft",
+      "source_name": "待人工审核",
+      "from_ingredient_key": "garlic",
+      "from_ingredient_name": "蒜",
+      "to_ingredient_key": "garlic_sprout",
+      "to_ingredient_name": "蒜苗",
+      "conversion_factor": 1.0,
+      "unit": "份",
+      "diet_tags": [],
+      "exclude_tags": [],
+      "flavor_impact": "蒜香更清爽、辛辣更弱；按等量示例录入，实际用量可按口味调整。",
+      "priority": 10,
+      "notes": "草稿，待人工审核。"
+    },
+    {
+      "key": "milk-to-soy-milk",
+      "review_status": "draft",
+      "source_name": "待人工审核",
+      "from_ingredient_key": "milk",
+      "from_ingredient_name": "牛奶",
+      "to_ingredient_key": "soy_milk",
+      "to_ingredient_name": "豆浆",
+      "conversion_factor": 1.0,
+      "unit": "份",
+      "diet_tags": [
+        "素食"
+      ],
+      "exclude_tags": [
+        "乳糖不耐",
+        "大豆过敏"
+      ],
+      "flavor_impact": "奶香变豆香，成菜口感更清爽；按等量示例录入。",
+      "priority": 10,
+      "notes": "草稿，待人工审核。"
+    },
+    {
+      "key": "white_sugar-to-rock_sugar",
+      "review_status": "draft",
+      "source_name": "用户提供，已审核",
+      "from_ingredient_key": "white_sugar",
+      "from_ingredient_name": "白砂糖",
+      "to_ingredient_key": "rock_sugar",
+      "to_ingredient_name": "冰糖",
+      "conversion_factor": 1.0,
+      "unit": "份",
+      "diet_tags": [],
+      "exclude_tags": [],
+      "flavor_impact": "冰糖融化慢，适合焖、红烧；凉拌优先白砂糖",
+      "priority": 10,
+      "notes": "限制场景：快速凉拌调味",
+      "rag_text": "食材替换组：白砂糖、冰糖；折算系数 1.0:1.0；冰糖溶解慢，适合焖煮红烧，不适合凉拌快速调味。"
+    },
+    {
+      "key": "chicken-stock-to-msg",
+      "review_status": "draft",
+      "source_name": "待人工审核",
+      "from_ingredient_key": "chicken_stock",
+      "from_ingredient_name": "鸡汤",
+      "to_ingredient_key": "msg",
+      "to_ingredient_name": "味精",
+      "conversion_factor": 0.05,
+      "unit": "份",
+      "diet_tags": [],
+      "exclude_tags": [],
+      "flavor_impact": "鲜味来源不同，味精鲜味更直接但层次较薄；比例待人工审核。",
+      "priority": 10,
+      "notes": "草稿，换算系数为示意值，待人工审核。"
+    },
+    {
+      "key": "chicken-stock-to-mushroom-stock",
+      "review_status": "draft",
+      "source_name": "待人工审核",
+      "from_ingredient_key": "chicken_stock",
+      "from_ingredient_name": "鸡汤",
+      "to_ingredient_key": "mushroom_stock",
+      "to_ingredient_name": "菌菇汤",
+      "conversion_factor": 1.0,
+      "unit": "份",
+      "diet_tags": [
+        "素食"
+      ],
+      "exclude_tags": [],
+      "flavor_impact": "鲜味更清雅、带菌菇香气；按等量示例录入。",
+      "priority": 10,
+      "notes": "草稿，待人工审核。"
+    },
+    {
+      "key": "vinegar-to-lemon-juice",
+      "review_status": "draft",
+      "source_name": "待人工审核",
+      "from_ingredient_key": "vinegar",
+      "from_ingredient_name": "醋",
+      "to_ingredient_key": "lemon_juice",
+      "to_ingredient_name": "柠檬汁",
+      "conversion_factor": 1.0,
+      "unit": "份",
+      "diet_tags": [],
+      "exclude_tags": [],
+      "flavor_impact": "酸味更清新、带果香，颜色更透亮；按等量示例录入。",
+      "priority": 10,
+      "notes": "草稿，待人工审核。"
+    },
+    {
+      "key": "light_soy_sauce-to-weijixian",
+      "review_status": "draft",
+      "source_name": "用户提供，已审核",
+      "from_ingredient_key": "light_soy_sauce",
+      "from_ingredient_name": "生抽",
+      "to_ingredient_key": "weijixian",
+      "to_ingredient_name": "味极鲜",
+      "conversion_factor": 0.9,
+      "unit": "份",
+      "diet_tags": [],
+      "exclude_tags": [],
+      "flavor_impact": "味极鲜略咸，可少量减；三者适合爆炒、红烧、凉拌",
+      "priority": 10,
+      "notes": "",
+      "rag_text": "食材替换组：生抽、鲜酱油、味极鲜；折算系数依次 1.0、1.0、0.9；味极鲜偏咸，使用时酌情减量，适用于爆炒、红烧、凉拌。"
+    },
+    {
+      "key": "sea_bass-to-mandarin_fish",
+      "review_status": "draft",
+      "source_name": "用户提供，已审核",
+      "from_ingredient_key": "sea_bass",
+      "from_ingredient_name": "鲈鱼",
+      "to_ingredient_key": "mandarin_fish",
+      "to_ingredient_name": "鳜鱼",
+      "conversion_factor": 0.95,
+      "unit": "份",
+      "diet_tags": [],
+      "exclude_tags": [],
+      "flavor_impact": "多宝鱼肉更厚，蒸制时间略加长；适合清蒸",
+      "priority": 10,
+      "notes": "",
+      "rag_text": "食材替换组：鲈鱼、多宝鱼、鳜鱼；折算系数 1.0、1.05、0.95；多宝鱼肉厚，清蒸需要适当延长时间，适合清蒸做法。"
+    },
+    {
+      "key": "gluten-to-firm_tofu",
+      "review_status": "draft",
+      "source_name": "用户提供，已审核",
+      "from_ingredient_key": "gluten",
+      "from_ingredient_name": "面筋",
+      "to_ingredient_key": "firm_tofu",
+      "to_ingredient_name": "老豆腐",
+      "conversion_factor": 1.1,
+      "unit": "份",
+      "diet_tags": [],
+      "exclude_tags": [],
+      "flavor_impact": "油豆腐吸汤汁更强；老豆腐耐炖，凉拌口感差异大",
+      "priority": 10,
+      "notes": "限制场景：凉拌清爽口",
+      "rag_text": "食材替换组：面筋、老豆腐、油豆腐；折算系数 1.0、1.1、0.85；油豆腐吸汁能力强，不优先用于清爽凉拌。"
+    },
+    {
+      "key": "gluten-to-fried_tofu",
+      "review_status": "draft",
+      "source_name": "用户提供，已审核",
+      "from_ingredient_key": "gluten",
+      "from_ingredient_name": "面筋",
+      "to_ingredient_key": "fried_tofu",
+      "to_ingredient_name": "油豆腐",
+      "conversion_factor": 0.85,
+      "unit": "份",
+      "diet_tags": [],
+      "exclude_tags": [],
+      "flavor_impact": "油豆腐吸汤汁更强；老豆腐耐炖，凉拌口感差异大",
+      "priority": 10,
+      "notes": "限制场景：凉拌清爽口",
+      "rag_text": "食材替换组：面筋、老豆腐、油豆腐；折算系数 1.0、1.1、0.85；油豆腐吸汁能力强，不优先用于清爽凉拌。"
+    },
+    {
+      "key": "corn_starch-to-potato_starch",
+      "review_status": "draft",
+      "source_name": "用户提供，已审核",
+      "from_ingredient_key": "corn_starch",
+      "from_ingredient_name": "玉米淀粉",
+      "to_ingredient_key": "potato_starch",
+      "to_ingredient_name": "土豆淀粉",
+      "conversion_factor": 0.9,
+      "unit": "份",
+      "diet_tags": [],
+      "exclude_tags": [],
+      "flavor_impact": "土豆淀粉糊化更透亮，适合勾芡；玉米淀粉更适合上浆腌肉",
+      "priority": 10,
+      "notes": "限制场景：滑浆嫩肉",
+      "rag_text": "食材替换组：玉米淀粉、土豆淀粉；折算系数 1.0、0.9；土豆淀粉适合勾芡，玉米淀粉更适合腌肉上浆。"
+    },
+    {
+      "key": "cooking_wine-to-huangjiu",
+      "review_status": "draft",
+      "source_name": "用户提供，已审核",
+      "from_ingredient_key": "cooking_wine",
+      "from_ingredient_name": "料酒",
+      "to_ingredient_key": "huangjiu",
+      "to_ingredient_name": "黄酒",
+      "conversion_factor": 0.9,
+      "unit": "份",
+      "diet_tags": [],
+      "exclude_tags": [],
+      "flavor_impact": "黄酒香气更浓，去腥能力更强；清淡菜式减量",
+      "priority": 10,
+      "notes": "限制场景：清淡白灼",
+      "rag_text": "食材替换组：料酒、黄酒；折算系数 1.0、0.9；黄酒风味厚重，清淡白灼类菜式需要减量使用。"
     }
   ],
   "flavor_templates": [
     {
-      "key": "sweet-sour",
+      "key": "酸甜口",
       "review_status": "draft",
-      "source_name": "常见中餐调味草稿，待人工审核",
+      "source_name": "用户提供，已审核",
       "name": "酸甜口",
-      "aliases": ["糖醋口", "糖醋汁"],
-      "flavor_tags": ["酸", "甜"],
-      "components": [
-        {"ingredient_key": "cooking_wine", "name": "料酒", "parts": 1, "unit": "份", "role": "去腥"},
-        {"ingredient_key": "light_soy_sauce", "name": "生抽", "parts": 2, "unit": "份", "role": "咸鲜"},
-        {"ingredient_key": "sugar", "name": "白糖", "parts": 3, "unit": "份", "role": "甜"},
-        {"ingredient_key": "vinegar", "name": "醋", "parts": 4, "unit": "份", "role": "酸"},
-        {"ingredient_key": "water", "name": "水", "parts": 5, "unit": "份", "role": "稀释"}
+      "aliases": [],
+      "flavor_tags": [
+        "酸甜"
       ],
-      "ratio_basis": "volume",
-      "usage": "作为糖醋类菜的参考汁比例；不同醋和生抽酸咸度不同。",
-      "cautions": ["比例待人工审核", "不能直接换算成克重"],
-      "notes": "草稿，未启用。"
+      "components": [
+        {
+          "ingredient_key": "light_soy_sauce",
+          "name": "生抽",
+          "parts": 15.0,
+          "unit": "克",
+          "role": ""
+        },
+        {
+          "ingredient_key": "rice_vinegar",
+          "name": "米醋",
+          "parts": 40.0,
+          "unit": "克",
+          "role": ""
+        },
+        {
+          "ingredient_key": "white_sugar",
+          "name": "白砂糖",
+          "parts": 35.0,
+          "unit": "克",
+          "role": ""
+        },
+        {
+          "ingredient_key": "water",
+          "name": "清水",
+          "parts": 50.0,
+          "unit": "克",
+          "role": ""
+        },
+        {
+          "ingredient_key": "玉米淀粉水",
+          "name": "玉米淀粉水",
+          "parts": 30.0,
+          "unit": "克",
+          "role": ""
+        }
+      ],
+      "ratio_basis": "weight",
+      "usage": "主料基准 500g；适用：里脊、巴沙鱼、排骨、藕块。",
+      "cautions": [
+        "不适用：本身极鲜海产、苦味野菜",
+        "顺序：糖醋先搅匀，出锅前水淀粉勾芡；醋受热挥发，不要太早放。",
+        "高糖，糖尿病用户重点提示"
+      ],
+      "notes": "酸甜口（基础糖醋，糖醋里脊/糖醋鱼通用）",
+      "rag_text": "风味模板：基础糖醋酸甜口，适合里脊、巴沙鱼、排骨、藕块；主料500g配比：生抽15g，米醋40g，白砂糖35g，清水50g，玉米淀粉水30g；糖醋提前搅匀，出锅前勾芡，醋不宜久煮；高糖，糖尿病人注意。"
     },
     {
       "key": "fish-fragrant",
       "review_status": "draft",
       "source_name": "常见中餐调味草稿，待人工审核",
       "name": "鱼香",
-      "aliases": ["鱼香口", "鱼香汁"],
-      "flavor_tags": ["咸", "甜", "酸", "辣"],
+      "aliases": [
+        "鱼香口",
+        "鱼香汁"
+      ],
+      "flavor_tags": [
+        "咸",
+        "甜",
+        "酸",
+        "辣"
+      ],
       "components": [
-        {"ingredient_key": "chili_bean_paste", "name": "郫县豆瓣", "parts": 2, "unit": "份", "role": "咸辣"},
-        {"ingredient_key": "sugar", "name": "白糖", "parts": 2, "unit": "份", "role": "甜"},
-        {"ingredient_key": "vinegar", "name": "醋", "parts": 2, "unit": "份", "role": "酸"},
-        {"ingredient_key": "light_soy_sauce", "name": "生抽", "parts": 1, "unit": "份", "role": "咸鲜"},
-        {"ingredient_key": "garlic", "name": "蒜末", "parts": 1, "unit": "份", "role": "辛香"},
-        {"ingredient_key": "ginger", "name": "姜末", "parts": 1, "unit": "份", "role": "辛香"}
+        {
+          "ingredient_key": "chili_bean_paste",
+          "name": "郫县豆瓣",
+          "parts": 2,
+          "unit": "份",
+          "role": "咸辣"
+        },
+        {
+          "ingredient_key": "sugar",
+          "name": "白糖",
+          "parts": 2,
+          "unit": "份",
+          "role": "甜"
+        },
+        {
+          "ingredient_key": "vinegar",
+          "name": "醋",
+          "parts": 2,
+          "unit": "份",
+          "role": "酸"
+        },
+        {
+          "ingredient_key": "light_soy_sauce",
+          "name": "生抽",
+          "parts": 1,
+          "unit": "份",
+          "role": "咸鲜"
+        },
+        {
+          "ingredient_key": "garlic",
+          "name": "蒜末",
+          "parts": 1,
+          "unit": "份",
+          "role": "辛香"
+        },
+        {
+          "ingredient_key": "ginger",
+          "name": "姜末",
+          "parts": 1,
+          "unit": "份",
+          "role": "辛香"
+        }
       ],
       "ratio_basis": "weight",
       "usage": "鱼香类菜的参考底味；豆瓣本身很咸，需先试味。",
-      "cautions": ["比例待人工审核", "豆瓣品牌差异大"],
+      "cautions": [
+        "比例待人工审核",
+        "豆瓣品牌差异大"
+      ],
       "notes": "草稿，未启用。"
     },
     {
@@ -110,36 +407,757 @@
       "review_status": "draft",
       "source_name": "常见中餐调味草稿，待人工审核",
       "name": "麻辣",
-      "aliases": ["麻辣口", "麻辣味"],
-      "flavor_tags": ["麻", "辣"],
+      "aliases": [
+        "麻辣口",
+        "麻辣味"
+      ],
+      "flavor_tags": [
+        "麻",
+        "辣"
+      ],
       "components": [
-        {"ingredient_key": "chili", "name": "干辣椒", "parts": 2, "unit": "份", "role": "辣"},
-        {"ingredient_key": "sichuan_pepper", "name": "花椒", "parts": 1, "unit": "份", "role": "麻"},
-        {"ingredient_key": "cooking_oil", "name": "食用油", "parts": 4, "unit": "份", "role": "承载香气"},
-        {"ingredient_key": "ginger", "name": "姜", "parts": 1, "unit": "份", "role": "去腥增香"}
+        {
+          "ingredient_key": "chili",
+          "name": "干辣椒",
+          "parts": 2,
+          "unit": "份",
+          "role": "辣"
+        },
+        {
+          "ingredient_key": "sichuan_pepper",
+          "name": "花椒",
+          "parts": 1,
+          "unit": "份",
+          "role": "麻"
+        },
+        {
+          "ingredient_key": "cooking_oil",
+          "name": "食用油",
+          "parts": 4,
+          "unit": "份",
+          "role": "承载香气"
+        },
+        {
+          "ingredient_key": "ginger",
+          "name": "姜",
+          "parts": 1,
+          "unit": "份",
+          "role": "去腥增香"
+        }
       ],
       "ratio_basis": "weight",
       "usage": "麻辣炒菜或红油的参考比例；辣度需按辣椒品种调整。",
-      "cautions": ["比例待人工审核", "儿童和肠胃敏感者慎用"],
+      "cautions": [
+        "比例待人工审核",
+        "儿童和肠胃敏感者慎用"
+      ],
       "notes": "草稿，未启用。"
     },
     {
-      "key": "fermented-bean",
+      "key": "豉香",
       "review_status": "draft",
-      "source_name": "常见中餐调味草稿，待人工审核",
+      "source_name": "用户提供，已审核",
       "name": "豉香",
-      "aliases": ["豉香口", "豆豉味"],
-      "flavor_tags": ["咸鲜", "发酵香"],
+      "aliases": [],
+      "flavor_tags": [
+        "豉香咸鲜"
+      ],
       "components": [
-        {"ingredient_key": "fermented_black_bean", "name": "豆豉", "parts": 3, "unit": "份", "role": "发酵咸鲜"},
-        {"ingredient_key": "garlic", "name": "蒜末", "parts": 1, "unit": "份", "role": "辛香"},
-        {"ingredient_key": "light_soy_sauce", "name": "生抽", "parts": 1, "unit": "份", "role": "咸鲜"},
-        {"ingredient_key": "sugar", "name": "白糖", "parts": 1, "unit": "份", "role": "平衡咸味"}
+        {
+          "ingredient_key": "阳江豆豉碾碎",
+          "name": "阳江豆豉（碾碎）",
+          "parts": 20.0,
+          "unit": "克",
+          "role": ""
+        },
+        {
+          "ingredient_key": "light_soy_sauce",
+          "name": "生抽",
+          "parts": 16.0,
+          "unit": "克",
+          "role": ""
+        },
+        {
+          "ingredient_key": "蚝油",
+          "name": "蚝油",
+          "parts": 12.0,
+          "unit": "克",
+          "role": ""
+        },
+        {
+          "ingredient_key": "white_sugar",
+          "name": "白砂糖",
+          "parts": 5.0,
+          "unit": "克",
+          "role": ""
+        },
+        {
+          "ingredient_key": "蒜末",
+          "name": "蒜末",
+          "parts": 12.0,
+          "unit": "克",
+          "role": ""
+        },
+        {
+          "ingredient_key": "姜丝",
+          "name": "姜丝",
+          "parts": 8.0,
+          "unit": "克",
+          "role": ""
+        },
+        {
+          "ingredient_key": "食用油",
+          "name": "食用油",
+          "parts": 15.0,
+          "unit": "克",
+          "role": ""
+        }
       ],
       "ratio_basis": "weight",
-      "usage": "豉香蒸、炒类菜的参考底味；豆豉需先冲洗或剁碎。",
-      "cautions": ["比例待人工审核", "发酵豆制品需注意保存条件"],
+      "usage": "主料基准 500g；适用：排骨、鳊鱼、鲈鱼、凤爪、茄子。",
+      "cautions": [
+        "不适用：纯白肉清汤、清甜素菜",
+        "豆豉本身咸，生抽减量；适合蒸、焖、爆炒。",
+        "豆豉发酵高盐；痛风人群提示"
+      ],
+      "notes": "豉香（广式豉汁蒸炒通用）",
+      "rag_text": "风味模板：广式豉香豉汁，适合蒸排骨、蒸鱼、凤爪、茄子；主料500g配比：碾碎阳江豆豉20g，生抽16g，蚝油12g，白砂糖5g，蒜末12g，姜丝8g，食用油15g；豆豉自带咸味，生抽少放；发酵豆制品，痛风提示，高盐。"
+    },
+    {
+      "key": "kung-pao",
+      "review_status": "draft",
+      "source_name": "常见中餐调味草稿，待人工审核",
+      "name": "宫保",
+      "aliases": [
+        "宫保口",
+        "宫保汁"
+      ],
+      "flavor_tags": [
+        "咸",
+        "甜",
+        "酸",
+        "辣"
+      ],
+      "components": [
+        {
+          "ingredient_key": "light_soy_sauce",
+          "name": "生抽",
+          "parts": 2,
+          "unit": "份",
+          "role": "咸鲜"
+        },
+        {
+          "ingredient_key": "vinegar",
+          "name": "醋",
+          "parts": 2,
+          "unit": "份",
+          "role": "酸"
+        },
+        {
+          "ingredient_key": "sugar",
+          "name": "白糖",
+          "parts": 2,
+          "unit": "份",
+          "role": "甜"
+        },
+        {
+          "ingredient_key": "cooking_wine",
+          "name": "料酒",
+          "parts": 1,
+          "unit": "份",
+          "role": "去腥"
+        },
+        {
+          "ingredient_key": "chili",
+          "name": "干辣椒",
+          "parts": 1,
+          "unit": "份",
+          "role": "辣"
+        },
+        {
+          "ingredient_key": "sichuan_pepper",
+          "name": "花椒",
+          "parts": 1,
+          "unit": "份",
+          "role": "麻香"
+        }
+      ],
+      "ratio_basis": "volume",
+      "usage": "宫保类菜的参考汁比例；糖醋生抽比例可按酸甜偏好微调。",
+      "cautions": [
+        "比例待人工审核",
+        "花椒用量因人而异"
+      ],
       "notes": "草稿，未启用。"
+    },
+    {
+      "key": "garlic-fragrant",
+      "review_status": "draft",
+      "source_name": "常见中餐调味草稿，待人工审核",
+      "name": "蒜香",
+      "aliases": [
+        "蒜香口",
+        "蒜蓉味"
+      ],
+      "flavor_tags": [
+        "辛香"
+      ],
+      "components": [
+        {
+          "ingredient_key": "garlic",
+          "name": "蒜末",
+          "parts": 4,
+          "unit": "份",
+          "role": "主香"
+        },
+        {
+          "ingredient_key": "light_soy_sauce",
+          "name": "生抽",
+          "parts": 1,
+          "unit": "份",
+          "role": "咸鲜"
+        },
+        {
+          "ingredient_key": "cooking_oil",
+          "name": "食用油",
+          "parts": 2,
+          "unit": "份",
+          "role": "激发蒜香"
+        }
+      ],
+      "ratio_basis": "weight",
+      "usage": "蒜香蒸、炒类菜的参考底味；蒜末需小火煸香避免焦苦。",
+      "cautions": [
+        "比例待人工审核",
+        "蒜末易焦需控温"
+      ],
+      "notes": "草稿，未启用。"
+    },
+    {
+      "key": "salt-pepper",
+      "review_status": "draft",
+      "source_name": "常见中餐调味草稿，待人工审核",
+      "name": "椒盐",
+      "aliases": [
+        "椒盐口",
+        "椒盐味"
+      ],
+      "flavor_tags": [
+        "咸",
+        "麻",
+        "香"
+      ],
+      "components": [
+        {
+          "ingredient_key": "sichuan_pepper",
+          "name": "花椒",
+          "parts": 1,
+          "unit": "份",
+          "role": "麻香"
+        },
+        {
+          "ingredient_key": "salt",
+          "name": "盐",
+          "parts": 2,
+          "unit": "份",
+          "role": "咸"
+        },
+        {
+          "ingredient_key": "white_pepper",
+          "name": "白胡椒",
+          "parts": 1,
+          "unit": "份",
+          "role": "辛香"
+        }
+      ],
+      "ratio_basis": "weight",
+      "usage": "椒盐类菜的参考配比；花椒需先炒香再研末。",
+      "cautions": [
+        "比例待人工审核",
+        "花椒需现炒现磨"
+      ],
+      "notes": "草稿，未启用。"
+    },
+    {
+      "key": "jiangxiang",
+      "review_status": "draft",
+      "source_name": "常见中餐调味草稿，待人工审核",
+      "name": "酱香",
+      "aliases": [
+        "酱香口",
+        "酱爆味"
+      ],
+      "flavor_tags": [
+        "咸鲜",
+        "酱香"
+      ],
+      "components": [
+        {
+          "ingredient_key": "sweet_bean_sauce",
+          "name": "甜面酱",
+          "parts": 2,
+          "unit": "份",
+          "role": "酱香"
+        },
+        {
+          "ingredient_key": "light_soy_sauce",
+          "name": "生抽",
+          "parts": 1,
+          "unit": "份",
+          "role": "咸鲜"
+        },
+        {
+          "ingredient_key": "sugar",
+          "name": "白糖",
+          "parts": 1,
+          "unit": "份",
+          "role": "平衡咸味"
+        }
+      ],
+      "ratio_basis": "weight",
+      "usage": "酱爆、酱烧类菜的参考底味；甜面酱需小火炒香避免糊锅。",
+      "cautions": [
+        "比例待人工审核",
+        "酱料易糊需控温"
+      ],
+      "notes": "草稿，未启用。"
+    },
+    {
+      "key": "suanla",
+      "review_status": "draft",
+      "source_name": "常见中餐调味草稿，待人工审核",
+      "name": "酸辣",
+      "aliases": [
+        "酸辣口",
+        "酸辣味"
+      ],
+      "flavor_tags": [
+        "酸",
+        "辣",
+        "咸"
+      ],
+      "components": [
+        {
+          "ingredient_key": "vinegar",
+          "name": "醋",
+          "parts": 3,
+          "unit": "份",
+          "role": "酸"
+        },
+        {
+          "ingredient_key": "chili",
+          "name": "辣椒",
+          "parts": 2,
+          "unit": "份",
+          "role": "辣"
+        },
+        {
+          "ingredient_key": "salt",
+          "name": "盐",
+          "parts": 1,
+          "unit": "份",
+          "role": "咸"
+        }
+      ],
+      "ratio_basis": "weight",
+      "usage": "酸辣类汤菜或凉拌的参考底味；酸辣比例可按口味调整。",
+      "cautions": [
+        "比例待人工审核",
+        "醋高温易挥发需后放"
+      ],
+      "notes": "草稿，未启用。"
+    },
+    {
+      "key": "鱼香风味",
+      "review_status": "draft",
+      "source_name": "用户提供，已审核",
+      "name": "鱼香风味",
+      "aliases": [],
+      "flavor_tags": [
+        "复合咸鲜辣甜"
+      ],
+      "components": [
+        {
+          "ingredient_key": "light_soy_sauce",
+          "name": "生抽",
+          "parts": 20.0,
+          "unit": "克",
+          "role": ""
+        },
+        {
+          "ingredient_key": "rice_vinegar",
+          "name": "米醋",
+          "parts": 15.0,
+          "unit": "克",
+          "role": ""
+        },
+        {
+          "ingredient_key": "white_sugar",
+          "name": "白砂糖",
+          "parts": 12.0,
+          "unit": "克",
+          "role": ""
+        },
+        {
+          "ingredient_key": "郫县豆瓣酱",
+          "name": "郫县豆瓣酱",
+          "parts": 25.0,
+          "unit": "克",
+          "role": ""
+        },
+        {
+          "ingredient_key": "蒜末",
+          "name": "蒜末",
+          "parts": 8.0,
+          "unit": "克",
+          "role": ""
+        },
+        {
+          "ingredient_key": "姜末",
+          "name": "姜末",
+          "parts": 6.0,
+          "unit": "克",
+          "role": ""
+        },
+        {
+          "ingredient_key": "葱花",
+          "name": "葱花",
+          "parts": 5.0,
+          "unit": "克",
+          "role": ""
+        },
+        {
+          "ingredient_key": "玉米淀粉水",
+          "name": "玉米淀粉水",
+          "parts": 25.0,
+          "unit": "克",
+          "role": ""
+        }
+      ],
+      "ratio_basis": "weight",
+      "usage": "主料基准 500g；适用：猪里脊、木耳笋丝、茄子、豆腐。",
+      "cautions": [
+        "不适用：清淡清蒸鱼、原味清汤",
+        "豆瓣酱先炒出红油再下其他；酸甜平衡，醋糖接近但醋略多。",
+        "豆瓣酱高盐；肾病、高血压提示控量"
+      ],
+      "notes": "鱼香风味（鱼香肉丝经典底汁）",
+      "rag_text": "风味模板：鱼香风味，经典鱼香肉丝底汁，适合里脊、木耳笋丝、茄子、豆腐；主料500g配比：生抽20g，米醋15g，白砂糖12g，郫县豆瓣酱25g，蒜末8g，姜末6g，葱花5g，淀粉水25g；豆瓣酱炒红油，酸甜平衡；高盐，高血压肾病人群注意。"
+    },
+    {
+      "key": "麻辣川香",
+      "review_status": "draft",
+      "source_name": "用户提供，已审核",
+      "name": "麻辣川香",
+      "aliases": [],
+      "flavor_tags": [
+        "麻辣"
+      ],
+      "components": [
+        {
+          "ingredient_key": "light_soy_sauce",
+          "name": "生抽",
+          "parts": 18.0,
+          "unit": "克",
+          "role": ""
+        },
+        {
+          "ingredient_key": "郫县豆瓣酱",
+          "name": "郫县豆瓣酱",
+          "parts": 22.0,
+          "unit": "克",
+          "role": ""
+        },
+        {
+          "ingredient_key": "花椒粉",
+          "name": "花椒粉",
+          "parts": 2.5,
+          "unit": "克",
+          "role": ""
+        },
+        {
+          "ingredient_key": "干辣椒段",
+          "name": "干辣椒段",
+          "parts": 6.0,
+          "unit": "克",
+          "role": ""
+        },
+        {
+          "ingredient_key": "蒜末",
+          "name": "蒜末",
+          "parts": 10.0,
+          "unit": "克",
+          "role": ""
+        },
+        {
+          "ingredient_key": "white_sugar",
+          "name": "白砂糖",
+          "parts": 6.0,
+          "unit": "克",
+          "role": ""
+        },
+        {
+          "ingredient_key": "玉米淀粉水",
+          "name": "玉米淀粉水",
+          "parts": 20.0,
+          "unit": "克",
+          "role": ""
+        }
+      ],
+      "ratio_basis": "weight",
+      "usage": "主料基准 500g；适用：嫩豆腐、牛肉末、鸭血、毛肚。",
+      "cautions": [
+        "不适用：肠胃脆弱人群辅食、原味鲜汤",
+        "花椒不要久炸，容易发苦；糖用来中和咸辣，不突出甜味。",
+        "辛辣刺激，胃炎、胃溃疡、孕期慎用提示；高盐"
+      ],
+      "notes": "麻辣川香（家常小炒麻辣底，麻婆豆腐风格）",
+      "rag_text": "风味模板：川式麻辣底，类似麻婆豆腐风味，适合嫩豆腐、牛肉末、鸭血、毛肚；主料500g配比：生抽18g，郫县豆瓣酱22g，花椒粉2.5g，干辣椒段6g，蒜末10g，白砂糖6g，淀粉水20g；花椒避免久炸发苦；辛辣高盐，胃病、孕期需要提示。"
+    },
+    {
+      "key": "红烧咸甜底",
+      "review_status": "draft",
+      "source_name": "用户提供，已审核",
+      "name": "红烧咸甜底",
+      "aliases": [],
+      "flavor_tags": [
+        "咸甜醇厚"
+      ],
+      "components": [
+        {
+          "ingredient_key": "light_soy_sauce",
+          "name": "生抽",
+          "parts": 25.0,
+          "unit": "克",
+          "role": ""
+        },
+        {
+          "ingredient_key": "老抽上色",
+          "name": "老抽（上色）",
+          "parts": 8.0,
+          "unit": "克",
+          "role": ""
+        },
+        {
+          "ingredient_key": "sugar",
+          "name": "白砂糖/冰糖",
+          "parts": 20.0,
+          "unit": "克",
+          "role": ""
+        },
+        {
+          "ingredient_key": "cooking_wine",
+          "name": "料酒",
+          "parts": 20.0,
+          "unit": "克",
+          "role": ""
+        },
+        {
+          "ingredient_key": "姜片",
+          "name": "姜片",
+          "parts": 10.0,
+          "unit": "克",
+          "role": ""
+        },
+        {
+          "ingredient_key": "八角",
+          "name": "八角",
+          "parts": 2.0,
+          "unit": "克",
+          "role": ""
+        }
+      ],
+      "ratio_basis": "weight",
+      "usage": "主料基准 500g；适用：五花肉、鸡块、猪蹄、萝卜焖肉。",
+      "cautions": [
+        "不适用：清蒸水产、绿叶快炒",
+        "冰糖小火炒糖色更香；焖煮收汁，不要加水过多。",
+        "高糖高盐高脂，三高人群提示"
+      ],
+      "notes": "红烧咸甜底（通用红烧，红烧肉/红烧鸡块）",
+      "rag_text": "风味模板：中式红烧底汁，适合五花肉、鸡块、猪蹄、萝卜焖肉；主料500g配比：生抽25g，老抽8g，冰糖20g，料酒20g，姜片10g，八角2g；适合长时间焖煮，可炒糖色；高糖高盐，三高人群注意。"
+    },
+    {
+      "key": "白灼清鲜",
+      "review_status": "draft",
+      "source_name": "用户提供，已审核",
+      "name": "白灼清鲜",
+      "aliases": [],
+      "flavor_tags": [
+        "清鲜原味"
+      ],
+      "components": [
+        {
+          "ingredient_key": "light_soy_sauce",
+          "name": "生抽",
+          "parts": 20.0,
+          "unit": "克",
+          "role": ""
+        },
+        {
+          "ingredient_key": "water",
+          "name": "清水",
+          "parts": 15.0,
+          "unit": "克",
+          "role": ""
+        },
+        {
+          "ingredient_key": "姜丝",
+          "name": "姜丝",
+          "parts": 6.0,
+          "unit": "克",
+          "role": ""
+        },
+        {
+          "ingredient_key": "葱花",
+          "name": "葱花",
+          "parts": 5.0,
+          "unit": "克",
+          "role": ""
+        },
+        {
+          "ingredient_key": "热油",
+          "name": "热油",
+          "parts": 12.0,
+          "unit": "克",
+          "role": ""
+        }
+      ],
+      "ratio_basis": "weight",
+      "usage": "主料基准 500g；适用：虾、鱿鱼、菜心、生菜、芥蓝。",
+      "cautions": [
+        "不适用：重腥内脏、适合红烧肉类",
+        "菜焯水时水里加少许盐油；蘸汁分开上，不要直接煮进菜里。",
+        "低盐，适配大部分忌口人群"
+      ],
+      "notes": "白灼清鲜（白灼虾、白灼时蔬）",
+      "rag_text": "风味模板：白灼蘸汁，清鲜原味，适合虾、鱿鱼、菜心、芥蓝；主料500g蘸料配比：生抽20g，清水15g，姜丝6g，葱花5g，热油12g；蔬菜焯水可加盐油；整体低盐，适配多数忌口。"
+    },
+    {
+      "key": "酱香焖炖",
+      "review_status": "draft",
+      "source_name": "用户提供，已审核",
+      "name": "酱香焖炖",
+      "aliases": [],
+      "flavor_tags": [
+        "酱香咸鲜"
+      ],
+      "components": [
+        {
+          "ingredient_key": "light_soy_sauce",
+          "name": "生抽",
+          "parts": 22.0,
+          "unit": "克",
+          "role": ""
+        },
+        {
+          "ingredient_key": "蚝油",
+          "name": "蚝油",
+          "parts": 15.0,
+          "unit": "克",
+          "role": ""
+        },
+        {
+          "ingredient_key": "黄豆酱",
+          "name": "黄豆酱",
+          "parts": 18.0,
+          "unit": "克",
+          "role": ""
+        },
+        {
+          "ingredient_key": "white_sugar",
+          "name": "白砂糖",
+          "parts": 8.0,
+          "unit": "克",
+          "role": ""
+        },
+        {
+          "ingredient_key": "cooking_wine",
+          "name": "料酒",
+          "parts": 18.0,
+          "unit": "克",
+          "role": ""
+        },
+        {
+          "ingredient_key": "姜片",
+          "name": "姜片",
+          "parts": 10.0,
+          "unit": "克",
+          "role": ""
+        },
+        {
+          "ingredient_key": "干辣椒",
+          "name": "干辣椒",
+          "parts": 4.0,
+          "unit": "克",
+          "role": ""
+        }
+      ],
+      "ratio_basis": "weight",
+      "usage": "主料基准 500g；适用：鸡肉、排骨、土豆、香菇焖菜。",
+      "cautions": [
+        "不适用：清蒸鱼、清淡汤品",
+        "黄豆酱容易糊底，焖的时候小火，勤翻动。",
+        "高盐，黄豆发酵制品，痛风提示"
+      ],
+      "notes": "酱香焖炖（黄焖类，黄焖鸡底）",
+      "rag_text": "风味模板：黄焖酱香底，适合黄焖鸡、焖排骨、土豆香菇；主料500g配比：生抽22g，蚝油15g，黄豆酱18g，白砂糖8g，料酒18g，姜片10g，干辣椒4g；黄豆酱容易糊锅，小火焖煮；高盐，发酵豆制品，痛风提示。"
+    },
+    {
+      "key": "蒜香爆炒",
+      "review_status": "draft",
+      "source_name": "用户提供，已审核",
+      "name": "蒜香爆炒",
+      "aliases": [],
+      "flavor_tags": [
+        "蒜香咸鲜"
+      ],
+      "components": [
+        {
+          "ingredient_key": "light_soy_sauce",
+          "name": "生抽",
+          "parts": 16.0,
+          "unit": "克",
+          "role": ""
+        },
+        {
+          "ingredient_key": "蚝油",
+          "name": "蚝油",
+          "parts": 10.0,
+          "unit": "克",
+          "role": ""
+        },
+        {
+          "ingredient_key": "white_sugar",
+          "name": "白砂糖",
+          "parts": 4.0,
+          "unit": "克",
+          "role": ""
+        },
+        {
+          "ingredient_key": "大蒜切片",
+          "name": "大蒜（切片）",
+          "parts": 25.0,
+          "unit": "克",
+          "role": ""
+        },
+        {
+          "ingredient_key": "cooking_wine",
+          "name": "料酒",
+          "parts": 12.0,
+          "unit": "克",
+          "role": ""
+        }
+      ],
+      "ratio_basis": "weight",
+      "usage": "主料基准 500g；适用：瘦肉片、猪肝、菌菇、西兰花。",
+      "cautions": [
+        "不适用：奶味菜式、清甜糖水",
+        "分两次下蒜：一部分爆香，一部分出锅前放提鲜，避免糊苦。",
+        "大蒜刺激肠胃，胃炎人群提示"
+      ],
+      "notes": "蒜香爆炒（蒜香肉片、蒜香素菜通用）",
+      "rag_text": "风味模板：蒜香爆炒底，适合肉片、猪肝、菌菇、西兰花；主料500g配比：生抽16g，蚝油10g，白砂糖4g，大蒜25g，料酒12g；大蒜分两次投放防止炒糊发苦；对肠胃有刺激，胃病用户提示。"
     }
   ],
   "food_risks": [
@@ -150,7 +1168,9 @@
       "risk_type": "interaction",
       "title": "食材相克说法需逐条核验",
       "severity": "info",
-      "applies_to": ["general"],
+      "applies_to": [
+        "general"
+      ],
       "evidence_level": "unverified",
       "ingredient_keys": [],
       "advice": "不要仅凭民间“食物相克”说法禁食；具体食物组合和结论待人工审核。",
@@ -163,7 +1183,11 @@
       "risk_type": "fermentation",
       "title": "自制发酵食品的污染与亚硝酸盐风险",
       "severity": "warning",
-      "applies_to": ["general", "pregnancy", "infant"],
+      "applies_to": [
+        "general",
+        "pregnancy",
+        "infant"
+      ],
       "evidence_level": "unverified",
       "ingredient_keys": [],
       "advice": "发酵食品的菌种、温度、盐度和保存条件需核验；待审核具体规则。",
@@ -176,7 +1200,9 @@
       "risk_type": "braising",
       "title": "卤料与老卤反复使用的风险",
       "severity": "warning",
-      "applies_to": ["general"],
+      "applies_to": [
+        "general"
+      ],
       "evidence_level": "unverified",
       "ingredient_keys": [],
       "advice": "老卤反复使用、长时间常温放置和补盐补料的风险待审核。",
@@ -189,7 +1215,11 @@
       "risk_type": "nitrite",
       "title": "腌制蔬菜的亚硝酸盐风险",
       "severity": "warning",
-      "applies_to": ["general", "pregnancy", "infant"],
+      "applies_to": [
+        "general",
+        "pregnancy",
+        "infant"
+      ],
       "evidence_level": "unverified",
       "ingredient_keys": [],
       "advice": "腌制时间、温度、盐度和食用时点会影响亚硝酸盐水平；待审核具体规则。",
@@ -202,7 +1232,9 @@
       "risk_type": "infant",
       "title": "婴幼儿辅食限制",
       "severity": "danger",
-      "applies_to": ["infant"],
+      "applies_to": [
+        "infant"
+      ],
       "min_age_months": 0,
       "max_age_months": 36,
       "evidence_level": "unverified",
@@ -217,7 +1249,9 @@
       "risk_type": "pregnancy",
       "title": "孕期通用饮食风险",
       "severity": "danger",
-      "applies_to": ["pregnancy"],
+      "applies_to": [
+        "pregnancy"
+      ],
       "evidence_level": "unverified",
       "ingredient_keys": [],
       "advice": "孕期生食、高汞鱼、酒精和未经巴氏消毒食品等规则待按权威来源审核。",
@@ -230,8 +1264,15 @@
       "risk_type": "disease",
       "title": "慢性病通用忌口",
       "severity": "warning",
-      "applies_to": ["disease"],
-      "condition_tags": ["hypertension", "diabetes", "gout", "kidney_disease"],
+      "applies_to": [
+        "disease"
+      ],
+      "condition_tags": [
+        "hypertension",
+        "diabetes",
+        "gout",
+        "kidney_disease"
+      ],
       "evidence_level": "unverified",
       "ingredient_keys": [],
       "advice": "高血压、糖尿病、痛风和肾病等饮食限制需按个体情况由专业人员确认。",
@@ -244,12 +1285,271 @@
       "risk_type": "child",
       "title": "儿童通用饮食风险",
       "severity": "warning",
-      "applies_to": ["child"],
+      "applies_to": [
+        "child"
+      ],
       "min_age_months": 36,
       "evidence_level": "unverified",
       "ingredient_keys": [],
       "advice": "儿童窒息风险、过敏原、咖啡因和高盐高糖限制待按权威来源审核。",
       "notes": "占位，未启用。"
+    },
+    {
+      "key": "soy-sauce-sodium",
+      "review_status": "draft",
+      "source_name": "待人工审核",
+      "risk_type": "sodium",
+      "title": "生抽与调味料叠加的高钠风险",
+      "severity": "warning",
+      "applies_to": [
+        "disease"
+      ],
+      "condition_tags": [
+        "hypertension",
+        "kidney_disease"
+      ],
+      "evidence_level": "unverified",
+      "ingredient_keys": [
+        "light_soy_sauce",
+        "dark_soy_sauce"
+      ],
+      "advice": "生抽、老抽、蚝油等叠加使用易导致钠超标；高血压或肾病患者应控制用量并减少其他盐分来源。",
+      "notes": "草稿，待人工审核具体限量和权威来源。"
+    },
+    {
+      "key": "raw-egg-risk",
+      "review_status": "draft",
+      "source_name": "待人工审核",
+      "risk_type": "pathogen",
+      "title": "生食或半熟鸡蛋的沙门氏菌风险",
+      "severity": "warning",
+      "applies_to": [
+        "general",
+        "pregnancy",
+        "infant",
+        "child"
+      ],
+      "evidence_level": "unverified",
+      "ingredient_keys": [
+        "egg"
+      ],
+      "advice": "生食或溏心蛋存在沙门氏菌风险；孕妇、婴幼儿、儿童及免疫力低下者应食用全熟鸡蛋。",
+      "notes": "草稿，待人工审核具体温度和时长标准。"
+    },
+    {
+      "key": "shellfish-allergy",
+      "review_status": "draft",
+      "source_name": "待人工审核",
+      "risk_type": "allergy",
+      "title": "甲壳类及贝类海鲜过敏风险",
+      "severity": "danger",
+      "applies_to": [
+        "general"
+      ],
+      "evidence_level": "unverified",
+      "ingredient_keys": [
+        "shrimp",
+        "crab",
+        "shellfish"
+      ],
+      "advice": "甲壳类和贝类是常见致敏原，过敏体质者应避免食用并注意交叉污染。",
+      "notes": "草稿，待人工审核具体致敏原清单和权威来源。"
+    },
+    {
+      "key": "nitrite-cured-meat",
+      "review_status": "draft",
+      "source_name": "待人工审核",
+      "risk_type": "nitrite",
+      "title": "腌制肉制品亚硝酸盐及加工肉风险",
+      "severity": "warning",
+      "applies_to": [
+        "general"
+      ],
+      "evidence_level": "unverified",
+      "ingredient_keys": [
+        "bacon",
+        "sausage",
+        "ham"
+      ],
+      "advice": "腌制肉制品可能含亚硝酸盐且属于加工肉，长期过量食用风险待审核；建议控制频次和分量。",
+      "notes": "草稿，待人工审核具体限量和权威来源。"
+    },
+    {
+      "key": "raw-fish-parasite",
+      "review_status": "draft",
+      "source_name": "待人工审核",
+      "risk_type": "parasite",
+      "title": "生食淡水鱼虾的寄生虫风险",
+      "severity": "danger",
+      "applies_to": [
+        "general",
+        "pregnancy"
+      ],
+      "evidence_level": "unverified",
+      "ingredient_keys": [
+        "freshwater_fish",
+        "freshwater_shrimp"
+      ],
+      "advice": "淡水鱼虾生食或未熟存在肝吸虫等寄生虫风险；应彻底加热，孕期尤其避免。",
+      "notes": "草稿，待人工审核具体寄生虫种类和权威来源。"
+    },
+    {
+      "key": "pregnancy",
+      "review_status": "draft",
+      "source_name": "用户提供，已审核",
+      "risk_type": "pregnancy",
+      "title": "孕期生食存在李斯特菌风险；酒精会影响胎儿发育，严格禁止。",
+      "severity": "danger",
+      "applies_to": [
+        "pregnancy"
+      ],
+      "condition_tags": [],
+      "evidence_level": "limited",
+      "ingredient_keys": [
+        "生鱼片",
+        "生腌虾蟹",
+        "未经巴氏杀菌奶",
+        "各类酒精饮品"
+      ],
+      "advice": "孕期生食存在李斯特菌风险；酒精会影响胎儿发育，严格禁止。",
+      "notes": "不可豁免",
+      "rag_text": "风险条目：孕期高危禁止；禁止食物：生鱼片、生腌虾蟹、未经巴氏杀菌奶、酒精饮品；生食有李斯特菌感染风险，酒精危害胎儿，不可豁免。"
+    },
+    {
+      "key": "infant_under_12m",
+      "review_status": "draft",
+      "source_name": "用户提供，已审核",
+      "risk_type": "infant",
+      "title": "1 岁以下蜂蜜有肉毒杆菌风险；整颗硬物极易呛噎。",
+      "severity": "danger",
+      "applies_to": [
+        "infant"
+      ],
+      "condition_tags": [],
+      "evidence_level": "limited",
+      "ingredient_keys": [
+        "蜂蜜",
+        "整颗坚果",
+        "整颗葡萄",
+        "硬糖果"
+      ],
+      "advice": "1 岁以下蜂蜜有肉毒杆菌风险；整颗硬物极易呛噎。",
+      "notes": "不可豁免",
+      "rag_text": "风险条目：1 岁以内婴儿高危禁止；禁止食物：蜂蜜、整颗坚果、整颗葡萄、硬糖；蜂蜜存在肉毒杆菌风险，颗粒食物有窒息风险，不可豁免。"
+    },
+    {
+      "key": "gout",
+      "review_status": "draft",
+      "source_name": "用户提供，已审核",
+      "risk_type": "disease",
+      "title": "高嘌呤食物，容易诱发痛风急性发作，建议严格控制或不吃。",
+      "severity": "warning",
+      "applies_to": [
+        "gout"
+      ],
+      "condition_tags": [
+        "gout"
+      ],
+      "evidence_level": "limited",
+      "ingredient_keys": [
+        "动物内脏",
+        "浓肉汤",
+        "海鲜贝类",
+        "干香菇"
+      ],
+      "advice": "高嘌呤食物，容易诱发痛风急性发作，建议严格控制或不吃。",
+      "notes": "可豁免",
+      "rag_text": "风险条目：痛风人群高嘌呤提醒；食材：动物内脏、浓肉汤、贝类海鲜、干香菇；高嘌呤，容易诱发痛风发作，可由医生评估后豁免。"
+    },
+    {
+      "key": "diabetes",
+      "review_status": "draft",
+      "source_name": "用户提供，已审核",
+      "risk_type": "disease",
+      "title": "高升糖食材，需要控制总碳水与添加糖摄入。",
+      "severity": "warning",
+      "applies_to": [
+        "diabetes"
+      ],
+      "condition_tags": [
+        "diabetes"
+      ],
+      "evidence_level": "limited",
+      "ingredient_keys": [
+        "白砂糖",
+        "冰糖",
+        "蜂蜜",
+        "含糖蜜饯"
+      ],
+      "advice": "高升糖食材，需要控制总碳水与添加糖摄入。",
+      "notes": "可豁免",
+      "rag_text": "风险条目：糖尿病人群控糖提醒；食材：白砂糖、冰糖、蜂蜜、蜜饯；升糖明显，需要控制摄入量，遵医嘱可豁免。"
+    },
+    {
+      "key": "nitrite_risk",
+      "review_status": "draft",
+      "source_name": "用户提供，已审核",
+      "risk_type": "nitrite",
+      "title": "长时间存放、自然发酵腌制容易积累亚硝酸盐；自制泡菜风险高于工业包装。",
+      "severity": "warning",
+      "applies_to": [
+        "general"
+      ],
+      "condition_tags": [],
+      "evidence_level": "limited",
+      "ingredient_keys": [
+        "久放隔夜绿叶菜",
+        "自制腌菜、泡菜"
+      ],
+      "advice": "长时间存放、自然发酵腌制容易积累亚硝酸盐；自制泡菜风险高于工业包装。",
+      "notes": "可豁免",
+      "rag_text": "风险条目：亚硝酸盐风险提醒；食材：久放隔夜绿叶菜、自制腌菜泡菜；容易积累亚硝酸盐，自制发酵菜风险更高。"
+    },
+    {
+      "key": "hypertension_kidney",
+      "review_status": "draft",
+      "source_name": "用户提供，已审核",
+      "risk_type": "disease",
+      "title": "发酵腌制品钠含量极高，高血压、肾病人群需要限盐。",
+      "severity": "warning",
+      "applies_to": [
+        "hypertension",
+        "kidney_disease"
+      ],
+      "condition_tags": [
+        "hypertension",
+        "kidney_disease"
+      ],
+      "evidence_level": "limited",
+      "ingredient_keys": [
+        "豆瓣酱",
+        "豆豉",
+        "咸菜",
+        "腐乳"
+      ],
+      "advice": "发酵腌制品钠含量极高，高血压、肾病人群需要限盐。",
+      "notes": "可豁免",
+      "rag_text": "风险条目：高血压、肾病高盐提醒；食材：豆瓣酱、豆豉、咸菜、腐乳；钠含量高，需要控制食用量，遵医嘱可豁免。"
+    },
+    {
+      "key": "fermentation_high_risk",
+      "review_status": "draft",
+      "source_name": "用户提供，已审核",
+      "risk_type": "fermentation",
+      "title": "家庭自制发酵容易污染肉毒杆菌、杂菌，属于高风险；不建议自动生成完整配方。",
+      "severity": "danger",
+      "applies_to": [
+        "general"
+      ],
+      "condition_tags": [],
+      "evidence_level": "limited",
+      "ingredient_keys": [
+        "自制发酵肉制品",
+        "自制酱豆"
+      ],
+      "advice": "家庭自制发酵容易污染肉毒杆菌、杂菌，属于高风险；不建议自动生成完整配方。",
+      "notes": "不可豁免",
+      "rag_text": "风险条目：家庭自制发酵高危；食材：自制发酵肉、自制酱豆；家庭发酵杂菌污染风险高，禁止自动生成完整成品配方，不可豁免。"
     }
   ]
 }
