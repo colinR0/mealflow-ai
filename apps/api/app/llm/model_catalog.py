@@ -52,7 +52,7 @@ def list_model_profiles(settings: Settings) -> list[ModelProfile]:
             base_url=settings.bigmodel_base_url,
             api_key=settings.bigmodel_api_key,
             api_style="chat_completions",
-            is_default=True,
+            is_default=False,
             use_case="默认文本 Agent｜菜单规划、结构化意图与工具调用",
         ),
         ModelProfile(
@@ -73,7 +73,7 @@ def list_model_profiles(settings: Settings) -> list[ModelProfile]:
             base_url=settings.llm_base_url,
             api_key=settings.llm_api_key,
             api_style=settings.llm_api_style,
-            is_default=False,
+            is_default=True,
             use_case="通用文本｜复杂推理与对话备选",
         ),
         ModelProfile(
