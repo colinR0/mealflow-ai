@@ -1,0 +1,20 @@
+{
+  "rule_version": "howtocook-research-load-v1",
+  "source_path": "data/sources/pending/howtocook-mock-clean/recipes_howtocook_mock_clean.json",
+  "source_sha256": "7156098d5daf49fde4c91115c376cf9ef3d4bb1b3464d1c4b25b5494271a8026",
+  "source_bytes": 483701,
+  "authorization": "unverified",
+  "input_count": 444,
+  "kept_count": 443,
+  "dropped_count": 1,
+  "dropped_names": [
+    "陈皮排骨汤"
+  ],
+  "existing_count": 40,
+  "parent_count": 483,
+  "cross_source_name_count": 6,
+  "parents_sha256": "966336ea9f5296af6844b874bedb344595474ed6cf6f436f35b25d31c3fa103d",
+  "howtocook_publishable_count": 0,
+  "database_write_performed": false,
+  "production_publishable": false
+}

@@ -1,0 +1,9 @@
+{
+  "input_sha256": "966336ea9f5296af6844b874bedb344595474ed6cf6f436f35b25d31c3fa103d",
+  "chunks_sha256": "76f7555bc71998785b7c6ed23b1b20addc97c0666e4f29b6e9daac485e77dd66",
+  "policy_version": "recipe-structure-research-v1",
+  "max_chars": 450,
+  "max_tokens": 512,
+  "parent_count": 483,
+  "chunk_count": 741
+}

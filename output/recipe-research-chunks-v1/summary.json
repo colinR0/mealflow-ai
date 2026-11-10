@@ -1,0 +1,22 @@
+{
+  "policy_version": "recipe-structure-research-v1",
+  "input_sha256": "966336ea9f5296af6844b874bedb344595474ed6cf6f436f35b25d31c3fa103d",
+  "chunks_sha256": "76f7555bc71998785b7c6ed23b1b20addc97c0666e4f29b6e9daac485e77dd66",
+  "parent_count": 483,
+  "parents_chunked": 482,
+  "chunk_count": 741,
+  "section_counts": {
+    "full": 361,
+    "overview": 121,
+    "steps": 259
+  },
+  "min_chars": 38,
+  "max_chars_observed": 450,
+  "max_chars_limit": 450,
+  "max_tokens_observed": 430,
+  "max_tokens_limit": 512,
+  "error_count": 1,
+  "embedding_performed": false,
+  "database_write_performed": false,
+  "production_publishable": false
+}

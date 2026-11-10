@@ -1,0 +1,9 @@
+{
+  "source_path": "data/sources/pending/howtocook-mock-clean/recipes_howtocook_mock_clean.json",
+  "description": "用户提供的清洗版 HowToCook JSON，UTF-8 数组。原始文件不提交；运行者需自行提供同一摘要的源文件。",
+  "sha256": "7156098d5daf49fde4c91115c376cf9ef3d4bb1b3464d1c4b25b5494271a8026",
+  "size_bytes": 483701,
+  "authorization": "unverified",
+  "import_rule_version": "howtocook-research-load-v1",
+  "fields": ["name", "stuff", "difficulty", "tools", "category", "heat", "steps"]
+}

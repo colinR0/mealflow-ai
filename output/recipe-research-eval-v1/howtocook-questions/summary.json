@@ -1,0 +1,103 @@
+{
+  "batch_id": "286bfcc1-52d1-451c-b126-62295cc22259",
+  "question_count": 12,
+  "vector": {
+    "answerable": 11,
+    "hit_at_5": 0.9091,
+    "recall_at_5": 0.8462,
+    "precision_at_5": 0.2,
+    "mrr_at_10": 0.8636,
+    "exclusion_violations": [
+      {
+        "question_id": "ht-09",
+        "document_ids": [
+          "9eee2a9c-5dba-55ae-ae1d-cc6720a1110b"
+        ]
+      },
+      {
+        "question_id": "ht-10",
+        "document_ids": [
+          "edae986a-b690-52ae-8bcf-115904eeca9c",
+          "ebd71d8a-2535-5876-beff-232382bc5e4a",
+          "9eee2a9c-5dba-55ae-ae1d-cc6720a1110b"
+        ]
+      }
+    ],
+    "false_recall_examples": [
+      {
+        "question_id": "ht-10",
+        "top_document_ids": [
+          "edae986a-b690-52ae-8bcf-115904eeca9c",
+          "38f77131-e581-544f-bab3-41806990cd89",
+          "c52481c9-50e2-5eda-af67-3e047ca3e40b"
+        ]
+      },
+      {
+        "question_id": "ht-12",
+        "document_ids": [
+          "6a12ecdd-6788-532d-81de-c675781bf949",
+          "f018246f-4b3b-5ba8-9eb1-72031fb4f772",
+          "eb47695c-d086-56ad-8867-58c242985981"
+        ]
+      }
+    ],
+    "allergen_hard_filter": false
+  },
+  "fts": {
+    "answerable": 11,
+    "hit_at_5": 0.7273,
+    "recall_at_5": 0.6154,
+    "precision_at_5": 0.1455,
+    "mrr_at_10": 0.553,
+    "exclusion_violations": [
+      {
+        "question_id": "ht-10",
+        "document_ids": [
+          "ebd71d8a-2535-5876-beff-232382bc5e4a",
+          "9eee2a9c-5dba-55ae-ae1d-cc6720a1110b",
+          "edae986a-b690-52ae-8bcf-115904eeca9c"
+        ]
+      }
+    ],
+    "false_recall_examples": [
+      {
+        "question_id": "ht-01",
+        "top_document_ids": [
+          "eb705bf1-f1e1-591b-a393-b0d3fe696b39",
+          "4964036c-f3bd-5d34-9d9d-537db2ff46b9",
+          "224ad650-d047-5a01-9dba-4cc70d2b8a42"
+        ]
+      },
+      {
+        "question_id": "ht-05",
+        "top_document_ids": [
+          "0448ea7b-ffe9-5ad4-8550-c1bfaa752433",
+          "43ab3ba6-4f81-52d1-932e-e779b288e98a",
+          "6e30431e-5295-50ed-93df-c36f3645454f"
+        ]
+      },
+      {
+        "question_id": "ht-10",
+        "top_document_ids": [
+          "ebd71d8a-2535-5876-beff-232382bc5e4a",
+          "9c8c10d8-8df6-56ad-a440-97656e0dc55c",
+          "60fcebd8-f829-51f0-a0fb-61794a849c53"
+        ]
+      },
+      {
+        "question_id": "ht-12",
+        "document_ids": [
+          "3d7f3c51-d17d-562b-ae39-fd47f8b67ce1",
+          "f5ac7811-5d3d-5da5-ba62-bb649996ad25",
+          "3df340d1-50bd-5655-bebb-5a57d393dbf5"
+        ]
+      }
+    ],
+    "allergen_hard_filter": false
+  },
+  "mean_latency_ms": 92.6,
+  "allergen_hard_filter": false,
+  "production_publishable": false,
+  "quality_claim": false,
+  "database_write_performed": false
+}

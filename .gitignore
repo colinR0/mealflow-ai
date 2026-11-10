@@ -157,3 +157,6 @@ apps/web/public/data/dish-images/
 .tmp/
 .workbuddy/
 .idea/
+models/
+output/backups/
+data/sources/pending/howtocook-mock-clean/recipes_howtocook_mock_clean.json
