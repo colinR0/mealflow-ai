@@ -1,8 +1,8 @@
-"""Research chunking for the combined parent corpus.
+"""研发菜谱切片规则：一条父菜谱生成一个或多个可检索的子块。
 
-The official splitter still requires publishable_candidate. This entry accepts
-research candidates and already reviewed parents, and it refuses to let the
-tokenizer truncate a chunk.
+短菜谱保留为 full；长菜谱拆成 overview（基本信息、食材）和 steps（做法）。
+每块保留父文档 ID、来源和步骤位置，检索命中子块后仍能找到完整菜谱。
+此入口允许未发布的研发候选；正式切片入口仍要求 publishable_candidate。
 """
 
 from __future__ import annotations
@@ -27,6 +27,7 @@ from app.cli.chunk_recipe_parents import (
 from app.cli.register_recipe_sources import fingerprint
 
 POLICY_VERSION = "recipe-structure-research-v1"
+# 只在明确的句末标点或换行处进一步拆步骤，保留原文顺序。
 _SENTENCE = re.compile(r"[^。！？；;\n]+[。！？；;\n]?")
 
 
@@ -44,6 +45,7 @@ def split_sentences(text: str) -> list[str]:
 def _fits(
     text: str, *, max_chars: int, max_tokens: int, count_tokens: Callable[[str], int]
 ) -> bool:
+    # 字数是切片策略上限；token 数是模型实际上限，两者都必须满足。
     return len(text) <= max_chars and count_tokens(text) <= max_tokens
 
 
@@ -58,6 +60,7 @@ def _require_research_parent(parent: dict[str, Any]) -> None:
 
 
 def verify_step_coverage(parent: dict[str, Any], chunks: list[dict[str, Any]]) -> None:
+    # 把子块中的步骤片段按位置拼回原步骤，防止漏切、重切或改写原文。
     expected = {step["ordinal"]: step["text"].strip() for step in parent["steps"]}
     found: dict[int, list[tuple[int, str]]] = {ordinal: [] for ordinal in expected}
     for chunk in chunks:
@@ -91,6 +94,7 @@ def _chunk(
         ordinals=ordinals,
         policy_version=policy_version,
     )
+    # 身份包含父文档、内容和切片规则版本：规则变化后不会误用旧向量。
     identity = [
         parent["document_id"],
         content_version,
@@ -113,6 +117,7 @@ def _pack(
     max_tokens: int,
     count_tokens: Callable[[str], int],
 ) -> list[str]:
+    # 顺序装箱：当前块装不下就另起一块；单个字段过长时才尝试按句拆。
     groups: list[str] = []
     current: list[str] = []
 
@@ -157,6 +162,8 @@ def _fit_context(
     max_tokens: int,
     count_tokens: Callable[[str], int],
 ) -> str:
+    # steps 块重复菜名和食材，便于单独召回时辨认菜谱。当前实现会尽量
+    # 填满上限，未给后续步骤预留空间；食材很多时可能触发 ChunkTooLong。
     name_line = f"菜名：{parent['name']}"
     if not _fits(name_line, max_chars=max_chars, max_tokens=max_tokens, count_tokens=count_tokens):
         raise ChunkTooLong("菜名超过长度上限")
@@ -181,6 +188,7 @@ def split_research_parent(
     count_tokens: Callable[[str], int],
     policy_version: str,
 ) -> list[dict[str, Any]]:
+    # 第一步：验证父文档和步骤顺序，再渲染统一的标题、食材和做法文本。
     _require_research_parent(parent)
     header = render_header(parent)
     ingredient_lines = render_ingredients(parent)
@@ -199,6 +207,7 @@ def split_research_parent(
         for step in steps
     ]
     if _fits(full, **limits):
+        # 短菜谱一块即可回答“是什么菜”和“怎么做”，无需拆散上下文。
         chunks = [
             _chunk(
                 parent,
@@ -214,6 +223,7 @@ def split_research_parent(
         verify_step_coverage(parent, chunks)
         return chunks
 
+    # 长菜谱先独立保存基本信息/食材；做法块再重复菜名和食材上下文。
     overview_texts = _pack(
         [*header[1:], "食材：", *ingredient_lines, *notes],
         prefix=[header[0]],
@@ -261,6 +271,7 @@ def split_research_parent(
         candidate = "\n".join([context, "做法：", *current, line])
         if current and not _fits(candidate, **limits):
             emit()
+        # 连单个步骤片段也放不下时拒绝该父文档，不能让模型静默截断。
         if not _fits("\n".join([context, "做法：", line]), **limits):
             raise ChunkTooLong(f"步骤 {span['ordinal']} 超过长度上限")
         current.append(line)
@@ -283,6 +294,7 @@ def split_research_parent(
         if _fits("\n".join([context, "做法：", step_line]), **limits):
             add_piece(step_line, span)
             continue
+        # 整步放不下时按句拆；step_spans 记录每句属于原来的哪一步。
         sentences = split_sentences(step["text"].strip())
         if len(sentences) <= 1 or "".join(sentences) != step["text"].strip():
             raise ChunkTooLong(f"步骤 {step['ordinal']} 超过长度上限")
@@ -297,6 +309,7 @@ def split_research_parent(
                 },
             )
     emit()
+    # 出口再次核对：所有步骤片段拼接后必须与父菜谱原文一致。
     verify_step_coverage(parent, chunks)
     return chunks
 
