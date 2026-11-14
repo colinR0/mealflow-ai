@@ -13,7 +13,6 @@ from dataclasses import dataclass
 
 from sqlalchemy import Connection, select, text
 
-from app.agent.tool_runtime import ToolResult
 from app.core.config import Settings, get_settings
 from app.db.v2_models import (
     EmbeddingProfile,
@@ -29,6 +28,7 @@ from app.services.hybrid_retrieval import (
     reciprocal_rank_fusion,
 )
 from app.services.native_retrieval import NativeRetriever, vector_literal
+from app.tools.contracts import ToolResult
 
 
 class RetrievalUnavailable(RuntimeError):

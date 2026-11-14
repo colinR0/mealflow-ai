@@ -14,6 +14,8 @@ import time
 from pathlib import Path
 from typing import Any
 
+from sqlalchemy.exc import SQLAlchemyError
+
 from app.cli.register_recipe_sources import ROOT
 from app.core.config import get_settings
 from app.services.research_index import (
@@ -23,6 +25,7 @@ from app.services.research_index import (
     search_parents,
 )
 from app.services.research_recipes import load_jsonl
+from app.services.research_retrieval import RecipeRetriever, RetrievalError
 
 DEFAULT_MODEL = ROOT / "models/bge-small-zh-v1.5"
 DEFAULT_REPORT = ROOT / "output/recipe-research-eval-v1"
@@ -34,24 +37,21 @@ def search_one(
     query: str,
     limit: int,
     model_dir: Path,
+    mode: str = "all",
 ) -> dict[str, Any]:
-    embedder = BgeEmbedder(model_dir)
-    vector = embedder.embed_queries([query])[0]
-    engine = make_engine(get_settings().database_url)
-    with engine.begin() as connection:
-        connection.exec_driver_sql("SET TRANSACTION READ ONLY")
-        vector_hits = search_parents(
-            connection,
-            batch_id=batch_id,
-            query_vector=vector,
-            query=query,
-            limit=limit,
-            mode="vector",
+    try:
+        engine = make_engine(get_settings().database_url)
+    except (SQLAlchemyError, ImportError) as exc:
+        # 初始化尚未建立连接；驱动或 URL 配置错误与查询失败分开反馈。
+        raise RetrievalError("database_config", "数据库驱动或连接配置无效") from exc
+    try:
+        retriever = RecipeRetriever(engine=engine, model_dir=model_dir, batch_id=batch_id)
+        return (
+            retriever.search_all(query, top_k=limit)
+            if mode == "all" else retriever.search(query, top_k=limit, mode=mode)
         )
-        fts_hits = search_parents(
-            connection, batch_id=batch_id, query_vector=vector, query=query, limit=limit, mode="fts"
-        )
-    return {"query": query, "vector": _public_hits(vector_hits), "fts": _public_hits(fts_hits)}
+    finally:
+        engine.dispose()
 
 
 def _public_hits(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -149,6 +149,10 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--batch-id", required=True)
     parser.add_argument("--query")
+    parser.add_argument(
+        "--mode", choices=["vector", "fts", "hybrid", "all"],
+        help="单次查询的检索方式，默认 all；不用于 --questions",
+    )
     parser.add_argument("--questions", type=Path, action="append", default=[])
     parser.add_argument("--limit", type=int, default=5)
     parser.add_argument("--model-dir", type=Path, default=DEFAULT_MODEL)
@@ -156,13 +160,16 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if not args.query and not args.questions:
         parser.error("提供 --query 或 --questions")
+    if args.mode is not None and args.questions:
+        parser.error("--mode 仅用于单次 --query；问题集评估入口保持原样")
     model_dir = args.model_dir if args.model_dir.is_absolute() else ROOT / args.model_dir
     try:
         if args.questions:
             summary = evaluate(args.batch_id, args.questions, model_dir, args.report_dir)
         else:
             summary = search_one(
-                batch_id=args.batch_id, query=args.query, limit=args.limit, model_dir=model_dir
+                batch_id=args.batch_id, query=args.query, limit=args.limit,
+                model_dir=model_dir, mode=args.mode or "all",
             )
     except (OSError, ValueError, RuntimeError, KeyError) as exc:
         print(f"research search failed: {exc}", file=sys.stderr)

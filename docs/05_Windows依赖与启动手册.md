@@ -89,7 +89,7 @@ Set-Location apps/api
 & ..\..\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
-另开一个终端，从仓库根目录进入 `apps/api`，启动 Agent Worker。它与 API 使用同一个数据库。
+另开一个终端，从仓库根目录进入 `apps/api`，可启动任务 Worker。它与 API 使用同一个数据库。当前旧 Agent 已退役，助手新任务返回 `503 / AGENT_REBUILDING`；Worker 仅收敛遗留任务，不执行模型决策或工具。启动 Worker 不会恢复助手对话。
 
 ```powershell
 Set-Location apps/api
@@ -143,10 +143,16 @@ Invoke-RestMethod http://127.0.0.1:8003/api/v1/health
 | 数据库拒绝连接 | `pg_ctl` 是否已启动，端口、库名、密码是否与 `.env` 一致。 |
 | API 提示数据库版本不一致 | 在 `apps/api` 对目标库执行 `alembic current` 和 `alembic heads`，确认后执行 `upgrade head`。 |
 | H5 能打开，登录或数据加载失败 | 先看 API 健康接口，再看 `MEALFLOW_API_PROXY`、网页端口和 API 的 `CORS_ORIGINS`。 |
-| Agent 请求一直排队 | 确认 Worker 已启动且连接到 API 使用的数据库。 |
+| 助手提示重建中或返回 503 | 当前为预期行为；六个独立工具已封装，新 Agent 尚未实现。Worker 仅处理遗留任务。 |
 | HBuilderX 提示缺少编译器 | 在 `apps/web` 执行 `npm ci`，确认 `node_modules/@dcloudio/vite-plugin-uni` 已安装。 |
 | 同事只想用已有服务联调 | 使用已有 API 地址和测试账号即可。要独立运行自己的 API 和数据库，则按本文搭建。 |
 
 运行后端 pytest 时，另建一个库名以 `_test` 结尾的 PostgreSQL 数据库，并将 `MEALFLOW_TEST_DATABASE_URL` 指向它。测试会重建表，开发库和演示库应与测试库分开。
 
 配置依据见 [项目 README](../README.md)、[后端依赖声明](../apps/api/pyproject.toml)、[前端依赖锁文件](../apps/web/package-lock.json)、[H5 代理](../apps/web/vite.config.ts) 和 [Compose 配置](../docker-compose.s7.yml)。
+
+## 8. 2026-11-14 工具封装验证环境
+
+本轮测试使用独立临时 PostgreSQL 16.15、pgvector 0.8.6，地址为 `127.0.0.1:55434`，库名为 `mealflow_tools_20261114_test`，数据目录为 `%TEMP%\mealflow-tools-pg-20261114\data`。该实例仅用于本轮验证，不是 App 或研发检索默认连接目标；测试结束后停止实例，保留数据目录供排查。
+
+原有开发实例 `127.0.0.1:5434` 的模板库创建数据库失败：`template1` 报缺少 `base/1/4171`，`template0` 报缺少 `base/4/pg_filenode.map`。因此本轮没有使用开发实例承载测试，也没有修复或重新初始化其数据目录。开发库 `mealflow_s7` 仍可只读查询，研发父菜谱为 483 条、切片为 741 条；记录数可读取不代表整个实例完整性已经验证，模板缺失问题需另行处理。

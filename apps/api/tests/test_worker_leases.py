@@ -18,7 +18,7 @@ def create_job(text="hello"):
     with SessionLocal() as session:
         member = session.scalar(select(WorkspaceMember))
         user_id, workspace_id = member.user_id, member.workspace_id
-    result = runtime.create_turn(user_id, workspace_id, None, text)
+    result = runtime.enqueue_turn(user_id, workspace_id, None, text)
     job_id = worker.claim("worker")
     return user_id, result, job_id
 
@@ -57,8 +57,8 @@ def test_snapshot_never_uses_expired_detached_orm(monkeypatch):
     user_id, result, job_id = create_job("冰箱还有什么")
     worker.execute(job_id, "worker")
     completed = runtime.accessible_run(user_id, result["run_id"])
-    assert completed.status == "succeeded"
-    assert completed.result["evidence"] == []
+    assert completed.status == "failed"
+    assert completed.error_code == "AGENT_REBUILDING"
 
 
 def test_heartbeat_renews_but_never_resurrects_expired_lease():
@@ -86,14 +86,15 @@ def test_attempt_fences_same_worker_id_after_reclaim():
     expire(job_id)
     assert worker.claim("worker") == job_id
     assert not worker.heartbeat(old)
-    worker.finish(old, runtime.request_status(old.text))
+    worker.finish(old, {"status": "succeeded", "text": "late output"})
     worker.handle_failure(job_id, "worker", old.attempt)
     assert_no_output(result)
     with SessionLocal() as session:
         job = session.get(BackgroundJob, job_id)
         assert job.status == "running" and job.attempts == 2
     worker.execute(job_id, "worker")
-    assert runtime.accessible_run(user_id, result["run_id"]).status == "waiting_confirmation"
+    completed = runtime.accessible_run(user_id, result["run_id"])
+    assert completed.status == "failed" and completed.error_code == "AGENT_REBUILDING"
 
 
 def test_expiry_during_provider_call_discards_result(monkeypatch):

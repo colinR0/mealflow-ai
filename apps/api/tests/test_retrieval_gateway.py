@@ -3,7 +3,7 @@
 from dataclasses import replace
 
 import pytest
-from sqlalchemy import select, text
+from sqlalchemy import Connection, select, text
 from sqlalchemy.orm import sessionmaker
 from test_native_postgres import native_pg  # noqa: F401
 from test_runtime_postgres_concurrency import postgres_runtime  # noqa: F401
@@ -138,12 +138,21 @@ def test_configuration_and_provider_must_both_match_before_embedding():
     assert result.error_code == "EMBEDDING_PROFILE_MISMATCH"
 
 
-def test_no_index_and_native_retrieval_do_not_fallback():
+def test_no_index_and_native_retrieval_do_not_fallback(monkeypatch):
     assert (
         gateway.search("番茄", sessions=SessionLocal, settings=options()).error_code
         == "NO_ACTIVE_INDEX"
     )
     seed_demo()
+    original_scalar = Connection.scalar
+
+    def unavailable_extension(connection, statement, *args, **kwargs):
+        # Extension availability is a deployment boundary; the shared test DB may have vector.
+        if "FROM pg_extension" in str(statement):
+            return False
+        return original_scalar(connection, statement, *args, **kwargs)
+
+    monkeypatch.setattr(Connection, "scalar", unavailable_extension)
     result = gateway.search(
         "番茄", sessions=SessionLocal, settings=options(retrieval_mode="native")
     )

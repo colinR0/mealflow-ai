@@ -8,7 +8,14 @@ from sqlalchemy import func, select
 from app.api.routes.v2 import identity
 from app.db.models import WorkspaceMember
 from app.db.session import SessionLocal
-from app.db.v2_models import AgentEvent, BackgroundJob, PendingAction, ShoppingItem
+from app.db.v2_models import (
+    AgentEvent,
+    BackgroundJob,
+    PendingAction,
+    ShoppingItem,
+    TurnRun,
+    TurnSession,
+)
 from app.main import app
 from app.services import v2_runtime as runtime
 from app.services.hybrid_retrieval import RetrievalHit, cosine, reciprocal_rank_fusion
@@ -21,10 +28,37 @@ def actor():
         return member.user_id, member.workspace_id
 
 
-def test_worker_action_is_preview_then_confirmed_once():
+def historical_preview(user, household, run_id):
+    """Seed an action produced before retirement, keeping confirmation/history coverage."""
+    action = runtime.prepare_action(
+        user,
+        household,
+        "add_procurement",
+        {
+            "name": "鸡蛋",
+            "quantity_status": "unknown",
+        },
+    )
+    with SessionLocal.begin() as session:
+        run = session.get(TurnRun, run_id)
+        session.get(PendingAction, action["id"]).run_id = run_id
+        run.status = "waiting_confirmation"
+        run.result = {"status": "waiting_confirmation", "pending_action": action}
+        run.state = {"pending_action_id": action["id"]}
+        chat = session.get(TurnSession, run.session_id)
+        chat.state, chat.active_run_id = run.state, None
+        session.scalar(
+            select(BackgroundJob).where(BackgroundJob.business_id == run_id)
+        ).status = "done"
+        runtime.append_event(session, run, "status", {"status": "running"})
+        runtime.append_event(session, run, "action_required", action)
+        runtime.append_event(session, run, "completed", run.result)
+
+
+def test_historical_action_is_preview_then_confirmed_once():
     user, household = actor()
-    run = runtime.create_turn(user, household, None, "买点鸡蛋")
-    execute(claim("worker-a"), "worker-a")
+    run = runtime.enqueue_turn(user, household, None, "买点鸡蛋")
+    historical_preview(user, household, run["run_id"])
     completed = runtime.accessible_run(user, run["run_id"])
     assert completed.status == "waiting_confirmation"
     action = completed.result["pending_action"]
@@ -44,8 +78,8 @@ def test_worker_action_is_preview_then_confirmed_once():
 def test_http_decision_resolves_run_restore_and_sse_without_duplicate_events(monkeypatch):
     user, household = actor()
     monkeypatch.setattr(runtime, "authenticate", lambda token: (user, "session"))
-    run_data = runtime.create_turn(user, household, None, "买点鸡蛋")
-    execute(claim("worker-http"), "worker-http")
+    run_data = runtime.enqueue_turn(user, household, None, "买点鸡蛋")
+    historical_preview(user, household, run_data["run_id"])
     run = runtime.accessible_run(user, run_data["run_id"])
     action = run.result["pending_action"]
 
@@ -69,7 +103,7 @@ def test_http_decision_resolves_run_restore_and_sse_without_duplicate_events(mon
     assert resolved.result["action_result"] == first
     assert "pending_action" not in resolved.result
     assert resolved.state["previous_action_result"] == first
-    next_run = runtime.create_turn(user, household, run.session_id, "你好")
+    next_run = runtime.enqueue_turn(user, household, run.session_id, "你好")
     assert runtime.accessible_run(user, next_run["run_id"]).state["previous_action_result"] == first
 
     with SessionLocal() as session:
@@ -83,11 +117,14 @@ def test_http_decision_resolves_run_restore_and_sse_without_duplicate_events(mon
     # second business event.
     assert runtime.decide_action(user, action["id"], True, "http-decision-replay") == first
     with SessionLocal() as session:
-        assert session.scalar(
-            select(func.count()).select_from(AgentEvent).where(
-                AgentEvent.run_id == run.id, AgentEvent.type == "action_decided"
+        assert (
+            session.scalar(
+                select(func.count())
+                .select_from(AgentEvent)
+                .where(AgentEvent.run_id == run.id, AgentEvent.type == "action_decided")
             )
-        ) == 1
+            == 1
+        )
 
     app.dependency_overrides[identity] = lambda: (user, "session")
     try:
@@ -108,8 +145,8 @@ def test_http_decision_resolves_run_restore_and_sse_without_duplicate_events(mon
 
 def test_rejected_http_decision_resolves_run_and_is_replayed():
     user, household = actor()
-    run_data = runtime.create_turn(user, household, None, "买点鸡蛋")
-    execute(claim("worker-reject"), "worker-reject")
+    run_data = runtime.enqueue_turn(user, household, None, "买点鸡蛋")
+    historical_preview(user, household, run_data["run_id"])
     run = runtime.accessible_run(user, run_data["run_id"])
     action = run.result["pending_action"]
     result = runtime.decide_action(user, action["id"], False, "http-reject")
@@ -122,20 +159,20 @@ def test_rejected_http_decision_resolves_run_and_is_replayed():
 
 def test_run_busy_private_and_idempotent():
     user, household = actor()
-    run = runtime.create_turn(user, household, None, "你好", idempotency_key="same")
-    assert runtime.create_turn(user, household, None, "你好", idempotency_key="same") == run
+    run = runtime.enqueue_turn(user, household, None, "你好", idempotency_key="same")
+    assert runtime.enqueue_turn(user, household, None, "你好", idempotency_key="same") == run
     with pytest.raises(HTTPException) as error:
-        runtime.create_turn(user, household, run["session_id"], "下一轮")
+        runtime.enqueue_turn(user, household, run["session_id"], "下一轮")
     assert error.value.status_code == 409
     with pytest.raises(HTTPException):
         runtime.accessible_run("another-user", run["run_id"])
     with pytest.raises(HTTPException):
-        runtime.create_turn(user, "another-household", None, "你好")
+        runtime.enqueue_turn(user, "another-household", None, "你好")
 
 
 def test_cancel_discards_output_and_expired_lease_can_be_reclaimed():
     user, household = actor()
-    run = runtime.create_turn(user, household, None, "买点鸡蛋")
+    run = runtime.enqueue_turn(user, household, None, "买点鸡蛋")
     job_id = claim("old")
     with SessionLocal() as session, session.begin():
         session.get(BackgroundJob, job_id).lease_until = runtime.utc_now() - timedelta(seconds=1)
@@ -150,7 +187,7 @@ def test_cancel_discards_output_and_expired_lease_can_be_reclaimed():
 
 def test_worker_failure_is_terminal_after_three_attempts():
     user, household = actor()
-    run = runtime.create_turn(user, household, None, "你好")
+    run = runtime.enqueue_turn(user, household, None, "你好")
     for _ in range(3):
         job_id = claim(f"worker-{_}")
         handle_failure(job_id, f"worker-{_}")
@@ -188,7 +225,7 @@ def test_action_stale_invalid_unknown_and_expired():
 def test_sse_replay_and_foreign_cursor(monkeypatch):
     user, household = actor()
     monkeypatch.setattr(runtime, "authenticate", lambda token: (user, "session"))
-    run = runtime.create_turn(user, household, None, "你好")
+    run = runtime.enqueue_turn(user, household, None, "你好")
     execute(claim("worker"), "worker")
     with TestClient(app) as client:
         url = f"/api/v2/agent/turn-runs/{run['run_id']}/events"
@@ -211,7 +248,7 @@ def test_sse_closes_after_session_revocation(monkeypatch):
         return user, "session"
 
     monkeypatch.setattr(runtime, "authenticate", authenticate)
-    run = runtime.create_turn(user, household, None, "你好")
+    run = runtime.enqueue_turn(user, household, None, "你好")
     with TestClient(app) as client:
         url = f"/api/v2/agent/turn-runs/{run['run_id']}/events"
         response = client.get(url)
@@ -241,8 +278,9 @@ def test_cookie_login_csrf_logout_and_rate_limit():
     with TestClient(app) as client:
         assert (
             client.post(
-                "/api/v2/auth/login", headers={"Origin": "https://untrusted.example"},
-                json={"phone": phone, "password": "local-test-password"}
+                "/api/v2/auth/login",
+                headers={"Origin": "https://untrusted.example"},
+                json={"phone": phone, "password": "local-test-password"},
             ).status_code
             == 403
         )

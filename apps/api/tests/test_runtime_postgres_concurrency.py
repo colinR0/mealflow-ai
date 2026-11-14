@@ -123,7 +123,7 @@ def test_concurrent_turn_key(postgres_runtime, different_request, existing_sessi
             session_id = chat.id
 
     def create(text):
-        return runtime.create_turn(
+        return runtime.enqueue_turn(
             user_id, workspace_id, session_id, text, idempotency_key="turn-key",
         )
 

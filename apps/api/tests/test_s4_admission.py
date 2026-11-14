@@ -29,25 +29,25 @@ def actor():
 def test_admission_limit_replay_and_release(monkeypatch):
     user, household = actor()
     monkeypatch.setattr(get_settings(), "runtime_household_active_limit", 1)
-    first = runtime.create_turn(user, household, None, "hello", idempotency_key="first")
-    assert runtime.create_turn(user, household, None, "hello", idempotency_key="first") == first
+    first = runtime.enqueue_turn(user, household, None, "hello", idempotency_key="first")
+    assert runtime.enqueue_turn(user, household, None, "hello", idempotency_key="first") == first
     with pytest.raises(HTTPException) as error:
-        runtime.create_turn(user, household, None, "second", idempotency_key="second")
+        runtime.enqueue_turn(user, household, None, "second", idempotency_key="second")
     assert error.value.detail["code"] == "HOUSEHOLD_RUN_LIMIT"
     with SessionLocal.begin() as session:
         assert session.scalar(select(func.count()).select_from(IdempotencyRecord)) == 1
         session.get(TurnRun, first["run_id"]).status = "waiting_confirmation"
         session.scalar(select(BackgroundJob)).status = "done"
-    runtime.create_turn(user, household, None, "second", idempotency_key="second")
+    runtime.enqueue_turn(user, household, None, "second", idempotency_key="second")
 
 
 def test_global_queue_full_rolls_back(monkeypatch):
     user, household = actor()
     monkeypatch.setattr(get_settings(), "runtime_queue_capacity", 1)
-    runtime.create_turn(user, household, None, "hello")
+    runtime.enqueue_turn(user, household, None, "hello")
     another = runtime.create_household(user, "Another")
     with pytest.raises(HTTPException) as error:
-        runtime.create_turn(user, another, None, "hello", idempotency_key="rejected")
+        runtime.enqueue_turn(user, another, None, "hello", idempotency_key="rejected")
     assert error.value.status_code == 503
     assert error.value.detail["code"] == "QUEUE_FULL"
     with SessionLocal() as session:

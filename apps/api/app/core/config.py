@@ -42,8 +42,10 @@ class Settings(BaseSettings):
     bigmodel_base_url: str = "https://open.bigmodel.cn/api/paas/v4/"
     bigmodel_text_model: str = "glm-4.5-air"
     bigmodel_vision_model: str = "glm-4.6v"
-    # 仅用于对话 Agent 的只读工具循环；正式配餐图不受该值影响。
+    # 保留给后续重建的工具循环；当前助手停用，不执行模型决策。
     agent_max_steps: int = 6
+    research_retrieval_batch_id: str = ""
+    research_embedding_model_dir: str = "models/bge-small-zh-v1.5"
     runtime_household_active_limit: int = Field(default=2, ge=1)
     runtime_queue_capacity: int = Field(default=100, ge=1)
     retrieval_mode: Literal["demo", "native"] = "demo"

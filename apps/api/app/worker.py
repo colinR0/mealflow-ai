@@ -1,4 +1,4 @@
-"""Durable, lease-fenced LangGraph worker. Run separately: python -m app.worker."""
+"""Lease-fenced task worker; retired agent turns terminate without model execution."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ from threading import Thread
 from fastapi import HTTPException
 from sqlalchemy import or_, select
 
-from app.agent import durable_graph
+from app.agent import runtime as agent_runtime
 from app.db.session import SessionLocal
 from app.db.v2_models import BackgroundJob, PendingAction, TurnRun, TurnSession
 from app.services.v2_runtime import (
@@ -114,16 +114,19 @@ def heartbeat(snapshot: JobSnapshot) -> bool:
 
 
 def compute_result(snapshot: JobSnapshot) -> dict:
-    from app.llm.durable_provider import ConfiguredProvider
-
-    return durable_graph.compute(SessionLocal, snapshot, provider=ConfiguredProvider())
+    """Retired agent jobs terminate visibly; no provider or tool may execute here."""
+    return {
+        "status": "failed",
+        "error_code": agent_runtime.REBUILDING_CODE,
+        "text": "助手正在重建，暂不可用",
+    }
 
 
 def remaining_seconds(snapshot: JobSnapshot) -> float:
     with SessionLocal() as session:
         run = session.get(TurnRun, snapshot.run_id)
         return (
-            durable_graph.RUN_TIMEOUT_SECONDS - (utc_now() - aware(run.created_at)).total_seconds()
+            agent_runtime.RUN_TIMEOUT_SECONDS - (utc_now() - aware(run.created_at)).total_seconds()
         )
 
 
@@ -137,7 +140,7 @@ def execute(job_id: str, worker_id: str) -> None:
             return
         deadline = time.monotonic() + remaining_seconds(snapshot)
         if deadline <= time.monotonic():
-            finish(snapshot, {"status": "failed", "error_code": "RUN_TIMEOUT"})
+            finish(snapshot, compute_result(snapshot))
             return
         output: Queue = Queue(maxsize=1)
 
@@ -148,7 +151,7 @@ def execute(job_id: str, worker_id: str) -> None:
                 output.put((False, error))
 
         # A blocked provider must not block cancellation or hold a DB transaction.
-        # Graph/checkpoint/tool writes independently check this same lease and attempt.
+        # Finalization independently checks this same lease and attempt.
         Thread(target=compute, daemon=True, name=f"turn-{job_id}").start()
         while True:
             remaining = deadline - time.monotonic()
@@ -166,9 +169,9 @@ def execute(job_id: str, worker_id: str) -> None:
                 raise result
             finish(snapshot, result)
             return
-    except durable_graph.RunTimedOut:  # Persist a terminal timeout result for the client.
+    except agent_runtime.RunTimedOut:  # Persist a terminal timeout result for the client.
         finish(snapshot, {"status": "failed", "error_code": "RUN_TIMEOUT"})
-    except durable_graph.ExecutionStopped as error:  # Finish using current lease ownership.
+    except agent_runtime.ExecutionStopped as error:  # Finish using current lease ownership.
         if heartbeat(snapshot):
             finish(snapshot, {"status": "failed", "error_code": str(error)})
         else:
@@ -210,8 +213,10 @@ def finish(snapshot: JobSnapshot, result: dict) -> None:
             append_event(session, run, "failed", run.result)
         else:
             if (
-                utc_now() - aware(run.created_at)
-            ).total_seconds() >= durable_graph.RUN_TIMEOUT_SECONDS:
+                result.get("error_code") != agent_runtime.REBUILDING_CODE
+                and (utc_now() - aware(run.created_at)).total_seconds()
+                >= agent_runtime.RUN_TIMEOUT_SECONDS
+            ):
                 result = {"status": "failed", "error_code": "RUN_TIMEOUT"}
             state = result.pop("_state", None)
             action = result.pop("action", None)
@@ -241,7 +246,7 @@ def finish(snapshot: JobSnapshot, result: dict) -> None:
             run.status, run.result = result["status"], result
             run.error_code = result.get("error_code")
             run.state = state or {
-                "provider": result.get("provider", "FakeProvider"),
+                "provider": result.get("provider", "none"),
                 "constraints": chat.state.get("constraints", {}),
                 "pending_action_id": result.get("pending_action", {}).get("id"),
                 "budgets": {"tool_calls": 0, "model_calls": 0},

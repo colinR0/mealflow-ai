@@ -418,28 +418,50 @@ def search_parents(
     connection: Connection,
     *,
     batch_id: str,
-    query_vector: list[float],
+    query_vector: list[float] | None,
     query: str,
     limit: int,
     mode: str,
+    include_payload: bool = False,
 ) -> list[dict[str, Any]]:
     _require_ready_batch(connection, batch_id)
-    validate_vector(query_vector)
     if mode not in {"vector", "fts"}:
         raise ValueError(f"未知检索方式：{mode}")
+    if type(limit) is not int or not 1 <= limit <= 100:
+        raise ValueError("limit 必须是 1 至 100 的整数")
+    if query_vector is not None:
+        validate_vector(query_vector)
+    elif mode == "vector":
+        raise ValueError("向量检索需要问题向量")
     order = "c.embedding <=> CAST(:vector AS vector)" if mode == "vector" else "fts_rank DESC"
+    cosine_sql = "1 - (c.embedding <=> CAST(:vector AS vector))"
+    if query_vector is None:
+        cosine_sql = "NULL::double precision"
+    # 全文通道只召回真实匹配，不能靠零分行补满候选。
+    predicate = (
+        "c.embedding IS NOT NULL" if mode == "vector"
+        else (
+            "c.search_tsv @@ plainto_tsquery('simple', :fts_query) "
+            "AND ts_rank(c.search_tsv, plainto_tsquery('simple', :fts_query)) > 0"
+        )
+    )
+    payload_sql = (
+        ", p.payload AS parent_payload, p.content_sha256 AS parent_sha256"
+        if include_payload else ""
+    )
     statement = text(
         f"""
         SELECT c.document_id, c.chunk_id, c.section, c.content_version, c.text,
                p.name, p.source_asset_key, p.source_sha256, p.source_record_key,
-               b.policy_version, b.model_name, b.instruction_version,
-               1 - (c.embedding <=> CAST(:vector AS vector)) AS cosine,
+               b.policy_version, b.model_name, b.instruction_version, c.step_ordinals,
+               {cosine_sql} AS cosine,
                ts_rank(c.search_tsv, plainto_tsquery('simple', :fts_query)) AS fts_rank
+               {payload_sql}
         FROM recipe_research.chunks c
         JOIN recipe_research.parents p ON p.document_id = c.document_id
         JOIN recipe_research.build_batches b ON b.id = c.batch_id
-        WHERE c.batch_id = :batch
-        ORDER BY {order}
+        WHERE c.batch_id = :batch AND {predicate}
+        ORDER BY {order}, c.document_id, c.chunk_id
         LIMIT :limit
         """
     )
@@ -447,7 +469,7 @@ def search_parents(
         statement,
         {
             "batch": batch_id,
-            "vector": vector_literal(query_vector),
+            "vector": vector_literal(query_vector) if query_vector is not None else None,
             "fts_query": fts_text(query),
             "limit": max(limit * 8, limit),
         },

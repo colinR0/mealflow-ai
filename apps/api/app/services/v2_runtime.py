@@ -315,6 +315,21 @@ def create_turn(
     parent_run_id: str | None = None,
     idempotency_key: str | None = None,
 ) -> dict:
+    # Keep the authenticated task boundary while replacing the retired decision graph.
+    with SessionLocal() as session:
+        authorized_workspace(session, user_id, workspace_id)
+    raise HTTPException(503, detail={"code": "AGENT_REBUILDING"})
+
+
+# Retained queue/admission infrastructure; HTTP creation remains gated above.
+def enqueue_turn(
+    user_id: str,
+    workspace_id: str,
+    session_id: str | None,
+    text: str,
+    parent_run_id: str | None = None,
+    idempotency_key: str | None = None,
+) -> dict:
     now = utc_now()
     with SessionLocal() as session, session.begin():
         authorized_workspace(session, user_id, workspace_id)
@@ -428,9 +443,12 @@ def append_event(session: Session, run: TurnRun, kind: str, payload: dict) -> No
     )
 
 
-def prepare_action(user_id: str, workspace_id: str, kind: str, payload: dict) -> dict:
+def prepare_action(
+    user_id: str, workspace_id: str, kind: str, payload: dict, *, sessions=None
+) -> dict:
     validate_action(kind, payload)
-    with SessionLocal() as session, session.begin():
+    with (sessions or SessionLocal)() as session, session.begin():
+        session.connection().exec_driver_sql("SET LOCAL statement_timeout = '10s'")
         authorized_workspace(session, user_id, workspace_id)
         row = PendingAction(
             workspace_id=workspace_id,
@@ -673,46 +691,3 @@ def cancel_run(user_id: str, run_id: str) -> None:
         authorized_workspace(session, user_id, run.workspace_id)
         if run.status in {"queued", "running"}:
             run.cancel_requested = True
-
-
-def request_status(text: str) -> dict:
-    if any(word in text for word in ("不吃", "过敏", "不要", "忌口")):
-        return {
-            "status": "waiting_input",
-            "text": "请在家庭档案中确认本次成员范围及限制后再规划。",
-            "warnings": ["本演示运行不具备完整家庭限制读取能力，因此不声称菜单符合限制。"],
-        }
-    if any(word in text for word in ("加入清单", "放进购物", "买点")):
-        name = next((key for key in ("牛奶", "番茄", "鸡蛋", "豆腐") if key in text), None)
-        if name:
-            return {
-                "status": "waiting_confirmation",
-                "text": f"准备将{name}加入共享清单。",
-                "action": {
-                    "type": "add_procurement",
-                    "payload": {
-                        "name": name,
-                        "ingredient_key": {
-                            "番茄": "tomato",
-                            "鸡蛋": "egg",
-                            "豆腐": "tofu",
-                            "牛奶": "milk",
-                        }[name],
-                        "quantity_status": "unknown",
-                    },
-                },
-            }
-    if any(word in text for word in ("冰箱", "库存", "还有")):
-        return {
-            "status": "succeeded",
-            "text": "当前演示家庭没有可核验的库存批次记录；这不表示冰箱里一定没有。",
-            "evidence": [],
-        }
-    return {
-        "status": "succeeded",
-        "text": "当前使用 MealFlow 本地 demo Provider（非真实模型）；"
-        "仅提供已读取证据，不生成未经核验的菜谱结论。",
-        "evidence": [],
-        "provider": "local_demo",
-        "fake": True,
-    }

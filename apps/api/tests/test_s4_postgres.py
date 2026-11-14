@@ -32,7 +32,7 @@ def test_real_postgres_admission_race(postgres_runtime, monkeypatch, global_capa
 
     def create(index, target):
         try:
-            return runtime.create_turn(user, target, None, str(index), idempotency_key=str(index))
+            return runtime.enqueue_turn(user, target, None, str(index), idempotency_key=str(index))
         except HTTPException as error:  # Collect both admission race outcomes for assertions.
             return error
 

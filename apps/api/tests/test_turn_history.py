@@ -16,7 +16,7 @@ def actor():
 
 
 def complete(user, household, chat, text):
-    response = runtime.create_turn(user, household, chat, text)
+    response = runtime.enqueue_turn(user, household, chat, text)
     with SessionLocal() as session, session.begin():
         run = session.get(TurnRun, response["run_id"])
         run.status = "succeeded"
@@ -41,13 +41,13 @@ def test_history_pages_restore_and_soft_delete_preserves_runs():
     assert turn_history.list_chats(user, household) == []
     assert runtime.accessible_run(user, first["run_id"]).result["text"] == "回复：第一问"
     with pytest.raises(HTTPException) as error:
-        runtime.create_turn(user, household, first["session_id"], "继续")
+        runtime.enqueue_turn(user, household, first["session_id"], "继续")
     assert error.value.status_code == 404
 
 
 def test_history_denies_other_accounts_and_running_deletion():
     user, household = actor()
-    response = runtime.create_turn(user, household, None, "还在执行")
+    response = runtime.enqueue_turn(user, household, None, "还在执行")
     with SessionLocal() as session:
         other = session.scalar(select(WorkspaceMember).where(
             WorkspaceMember.user_id != user, WorkspaceMember.workspace_id == household
