@@ -420,21 +420,73 @@ def remove_inventory(household_id: str, lot_id: str, body: InventoryTransition, 
         session.commit()
 
 
+def _procurement_view(row: ShoppingItem) -> dict:
+    return {
+        "id": row.id,
+        "name": row.name,
+        "quantity_status": row.quantity_status,
+        "status": row.status,
+    }
+
+
+class ProcurementCreate(Input):
+    name: str = Field(min_length=1, max_length=120)
+    quantity_status: Literal["known", "unknown"] = "unknown"
+    quantity: InventoryQuantity | None = None
+    unit: str | None = Field(default=None, max_length=20)
+
+    @model_validator(mode="after")
+    def validate_quantity(self):
+        self.name = self.name.strip()
+        self.unit = (self.unit or "").strip() or None
+        if not self.name:
+            raise ValueError("name is required")
+        if self.quantity_status == "unknown":
+            self.quantity = None
+            self.unit = None
+        elif self.quantity is None or not self.unit:
+            raise ValueError("known quantity requires quantity and unit")
+        return self
+
+
 @router.get("/households/{household_id}/procurement-items")
 def procurement(household_id: str, actor: Identity):
     with SessionLocal() as session:
         runtime.authorized_workspace(session, actor[0], household_id)
         return [
-            {
-                "id": row.id,
-                "name": row.name,
-                "quantity_status": row.quantity_status,
-                "status": row.status,
-            }
+            _procurement_view(row)
             for row in session.scalars(
                 select(ShoppingItem).where(ShoppingItem.workspace_id == household_id).limit(100)
             )
         ]
+
+
+@router.post("/households/{household_id}/procurement-items", status_code=201)
+def create_procurement(household_id: str, body: ProcurementCreate, actor: Identity):
+    with SessionLocal() as session:
+        runtime.authorized_workspace(session, actor[0], household_id)
+        try:
+            ingredient = ingredient_catalog.resolve_ingredient(
+                session, name=body.name, default_unit=body.unit,
+            )
+        except ingredient_catalog.IngredientNotFoundError as exc:
+            raise HTTPException(
+                400, detail={"code": "INGREDIENT_NOT_FOUND", "message": str(exc)},
+            ) from exc
+        row = ShoppingItem(
+            workspace_id=household_id,
+            name=body.name,
+            ingredient_key=ingredient.key,
+            quantity_status=body.quantity_status,
+            quantity=body.quantity,
+            unit=body.unit,
+            status="pending",
+            sources=[{"kind": "manual"}],
+            version=1,
+        )
+        session.add(row)
+        session.commit()
+        return _procurement_view(row)
 
 
 @router.get("/households/{household_id}/agent/sessions")

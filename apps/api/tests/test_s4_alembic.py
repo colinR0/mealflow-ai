@@ -52,10 +52,38 @@ def test_full_alembic_upgrade_and_admission_seed():
                 connection.scalar(text("select version_num from alembic_version")) == expected_head
             )
             assert connection.scalar(text("select id from runtime_admission")) == "agent_turn"
-        tables = inspect(engine).get_table_names()
-        assert {"inventory_items", "users", "household_profiles"} <= set(tables)
-        assert "legacy_imports" not in tables
-        assert "chunks" in inspect(engine).get_table_names(schema="recipe_research")
+        tables = set(inspect(engine).get_table_names())
+        assert tables == {
+            "users",
+            "workspaces",
+            "workspace_members",
+            "ingredients",
+            "ingredient_aliases",
+            "auth_sessions",
+            "login_attempts",
+            "household_profiles",
+            "household_invites",
+            "inventory_lots",
+            "inventory_movements",
+            "shopping_items",
+            "turn_sessions",
+            "agent_turn_runs",
+            "agent_events",
+            "tool_executions",
+            "pending_actions",
+            "background_jobs",
+            "idempotency_records",
+            "audit_events",
+            "runtime_admission",
+            "recipe_source_assets",
+            "recipe_source_asset_versions",
+            "alembic_version",
+        }
+        assert set(inspect(engine).get_table_names(schema="recipe_research")) == {
+            "parents",
+            "chunks",
+            "build_batches",
+        }
         auth_columns = {column["name"] for column in inspect(engine).get_columns("auth_sessions")}
         assert "native_client" in auth_columns
     finally:

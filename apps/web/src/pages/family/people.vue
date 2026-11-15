@@ -1,7 +1,6 @@
 <script lang="ts">
 import { defineComponent } from 'vue'
 import SubpageHeader from '../../components/SubpageHeader.vue'
-import SurfaceCard from '../../components/SurfaceCard.vue'
 import { session } from '../../shared/session'
 import { ApiError, patchRequest, request } from '../../shared/transport'
 
@@ -17,12 +16,12 @@ const DIET_TAGS = ['忌辛辣', '忌生冷', '忌油腻', '忌油炸', '忌发�
 
 export default defineComponent({
   name: 'PeoplePage',
-  components: { SubpageHeader, SurfaceCard },
+  components: { SubpageHeader },
   data() {
     return {
       session, EVENT_TYPES, DIET_TAGS, error: '', notice: '',
       members: [] as MemberArchive[], loadingMembers: false,
-      editorOpen: false, editingId: '', editingVersion: 1, saving: false,
+      editorOpen: false, editingId: '', editingVersion: 1, saving: false, pendingEditId: '',
       form: this.emptyForm(), restrictionType: 'dislike' as 'allergy' | 'dislike',
       restrictionName: '', eventDraft: this.emptyEvent(),
     }
@@ -43,13 +42,36 @@ export default defineComponent({
       const householdId = session.householdId
       if (!householdId) return
       this.loadingMembers = true; this.error = ''
-      return request<MemberArchive[]>(`/households/${householdId}/profiles`)
-        .then((members) => { if (householdId === session.householdId) this.members = members }, (error: unknown) => { this.error = error instanceof Error ? error.message : '人员信息加载失败' })
-        .finally(() => { this.loadingMembers = false })
+      return request<MemberArchive[]>(`/households/${householdId}/profiles`).then((members) => {
+        if (householdId !== session.householdId) return
+        this.members = members
+        if (!this.pendingEditId) return
+        const member = members.find((item) => item.id === this.pendingEditId)
+        this.pendingEditId = ''
+        if (member) this.openEdit(member)
+      }, (error: unknown) => {
+        this.error = error instanceof Error ? error.message : '人员信息加载失败'
+      }).finally(() => { this.loadingMembers = false })
     },
     openCreate() { this.editingId = ''; this.editingVersion = 1; this.form = this.emptyForm(); this.eventDraft = this.emptyEvent(); this.restrictionType = 'dislike'; this.restrictionName = ''; this.editorOpen = true },
     openEdit(member: MemberArchive) {
-      uni.navigateTo({ url: `/pages/family/profile-edit?id=${encodeURIComponent(member.id)}` })
+      this.editingId = member.id
+      this.editingVersion = member.version
+      this.form = {
+        name: member.display_name,
+        gender: member.gender || '保密',
+        residency: member.residency || 'resident',
+        taboo: member.taboo || '',
+        note: member.note || '',
+        restrictions: member.restrictions.flatMap((item) => {
+          if (typeof item === 'string') return [{ type: 'legacy_free_text' as const, text: item }]
+          return [{ ...item }]
+        }),
+        events: member.events.map((event) => ({ ...event, constraint_tags: [...event.constraint_tags] })),
+      }
+      this.eventDraft = this.emptyEvent()
+      this.restrictionName = ''
+      this.editorOpen = true
     },
     addRestriction() {
       const name = this.restrictionName.trim()
@@ -76,7 +98,9 @@ export default defineComponent({
     restrictionLabel(item: MemberRestriction | string) {
       if (typeof item === 'string') return item
       const value = item.ingredient_name || item.text || item.ingredient_key || ''
-      return `${item.type === 'allergy' ? '过敏' : item.type === 'legacy_free_text' ? '' : '忌口'}${item.type === 'legacy_free_text' ? '' : ' · '}${value}`
+      if (item.type === 'allergy') return `过敏 ${value}`
+      if (item.type === 'legacy_free_text') return value
+      return `忌口 ${value}`
     },
     saveMember() {
       if (this.saving || !session.householdId) return
@@ -112,21 +136,24 @@ export default defineComponent({
 <template>
   <view class="page-scroll">
     <SubpageHeader title="人员信息" />
-    <view class="people-intro">记录参与用餐的人员、过敏、忌口与特殊情况，供助手规划餐食时参考。</view>
+    <view class="people-body">
+    <view class="people-intro">记录参与用餐的人员、过敏、忌口和有期限的特殊情况。</view>
     <text v-if="error" class="error-copy">{{ error }}</text><text v-if="notice" class="notice-copy">{{ notice }}</text>
-    <SurfaceCard v-if="session.householdId" title="人员档案" :action="loadingMembers ? '加载中…' : '新增人员'" @action="!loadingMembers && openCreate()">
-      <view v-if="loadingMembers && !members.length" class="empty-state"><text>正在读取人员档案…</text></view>
-      <view v-else-if="!members.length" class="empty-state"><text class="empty-title">添加家人饮食档案</text><text>记录称呼、过敏忌口和有期限的特殊情况。</text><button class="primary-button" @tap="openCreate">新增人员</button></view>
-      <view v-else class="member-list">
-        <view v-for="member in members" :key="member.id" class="member-row">
+    <view v-if="loadingMembers && !members.length" class="empty-card"><text>正在读取人员档案…</text></view>
+    <view v-else-if="!members.length" class="empty-card"><text class="empty-title">还没有人员</text><text>从下方新增，记下称呼、忌口和特殊情况。</text></view>
+    <view v-else class="member-list">
+      <view v-for="member in members" :key="member.id" class="member-card">
           <view class="member-top"><view class="member-avatar">{{ member.display_name.slice(0, 1) }}</view><view class="member-heading"><text class="member-name">{{ member.display_name }}</text><text class="member-meta">{{ member.gender }} · {{ member.residency === 'resident' ? '常驻成员' : '访客' }}</text></view><view class="member-actions"><text class="icon-action" aria-label="编辑人员档案" @tap="openEdit(member)">✎</text><text class="icon-action delete-action" aria-label="删除人员档案" @tap="removeMember(member)">×</text></view></view>
           <text v-if="member.taboo" class="member-note">{{ member.taboo }}</text>
           <view v-if="member.restrictions.length" class="tag-row"><text v-for="(item, index) in member.restrictions" :key="index" class="restriction-chip" :class="{ allergy: typeof item !== 'string' && item.type === 'allergy' }">{{ restrictionLabel(item) }}</text></view>
           <view v-if="member.events.length" class="event-list"><view v-for="event in member.events" :key="event.id || `${event.event_type}-${event.start_date}`" class="event-row"><view class="event-heading"><text class="event-name">{{ event.event_type }}</text><text class="event-state" :class="{ active: eventState(event) === '进行中' }">{{ eventState(event) }}</text></view><text class="event-dates">{{ event.start_date }} 至 {{ event.end_date }}</text><text v-if="event.constraint_tags.length" class="event-tags">{{ event.constraint_tags.join('、') }}</text><text v-if="event.note" class="event-tags">{{ event.note }}</text></view></view>
           <text v-if="!member.restrictions.length && !member.events.length && !member.taboo" class="no-details">尚未设置饮食信息</text>
-        </view>
       </view>
-    </SurfaceCard>
+    </view>
+    </view>
+    <view class="footer-actions">
+      <button class="primary-button" :disabled="loadingMembers" @tap="openCreate">新增人员</button>
+    </view>
 
     <view v-if="editorOpen" class="modal-backdrop" @tap.self="closeEditor">
       <scroll-view scroll-y class="editor-sheet">
@@ -160,11 +187,18 @@ export default defineComponent({
 </template>
 
 <style scoped lang="scss">
-.page-scroll { min-height: 100vh; background: #f3f7fc; }.people-intro { display: block; margin: 24rpx 32rpx; color: #647891; font-size: 25rpx; line-height: 1.7; }
+.page-scroll { min-height: 100vh; display: flex; flex-direction: column; background: transparent; }
+.people-body { flex: 1; padding-bottom: 12px; }
+.people-intro { display: block; margin: 8px 16px 12px; color: var(--color-muted); font-size: 13px; line-height: 1.7; }
+.empty-card, .member-card { margin: 0 16px 12px; padding: 16px; border-radius: var(--radius-card); background: var(--color-surface); box-shadow: var(--shadow-card); }
+.empty-card { text-align: center; color: var(--color-muted); }
+.footer-actions { position: sticky; bottom: 0; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); background: rgba(245, 249, 255, 0.94); }
+.footer-actions .primary-button { margin: 0; }
 .profile-card { display: flex; align-items: center; gap: 24rpx; padding: 20rpx 40rpx 42rpx; }
 .profile-card > view:last-child { min-width: 0; }
 .profile-avatar, .member-avatar { display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: linear-gradient(140deg,#7baefa,#3478f6); color: #fff; }
-.profile-avatar { width: 112rpx; height: 112rpx; border: 6rpx solid #fff; border-radius: 40rpx; font-size: 44rpx; box-shadow: 0 12rpx 30rpx #3478f626; }
+.profile-avatar, .member-avatar { display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: var(--color-accent); color: var(--color-accent-ink); }
+.profile-avatar { width: 112rpx; height: 112rpx; border: 6rpx solid var(--color-surface); border-radius: 40rpx; font-size: 44rpx; }
 .profile-title, .profile-subtitle { display: block; }
 .profile-title { color: #29415f; font-size: 34rpx; font-weight: 650; }
 .profile-subtitle { margin-top: 12rpx; color: #7a8fa9; font-size: 24rpx; line-height: 1.6; }
@@ -175,20 +209,19 @@ export default defineComponent({
 .compact-textarea { min-height: 100rpx; }
 .form-select { display: flex; align-items: center; justify-content: space-between; min-height: 90rpx; padding: 0 24rpx; border-radius: 22rpx; background: #f3f7fc; color: #29415f; font-size: 27rpx; }
 .primary-button, .secondary-button { margin: 18rpx 0 0; border-radius: 26rpx; font-size: 26rpx; line-height: 88rpx; }
-.primary-button { background: #3478f6; color: white; }
-.secondary-button { background: #edf4ff; color: #3478f6; }
+.primary-button { background: var(--color-accent); color: var(--color-accent-ink); }
+.secondary-button { background: #edf4ff; color: var(--color-accent); }
 .primary-button[disabled], .secondary-button[disabled] { opacity: .55; }
 .footnote { display: block; margin-top: 18rpx; color: #8391a7; font-size: 23rpx; line-height: 1.7; }
 .phone-hint, .error-copy { display: block; color: #c34c56; font-size: 24rpx; line-height: 1.6; }
 .error-copy { margin-bottom: 16rpx; }
-.notice-copy { display: block; margin-bottom: 14rpx; color: #3478f6; font-size: 24rpx; line-height: 1.6; }
+.notice-copy { display: block; margin-bottom: 14rpx; color: var(--color-accent); font-size: 24rpx; line-height: 1.6; }
 .household-row { display: flex; align-items: center; justify-content: space-between; gap: 12rpx; min-height: 90rpx; border-bottom: 1rpx solid #edf2f9; color: #29415f; font-size: 27rpx; }
 .household-state, .member-meta { color: #7a8fa9; font-size: 23rpx; }
 .empty-state { min-height: 200rpx; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 10rpx; color: #7b8ba2; text-align: center; font-size: 25rpx; line-height: 1.7; }
 .empty-title { color: #314b6d; font-size: 29rpx; font-weight: 600; }
 .member-list { display: flex; flex-direction: column; }
-.member-row { padding: 18rpx 0 26rpx; border-bottom: 1rpx solid #edf2f9; }
-.member-row:last-child { padding-bottom: 2rpx; border-bottom: 0; }
+.member-card { padding: 16px; }
 .member-top, .event-heading { display: flex; align-items: center; gap: 18rpx; }
 .member-avatar { width: 84rpx; height: 84rpx; border: 4rpx solid #fff; border-radius: 28rpx; font-size: 36rpx; }
 .member-heading { flex: 1; min-width: 0; }
@@ -196,7 +229,7 @@ export default defineComponent({
 .member-name { color: #29415f; font-size: 29rpx; font-weight: 650; }
 .member-meta { margin-top: 6rpx; }
 .member-actions { display: flex; gap: 8rpx; flex-shrink: 0; }
-.icon-action { display: flex; align-items: center; justify-content: center; width: 64rpx; height: 64rpx; border-radius: 50%; background: #edf4ff; color: #3478f6; font-size: 36rpx; }
+.icon-action { display: flex; align-items: center; justify-content: center; width: 64rpx; height: 64rpx; border-radius: 50%; background: #edf4ff; color: var(--color-accent); font-size: 36rpx; }
 .delete-action, .remove-text { color: #bd6467; }
 .member-note, .event-tags, .event-dates, .no-details { display: block; margin-top: 14rpx; color: #72849e; font-size: 23rpx; line-height: 1.65; overflow-wrap: anywhere; }
 .tag-row { display: flex; flex-wrap: wrap; gap: 10rpx; margin-top: 14rpx; }
@@ -220,11 +253,11 @@ export default defineComponent({
 .section-hint { margin-top: 24rpx; color: #8391a7; font-size: 21rpx; }
 .segmented { display: flex; padding: 6rpx; border-radius: 22rpx; background: #f0f4fa; }
 .segmented text { flex: 1; padding: 18rpx 8rpx; border-radius: 18rpx; color: #72849e; text-align: center; font-size: 24rpx; }
-.segmented text.selected { background: #fff; color: #3478f6; box-shadow: 0 4rpx 12rpx #304c7012; }
+.segmented text.selected { background: #fff; color: var(--color-accent); box-shadow: 0 4rpx 12rpx #304c7012; }
 .add-restriction { display: flex; align-items: center; gap: 10rpx; }
 .type-select { min-width: 120rpx; min-height: 82rpx; padding: 0 16rpx; font-size: 23rpx; }
 .restriction-input { flex: 1; min-width: 0; min-height: 82rpx; padding: 16rpx; font-size: 23rpx; }
-.add-button { padding: 18rpx 12rpx; color: #3478f6; font-size: 23rpx; }
+.add-button { padding: 18rpx 12rpx; color: var(--color-accent); font-size: 23rpx; }
 .editor-tags { margin-top: 12rpx; }
 .editable-chip { gap: 10rpx; }
 .chip-remove { color: #8c93a0; font-size: 28rpx; }
@@ -232,8 +265,7 @@ export default defineComponent({
 .remove-text { margin-left: auto; padding: 12rpx; font-size: 22rpx; }
 .selectable-tags { gap: 12rpx; }
 .selectable-chip { min-height: 60rpx; background: #f0f4fa; color: #72849e; }
-.selectable-chip.chosen { background: #e5efff; color: #3478f6; }
-.add-event-button { width: 100%; }
+.selectable-chip.chosen { background: #e5efff; color: var(--color-accent); }
 .privacy-note { display: block; margin-top: 16rpx; color: #8391a7; font-size: 21rpx; line-height: 1.6; }
 .editor-footer { display: flex; gap: 16rpx; margin-top: 24rpx; }
 .cancel-button, .save-button { flex: 1; margin: 0; border-radius: 22rpx; font-size: 25rpx; line-height: 84rpx; }

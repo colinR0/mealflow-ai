@@ -1,34 +1,71 @@
+/* Sky appliance surface: light blue gradient, white cards, one blue accent. */
+
 page {
-  background: #f3f4f6;
-  color: #18181b;
-  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: linear-gradient(180deg, #d7ecff 0%, #f5f9ff 42%, #f7fbff 100%);
+  color: var(--color-ink);
+  font-family: var(--font-body);
   font-size: 28rpx;
   --page-gap: 32rpx;
+  --color-paper: #f5f9ff;
+  --color-paper-2: #e7f2ff;
+  --color-paper-3: #d7e8fb;
+  --color-ink: #1c2b45;
+  --color-ink-2: #31415f;
+  --color-muted: #7d8da6;
+  --color-rule: #d5e4f5;
+  --color-accent: #2f78f6;
+  --color-accent-deep: #1d5ed8;
+  --color-accent-soft: #e7f1ff;
+  --color-accent-ink: #ffffff;
+  --color-focus: #2f78f6;
+  --color-danger: #c2410c;
+  --color-danger-soft: #fff1eb;
+  --color-warn: #b7791f;
+  --color-warn-soft: #fff6e5;
+  --color-surface: #ffffff;
+  --font-display: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  --font-body: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  --radius-card: 20px;
+  --radius-input: 14px;
+  --radius-pill: 999px;
+  --shadow-card: 0 8px 24px rgba(47, 120, 246, 0.08);
 }
+
 view, text, input, textarea, button, scroll-view { box-sizing: border-box; }
 button::after { border: 0; }
 button { font-weight: 600; }
-button, .scene-card, .suggestion { transition: transform .18s ease, background-color .18s ease; }
-button:active, .scene-card:active, .suggestion:active { transform: scale(.97); }
-.page-scroll { padding-bottom: 24rpx; background: #f3f4f6; }
-.primary-button, .action-button { margin: 20rpx 0 0; padding: 0 24rpx; min-height: 88rpx; line-height: 88rpx; border-radius: 16rpx; background: #2563eb; color: #fff; font-size: 26rpx; }
-.secondary-button { margin: 20rpx 0 0; min-height: 88rpx; line-height: 88rpx; border-radius: 16rpx; background: #fff; color: #374151; border: 1px solid #d1d5db; font-size: 26rpx; }
-button[disabled] { opacity: .5; }
-.empty-state { min-height: 230rpx; padding: 36rpx 16rpx; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14rpx; text-align: center; color: #7b8ba2; font-size: 25rpx; line-height: 1.7; }
-.empty-title { display: block; color: #314b6d; font-size: 30rpx; font-weight: 600; }
-.footnote, .page-footnote { display: block; color: #8391a7; font-size: 23rpx; line-height: 1.7; margin-top: 22rpx; }
+button:focus-visible, input:focus-visible, textarea:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+button[disabled] { opacity: .5; cursor: not-allowed; }
+.page-scroll { padding-bottom: 24rpx; background: transparent; }
+.primary-button, .action-button {
+  margin: 20rpx 0 0; padding: 0 24rpx; min-height: 88rpx; line-height: 88rpx;
+  border-radius: var(--radius-input); background: var(--color-accent); color: var(--color-accent-ink); font-size: 26rpx;
+}
+.secondary-button {
+  margin: 20rpx 0 0; min-height: 88rpx; line-height: 88rpx; border-radius: var(--radius-input);
+  background: var(--color-surface); color: var(--color-accent); border: 1px solid var(--color-rule); font-size: 26rpx;
+}
+.empty-state { min-height: 230rpx; padding: 36rpx 16rpx; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14rpx; text-align: center; color: var(--color-muted); font-size: 25rpx; line-height: 1.7; }
+.empty-title { display: block; color: var(--color-ink); font-size: 30rpx; font-weight: 600; }
+.footnote, .page-footnote { display: block; color: var(--color-muted); font-size: 23rpx; line-height: 1.7; margin-top: 22rpx; }
 .page-footnote { padding: 0 40rpx 32rpx; }
-.error-state, .error-copy { display: block; padding: 22rpx 0; color: #c34c56; font-size: 25rpx; line-height: 1.7; }
-.inline-action { display: inline-block; padding: 20rpx; color: #3478f6; }
-.food-row { display: flex; align-items: center; justify-content: space-between; gap: 20rpx; min-height: 112rpx; padding: 20rpx 0; border-bottom: 1rpx solid #e5e7eb; }
+.error-state, .error-copy { display: block; padding: 22rpx 0; color: var(--color-danger); font-size: 25rpx; line-height: 1.7; }
+.inline-action { display: inline-block; padding: 20rpx; color: var(--color-accent); }
+.food-row { display: flex; align-items: center; justify-content: space-between; gap: 20rpx; min-height: 112rpx; padding: 20rpx 0; border-bottom: 1rpx solid var(--color-rule); }
 .food-row > view { flex: 1; min-width: 0; }
 .food-name, .food-meta { display: block; overflow-wrap: anywhere; }
-.food-name { color: #18181b; font-size: 29rpx; font-weight: 600; }
-.food-meta { margin-top: 10rpx; color: #8795aa; font-size: 23rpx; line-height: 1.6; }
-.food-quantity { max-width: 42%; color: #5278ae; font-size: 24rpx; text-align: right; overflow-wrap: anywhere; }
-.skeleton { height: 88rpx; margin: 20rpx 0; border-radius: 20rpx; background: linear-gradient(100deg,#edf2f9 20%,#fafcff 45%,#edf2f9 70%); background-size: 240% 100%; animation: shimmer 1.5s linear infinite; }
-@keyframes shimmer { to { background-position: -240% 0; } }
-@keyframes enter-card { from { opacity: 0; transform: translateY(16rpx); } to { opacity: 1; transform: translateY(0); } }
-@keyframes pulse { 50% { opacity: .35; transform: scale(.8); } }
+.food-name { color: var(--color-ink); font-size: 29rpx; font-weight: 600; }
+.food-meta { margin-top: 10rpx; color: var(--color-muted); font-size: 23rpx; line-height: 1.6; }
+.food-quantity { max-width: 42%; color: var(--color-accent); font-size: 24rpx; text-align: right; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.skeleton { height: 88rpx; margin: 20rpx 0; border-radius: var(--radius-card); background: var(--color-paper-3); }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 @media (max-width: 350px) { page { --page-gap: 24rpx; } }
+
+@media (min-width: 520px) {
+  body { background: #d7ecff; }
+  uni-app { display: block; max-width: 480px; min-height: 100vh; margin: 0 auto; background: linear-gradient(180deg, #d7ecff 0%, #f5f9ff 42%, #f7fbff 100%); }
+  .uni-tabbar { max-width: 480px; left: 50% !important; right: auto !important; width: 480px !important; transform: translateX(-50%); }
+}

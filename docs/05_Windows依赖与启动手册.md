@@ -48,7 +48,7 @@ $mealflowPgData = Join-Path $mealflowPg 'pgdata'
 
 ```powershell
 Get-NetTCPConnection -State Listen -LocalPort 5434 -ErrorAction SilentlyContinue
-& "$mealflowPgBin\initdb.exe" -D $mealflowPgData -U mealflow -A scram-sha-256 -W -E UTF8 --no-locale
+& "$mealflowPgBin\initdb.exe" -D $mealflowPgData -U mealflow -A scram-sha-256 -W -E UTF8 --no-locale --data-checksums
 & "$mealflowPgBin\pg_ctl.exe" -D $mealflowPgData -l "$mealflowPg\postgres.log" -o '-h 127.0.0.1 -p 5434' -w start
 & "$mealflowPgBin\createdb.exe" -h 127.0.0.1 -p 5434 -U mealflow -W mealflow_s7
 & "$mealflowPgBin\psql.exe" -X -h 127.0.0.1 -p 5434 -U mealflow -W -d mealflow_s7 -c 'SELECT current_database(), version();'
@@ -147,12 +147,14 @@ Invoke-RestMethod http://127.0.0.1:8003/api/v1/health
 | HBuilderX 提示缺少编译器 | 在 `apps/web` 执行 `npm ci`，确认 `node_modules/@dcloudio/vite-plugin-uni` 已安装。 |
 | 同事只想用已有服务联调 | 使用已有 API 地址和测试账号即可。要独立运行自己的 API 和数据库，则按本文搭建。 |
 
-运行后端 pytest 时，另建一个库名以 `_test` 结尾的 PostgreSQL 数据库，并将 `MEALFLOW_TEST_DATABASE_URL` 指向它。测试会重建表，开发库和演示库应与测试库分开。
+运行后端 pytest 时，使用同一实例上的 `mealflow_s7_test`，并把 `MEALFLOW_TEST_DATABASE_URL` 指向它。测试会重建表，不要指向开发库 `mealflow_s7`。建库后在 `template1` 执行 `CREATE EXTENSION vector`，使新库带上 pgvector。备份放在 `%LOCALAPPDATA%\MealFlow\backups`，不提交到 Git。
 
 配置依据见 [项目 README](../README.md)、[后端依赖声明](../apps/api/pyproject.toml)、[前端依赖锁文件](../apps/web/package-lock.json)、[H5 代理](../apps/web/vite.config.ts) 和 [Compose 配置](../docker-compose.s7.yml)。
 
 ## 8. 2026-11-14 工具封装验证环境
 
-本轮测试使用独立临时 PostgreSQL 16.15、pgvector 0.8.6，地址为 `127.0.0.1:55434`，库名为 `mealflow_tools_20261114_test`，数据目录为 `%TEMP%\mealflow-tools-pg-20261114\data`。该实例仅用于本轮验证，不是 App 或研发检索默认连接目标；测试结束后停止实例，保留数据目录供排查。
+下面记录的是当时的临时实例，不再作为启动入口。当前本地数据库按第 2 节放在 `%LOCALAPPDATA%\MealFlow\postgres16`，初始化时启用数据校验和。
 
-原有开发实例 `127.0.0.1:5434` 的模板库创建数据库失败：`template1` 报缺少 `base/1/4171`，`template0` 报缺少 `base/4/pg_filenode.map`。因此本轮没有使用开发实例承载测试，也没有修复或重新初始化其数据目录。开发库 `mealflow_s7` 仍可只读查询，研发父菜谱为 483 条、切片为 741 条；记录数可读取不代表整个实例完整性已经验证，模板缺失问题需另行处理。
+本轮测试使用独立临时 PostgreSQL 16.15、pgvector 0.8.6，地址为 `127.0.0.1:55434`，库名为 `mealflow_tools_20261114_test`，数据目录为 `%TEMP%\mealflow-tools-pg-20261114\data`。该实例仅用于本轮验证，不是 App 或研发检索默认连接目标。该目录已在 2026-11-15 切换完成后删除。
+
+当时 `127.0.0.1:5434` 的模板库已损坏。2026-11-15 起开发库改为第 2 节的新实例，不再启动 Temp 里的旧数据目录。

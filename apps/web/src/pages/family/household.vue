@@ -15,8 +15,8 @@ export default defineComponent({
   <view class="page">
     <SubpageHeader title="我的家庭" />
     <view class="card"><text class="label">当前家庭</text><text class="name">{{ currentHousehold }}</text><text class="hint">账号：{{ session.phoneMasked || '已登录' }}</text></view>
-    <view class="card"><text class="name">家庭共享</text><text class="copy">家庭成员可共享冰箱画面、库存和采购信息，并共同维护人员饮食档案。</text></view>
-    <view class="card"><text class="name">邀请加入家庭</text><text class="copy">手机号账号关联与邀请加入流程待接入。当前仅展示功能框架。</text><button disabled>邀请成员 · 待接入</button></view>
+    <view class="card"><text class="name">家庭共享</text><text class="copy">家庭成员共享库存、采购和人员饮食档案。冰箱画面尚未接入。</text></view>
+    <view class="card"><text class="name">邀请加入家庭</text><text class="copy">邀请成员尚未接入。</text><button disabled>邀请成员尚未接入</button></view>
   </view>
 </template>
 

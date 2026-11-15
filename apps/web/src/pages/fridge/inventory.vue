@@ -284,11 +284,6 @@ export default defineComponent({
           <text class="status-pill" :class="item.status">{{ statusText(item) }}</text>
           <text class="lot-notes" v-if="item.notes">{{ item.notes }}</text>
         </view>
-        <view class="lot-actions" @tap.stop>
-          <button size="mini" :disabled="Boolean(busyId)" @tap="edit(item)">编辑</button>
-          <button v-if="item.status === 'active'" size="mini" :disabled="Boolean(busyId)" @tap="transition(item, 'consume')">用完</button>
-          <button v-if="item.status === 'active'" size="mini" :disabled="Boolean(busyId)" @tap="transition(item, 'remove')">移除</button>
-        </view>
       </view>
 
       <button v-if="hasMore" class="more-button" :disabled="loading || Boolean(busyId)" @tap="load">{{ loading ? '加载中…' : '加载更多' }}</button>
@@ -340,27 +335,27 @@ export default defineComponent({
 </template>
 
 <style scoped lang="scss">
-.inventory-page { min-height: 100vh; display: flex; flex-direction: column; background: #f3f4f6; }
-.inventory-body { flex: 1; min-height: 0; padding: 12px 16px 8px; padding-bottom: 8px; overflow: auto; }
-.toolbar-card, .lot-card, .empty-card, .modal { background: #fff; border-radius: 14px; box-shadow: 0 4px 14px #18181b0d; }
-.toolbar-card { padding: 12px; }
+.inventory-page { min-height: 100vh; display: flex; flex-direction: column; background: transparent; }
+.inventory-body { flex: 1; min-height: 0; padding: 12px 16px 8px; overflow: auto; }
+.toolbar-card, .lot-card, .empty-card, .modal { background: var(--color-surface); border-radius: var(--radius-card); box-shadow: var(--shadow-card); }
+.toolbar-card { padding: 14px; }
 .household-chip { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; color: #52525b; font-size: 13px; }
-.chip-label { padding: 2px 8px; border-radius: 999px; background: #eff6ff; color: #1d4ed8; }
+.chip-label { padding: 2px 8px; border-radius: 999px; background: var(--color-accent-soft); color: var(--color-accent); }
 .chip-value { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.search-box { padding: 10px 12px; border-radius: 10px; background: #f3f4f6; }
+.search-box { padding: 10px 12px; border-radius: var(--radius-input); background: var(--color-paper); }
 .search-box input { width: 100%; font-size: 14px; }
 .filter-row { display: flex; gap: 6px; margin-top: 10px; }
 .filter-row text { flex: 1; min-width: 0; padding: 8px 4px; border-radius: 8px; text-align: center; color: #52525b; font-size: 12px; background: #f8fafc; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.filter-row text.selected { background: #eff6ff; color: #1d4ed8; font-weight: 600; }
+.filter-row text.selected { background: var(--color-accent-soft); color: var(--color-accent-deep); font-weight: 600; }
 .quantity-row text { flex: 1; }
 .list-meta { margin: 12px 2px 8px; color: #71717a; font-size: 12px; }
-.lot-card { margin-bottom: 10px; padding: 14px; }
+.lot-card { margin-bottom: 12px; padding: 18px 16px; }
 .lot-main { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
 .lot-name, .lot-quantity, .lot-notes { overflow-wrap: anywhere; }
-.lot-name { flex: 1; min-width: 0; color: #18181b; font-size: 16px; font-weight: 650; }
-.lot-quantity { max-width: 42%; color: #1d4ed8; font-size: 14px; text-align: right; }
+.lot-name { flex: 1; min-width: 0; color: var(--color-ink); font-size: 16px; font-weight: 650; }
+.lot-quantity { max-width: 42%; color: var(--color-accent); font-size: 15px; font-weight: 650; text-align: right; font-variant-numeric: tabular-nums; }
 .lot-side { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
-.status-pill { padding: 2px 8px; border-radius: 999px; font-size: 12px; background: #ecfdf5; color: #047857; }
+.status-pill { padding: 2px 8px; border-radius: 999px; font-size: 12px; background: var(--color-accent-soft); color: var(--color-accent-deep); }
 .status-pill.consumed { background: #fff7ed; color: #c2410c; }
 .status-pill.removed { background: #f4f4f5; color: #52525b; }
 .lot-notes { flex: 1; min-width: 0; color: #71717a; font-size: 12px; }
@@ -371,8 +366,8 @@ export default defineComponent({
 .empty-copy { display: block; margin: 8px 0 16px; color: #71717a; font-size: 13px; line-height: 1.6; }
 .state-copy { padding: 28px 0; color: #71717a; text-align: center; }
 .more-button { width: 100%; margin: 4px 0 12px; background: #fff; }
-.footer-actions { padding: 10px 16px 12px; background: #f3f4f6; border-top: 1px solid #e5e7eb; }
-.primary-action { margin: 0; border-radius: 10px; background: #2563eb; color: #fff; line-height: 44px; font-size: 14px; }
+.footer-actions { padding: 10px 16px 12px; background: transparent; }
+.primary-action { margin: 0; border-radius: var(--radius-input); background: var(--color-accent); color: var(--color-accent-ink); line-height: 44px; font-size: 14px; }
 .error-banner { margin: 10px 0; padding: 10px 12px; border-radius: 10px; background: #fef2f2; color: #b91c1c; font-size: 13px; }
 .retry { margin-left: 10px; color: #2563eb; }
 .modal-mask { position: fixed; inset: 0; z-index: 20; display: flex; align-items: flex-end; justify-content: center; background: #0006; }

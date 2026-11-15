@@ -34,8 +34,6 @@ sys.path.insert(0, str(REPO_ROOT / "apps" / "api"))
 
 from sqlalchemy import select  # noqa: E402
 
-from app.db.models import Ingredient, Recipe, RecipeIngredient  # noqa: E402
-from app.db.session import SessionLocal  # noqa: E402
 from app.services.recipe_taxonomy import IngredientFact, classify_recipe  # noqa: E402
 
 SOURCE_PATH = REPO_ROOT / "apps" / "web" / "public" / "data" / "recipes_merged.json"
@@ -616,6 +614,9 @@ def build_plan() -> tuple[list[dict], dict]:
 
 def apply_plan(plan: list[dict]) -> dict:
     """把计划写入数据库。同名菜谱跳过，绝不修改既有菜谱。"""
+    from app.db.models import Ingredient, Recipe, RecipeIngredient
+    from app.db.session import SessionLocal
+
     session = SessionLocal()
     created_recipes = 0
     created_ingredients = 0
@@ -709,13 +710,15 @@ def apply_plan(plan: list[dict]) -> dict:
     }
 
 
-def unit_of(ingredient: Ingredient) -> str:
+def unit_of(ingredient) -> str:
     """源数据无用量，单位留空 -> portion_confidence 落为 servings_only。"""
     return ""
 
 
 def reset_lazy_recipes() -> dict:
     """清掉本脚本此前导入的菜谱，便于修正规则后重跑。绝不触碰种子菜谱。"""
+    from app.db.models import Ingredient, Recipe, RecipeIngredient
+    from app.db.session import SessionLocal
     from sqlalchemy import delete
 
     session = SessionLocal()

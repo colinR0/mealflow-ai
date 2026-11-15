@@ -19,7 +19,7 @@
   ],
   "tabBar": {
     "color": "#8A9BB1",
-    "selectedColor": "#3478F6",
+    "selectedColor": "#2F78F6",
     "backgroundColor": "#FFFFFF",
     "borderStyle": "white",
     "list": [
@@ -33,6 +33,6 @@
     "navigationBarTextStyle": "black",
     "navigationBarTitleText": "智慧冰箱",
     "navigationBarBackgroundColor": "#FFFFFF",
-    "backgroundColor": "#F3F4F6"
+    "backgroundColor": "#F5F9FF"
   }
 }

@@ -26,6 +26,11 @@ export interface InventoryPage { items: InventoryLot[]; total: number; offset: n
 export interface ShoppingItem {
   id: string
   name: string
+  ingredient_key?: string
   quantity_status: 'known' | 'unknown'
+  quantity: string | null
+  unit: string | null
+  note?: string
   status: 'pending' | 'purchased' | 'archived'
+  version: number
 }

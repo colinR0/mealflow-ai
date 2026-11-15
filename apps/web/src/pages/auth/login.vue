@@ -36,7 +36,7 @@ export default defineComponent({
 
 <template>
   <view class="login-page">
-    <view class="intro"><text class="logo">▣</text><text class="title">智慧冰箱</text><text class="subtitle">登录后查看食材、采购清单与饮食助手</text></view>
+    <view class="intro"><text class="logo">▣</text><text class="title">智慧冰箱</text><text class="subtitle">登录后查看库存、采购和家里的人</text></view>
     <view class="form-card">
       <text class="form-title">手机号登录</text>
       <text v-if="session.restoreError" class="error">{{ session.restoreError }}</text>
@@ -51,7 +51,7 @@ export default defineComponent({
 </template>
 
 <style scoped lang="scss">
-.login-page { min-height: 100vh; padding: calc(var(--status-bar-height, 0px) + 90rpx) 40rpx 50rpx; background: linear-gradient(180deg, #e8f2ff, #f6f9fe 45%); box-sizing: border-box; }
-.intro { display: flex; flex-direction: column; align-items: center; margin-bottom: 70rpx; color: #20344f; }.logo { display: flex; align-items: center; justify-content: center; width: 108rpx; height: 108rpx; border-radius: 30rpx; background: #3478f6; color: white; font-size: 58rpx; }.title { margin-top: 24rpx; font-size: 44rpx; font-weight: 700; }.subtitle { margin-top: 12rpx; color: #6c809b; font-size: 24rpx; }
-.form-card { padding: 40rpx; border-radius: 30rpx; background: #fff; box-shadow: 0 14rpx 40rpx #345b8c12; }.form-title { display: block; margin-bottom: 36rpx; font-size: 34rpx; font-weight: 650; color: #20344f; }.label { display: block; margin: 26rpx 0 12rpx; color: #40536d; font-size: 26rpx; }.form-card input { height: 88rpx; padding: 0 24rpx; border: 1rpx solid #dde7f3; border-radius: 16rpx; background: #f9fbff; font-size: 28rpx; }.submit { margin: 44rpx 0 20rpx; border-radius: 16rpx; background: #3478f6; color: #fff; font-size: 30rpx; }.submit[disabled] { opacity: .45; }.hint { display: block; text-align: center; color: #8999ad; font-size: 22rpx; }.error { display: block; margin-top: 20rpx; color: #c0392b; font-size: 24rpx; }.retry { margin-top: 18rpx; color: #3478f6; background: #edf4ff; font-size: 24rpx; }
+.login-page { min-height: 100vh; padding: calc(var(--status-bar-height, 0px) + 90rpx) 40rpx 50rpx; background: var(--color-paper); box-sizing: border-box; }
+.intro { display: flex; flex-direction: column; align-items: center; margin-bottom: 70rpx; color: var(--color-ink); }.logo { display: flex; align-items: center; justify-content: center; width: 108rpx; height: 108rpx; border-radius: 30rpx; background: var(--color-accent); color: var(--color-accent-ink); font-size: 58rpx; }.title { margin-top: 24rpx; font-size: 44rpx; font-weight: 700; }.subtitle { margin-top: 12rpx; color: var(--color-muted); font-size: 24rpx; }
+.form-card { padding: 40rpx; border-radius: var(--radius-card); background: var(--color-surface); box-shadow: var(--shadow-card); }.form-title { display: block; margin-bottom: 36rpx; font-size: 34rpx; font-weight: 650; color: var(--color-ink); }.label { display: block; margin: 26rpx 0 12rpx; color: var(--color-ink-2); font-size: 26rpx; }.form-card input { height: 88rpx; min-height: 40px; padding: 0 24rpx; border: 1px solid var(--color-rule); border-radius: var(--radius-input); background: var(--color-paper-3); font-size: 28rpx; }.submit { margin: 44rpx 0 20rpx; border-radius: var(--radius-input); background: var(--color-accent); color: var(--color-accent-ink); font-size: 30rpx; }.submit[disabled] { opacity: .45; cursor: not-allowed; }.hint { display: block; text-align: center; color: var(--color-muted); font-size: 22rpx; }.error { display: block; margin-top: 20rpx; color: var(--color-danger); font-size: 24rpx; }.retry { margin-top: 18rpx; color: var(--color-accent-deep); background: var(--color-accent-soft); font-size: 24rpx; }
 </style>

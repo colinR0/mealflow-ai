@@ -1,9 +1,8 @@
 param(
     [ValidateSet('Prepare', 'Api', 'Worker', 'Web', 'Check')]
     [string]$Mode = 'Check',
-    [string]$PgRoot = "$env:LOCALAPPDATA\Temp\opencode\mealflow-pgvector16",
-    [string]$PgUser = 'mealflow',
-    [string]$CredentialFile = "$env:LOCALAPPDATA\Temp\opencode\mealflow-s7-vector-login.json"
+    [string]$PgRoot = "$env:LOCALAPPDATA\MealFlow\postgres16",
+    [string]$PgUser = 'mealflow'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -12,7 +11,10 @@ $python = Join-Path $repo '.venv\Scripts\python.exe'
 $pgBin = Join-Path $PgRoot 'Library\bin'
 $pgData = Join-Path $PgRoot 'pgdata'
 $env:APP_ENV = 'development'
-$env:DATABASE_URL = "postgresql+psycopg://${PgUser}@127.0.0.1:5434/mealflow_s7?gssencmode=disable"
+$pwFile = Join-Path $PgRoot 'role-password.txt'
+if (Test-Path $pwFile) {
+    $env:PGPASSWORD = [System.IO.File]::ReadAllText($pwFile).Trim()
+}
 $env:CORS_ORIGINS = 'http://localhost:5175,http://127.0.0.1:5175'
 $env:VITE_API_PROXY_TARGET = 'http://127.0.0.1:8002'
 $env:LLM_PROVIDER = 'fake'
@@ -48,10 +50,6 @@ if ($Mode -eq 'Prepare') {
     Set-Location "$repo\apps\api"
     & $python -m alembic upgrade head
     if ($LASTEXITCODE -ne 0) { throw 'Migration failed' }
-    # Seed is explicit; API/worker startup never calls it.
-    & $python -m app.seed_s7_demo --credential-file $CredentialFile
-    if ($LASTEXITCODE -ne 0) { throw 'Explicit S7 seed failed' }
-    Write-Host "Credentials for a newly created account only: $CredentialFile (never printed)"
     Write-Host 'Next, open three terminals with this script: -Mode Api / -Mode Worker / -Mode Web'
     exit 0
 }
@@ -94,10 +92,8 @@ if ($Mode -eq 'Check') {
     Set-Location "$repo\apps\api"
     & $python -c 'from app.db.schema_guard import ensure_schema_current; ensure_schema_current()'
     if ($LASTEXITCODE -ne 0) { throw 'Database health failed' }
-    & "$pgBin\psql.exe" -X -w -h 127.0.0.1 -p 5434 -U $PgUser -d mealflow_s7 -c "SELECT extversion AS vector_version FROM pg_extension WHERE extname='vector'; SELECT count(*) AS ready_active_generations FROM index_generations WHERE active AND status='ready';"
-    if ($LASTEXITCODE -ne 0) { throw 'Native index health failed' }
-    $indexReady = & "$pgBin\psql.exe" -X -w -h 127.0.0.1 -p 5434 -U $PgUser -d mealflow_s7 -Atc "SELECT EXISTS (SELECT 1 FROM pg_extension WHERE extname='vector') AND (SELECT count(*) FROM index_generations WHERE active AND status='ready') = 1 AND (SELECT count(*) FROM knowledge_chunks WHERE embedding_vector IS NOT NULL AND search_tsv IS NOT NULL) >= 5;"
-    if ($LASTEXITCODE -ne 0 -or $indexReady -ne 't') { throw 'Native index is not ready' }
+    & "$pgBin\psql.exe" -X -w -h 127.0.0.1 -p 5434 -U $PgUser -d mealflow_s7 -c "SELECT extversion AS vector_version FROM pg_extension WHERE extname='vector'; SELECT count(*) AS research_chunks FROM recipe_research.chunks;"
+    if ($LASTEXITCODE -ne 0) { throw 'Research index health failed' }
     $health = Invoke-RestMethod 'http://127.0.0.1:8002/api/v1/health'
     if ($health.status -ne 'ok') { throw 'API health failed' }
     $web = Invoke-WebRequest 'http://127.0.0.1:5175/' -UseBasicParsing

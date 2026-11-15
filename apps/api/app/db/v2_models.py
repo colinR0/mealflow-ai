@@ -1,4 +1,4 @@
-"""S4—S7 的持久化边界。旧表保留，用显式来源完成渐进迁移。"""
+"""Household runtime tables used by the current app and six tools."""
 
 from datetime import date, datetime
 from decimal import Decimal
@@ -11,11 +11,9 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     ForeignKeyConstraint,
-    Index,
     Integer,
     Numeric,
     String,
-    Text,
     UniqueConstraint,
     event,
     text,
@@ -257,65 +255,3 @@ class AuditEvent(TimestampMixin, Base):
     action: Mapped[str] = mapped_column(String(80))
     object_id: Mapped[str] = mapped_column(String(36))
     detail: Mapped[dict] = mapped_column(JSON, default=dict)
-
-
-class KnowledgeSource(TimestampMixin, Base):
-    __tablename__ = "knowledge_sources"
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
-    name: Mapped[str] = mapped_column(String(160))
-    approval: Mapped[str] = mapped_column(String(24), default="pending")
-    license_note: Mapped[str] = mapped_column(String(300))
-    url: Mapped[str | None] = mapped_column(String(500))
-
-
-class EmbeddingProfile(TimestampMixin, Base):
-    __tablename__ = "embedding_profiles"
-    id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    model: Mapped[str] = mapped_column(String(120))
-    dimensions: Mapped[int] = mapped_column(Integer)
-    template_version: Mapped[str] = mapped_column(String(40))
-    tokenizer_version: Mapped[str] = mapped_column(String(40))
-    is_fake: Mapped[bool] = mapped_column(Boolean)
-
-
-class IndexGeneration(TimestampMixin, Base):
-    __tablename__ = "index_generations"
-    __table_args__ = (
-        Index(
-            "uq_one_active_generation",
-            "active",
-            unique=True,
-            postgresql_where=text("active = true"),
-        ),
-    )
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
-    profile_id: Mapped[str] = mapped_column(ForeignKey("embedding_profiles.id"))
-    active: Mapped[bool] = mapped_column(Boolean, default=False)
-    status: Mapped[str] = mapped_column(String(24), default="building")
-
-
-class KnowledgeDocument(TimestampMixin, Base):
-    __tablename__ = "knowledge_documents"
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
-    recipe_id: Mapped[str] = mapped_column(ForeignKey("recipes.id"), unique=True)
-    source_id: Mapped[str] = mapped_column(ForeignKey("knowledge_sources.id"))
-    content_version: Mapped[int] = mapped_column(Integer, default=1)
-    published: Mapped[bool] = mapped_column(Boolean, default=False)
-    capabilities: Mapped[dict] = mapped_column(JSON, default=dict)
-    content: Mapped[dict] = mapped_column(JSON)
-    search_text: Mapped[str] = mapped_column(Text)
-
-
-class KnowledgeChunk(TimestampMixin, Base):
-    __tablename__ = "knowledge_chunks"
-    __table_args__ = (
-        UniqueConstraint("document_id", "content_version", "generation_id", "ordinal"),
-    )
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
-    document_id: Mapped[str] = mapped_column(ForeignKey("knowledge_documents.id"), index=True)
-    content_version: Mapped[int] = mapped_column(Integer)
-    generation_id: Mapped[str] = mapped_column(ForeignKey("index_generations.id"))
-    ordinal: Mapped[int] = mapped_column(Integer)
-    text: Mapped[str] = mapped_column(Text)
-    # Local demo fallback; native PostgreSQL vector/full-text indexing is not implemented yet.
-    embedding: Mapped[list] = mapped_column(JSON)
