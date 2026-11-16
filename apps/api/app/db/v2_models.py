@@ -324,12 +324,75 @@ class KnowledgeChunk(TimestampMixin, Base):
     generation_id: Mapped[str] = mapped_column(ForeignKey("index_generations.id"))
     ordinal: Mapped[int] = mapped_column(Integer)
     text: Mapped[str] = mapped_column(Text)
-    # Local demo fallback; native PostgreSQL vector/full-text indexing is not implemented yet.
+    # JSON copy for demo mode; native search uses embedding_vector + search_tsv.
     embedding: Mapped[list] = mapped_column(JSON)
 
 
+class CookingLog(TimestampMixin, Base):
+    """Household cooking record. Only the creator may edit; all members may read/comment."""
+
+    __tablename__ = "cooking_logs"
+    __table_args__ = (
+        Index("ix_cooking_logs_workspace_cooked_at", "workspace_id", "cooked_at"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    workspace_id: Mapped[str] = mapped_column(ForeignKey("workspaces.id"), index=True)
+    creator_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    title: Mapped[str] = mapped_column(String(120))
+    cooked_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    notes: Mapped[str] = mapped_column(Text, default="")
+    allow_assistant_citation: Mapped[bool] = mapped_column(Boolean, default=False)
+    status: Mapped[str] = mapped_column(String(16), default="active")
+    version: Mapped[int] = mapped_column(Integer, default=1)
+
+
+class CookingLogDish(TimestampMixin, Base):
+    __tablename__ = "cooking_log_dishes"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    log_id: Mapped[str] = mapped_column(
+        ForeignKey("cooking_logs.id", ondelete="CASCADE"), index=True
+    )
+    recipe_id: Mapped[str | None] = mapped_column(
+        ForeignKey("recipes.id", ondelete="SET NULL"), nullable=True
+    )
+    name: Mapped[str] = mapped_column(String(120))
+    note: Mapped[str] = mapped_column(Text, default="")
+    position: Mapped[int] = mapped_column(Integer, default=0)
+
+
+class CookingLogPhoto(TimestampMixin, Base):
+    __tablename__ = "cooking_log_photos"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    log_id: Mapped[str] = mapped_column(
+        ForeignKey("cooking_logs.id", ondelete="CASCADE"), index=True
+    )
+    storage_key: Mapped[str] = mapped_column(String(300), unique=True)
+    content_type: Mapped[str] = mapped_column(String(40))
+    byte_size: Mapped[int] = mapped_column(Integer)
+    sha256: Mapped[str] = mapped_column(String(64))
+    position: Mapped[int] = mapped_column(Integer, default=0)
+
+
+class CookingLogComment(TimestampMixin, Base):
+    __tablename__ = "cooking_log_comments"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    log_id: Mapped[str] = mapped_column(
+        ForeignKey("cooking_logs.id", ondelete="CASCADE"), index=True
+    )
+    author_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    body: Mapped[str] = mapped_column(Text)
+
+
 class StructuredKnowledgeMixin:
-    """Fields shared by isolated structured food-knowledge libraries."""
+    """Fields shared by isolated structured food-knowledge libraries.
+
+    These libraries are decision tables, not retrieval corpora: only typed
+    business columns are stored, and lookups read them directly.
+    """
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     review_status: Mapped[str] = mapped_column(String(24), default="draft", index=True)
@@ -337,10 +400,6 @@ class StructuredKnowledgeMixin:
     source_name: Mapped[str] = mapped_column(String(200), default="")
     source_url: Mapped[str | None] = mapped_column(String(500))
     notes: Mapped[str] = mapped_column(Text, default="")
-    # Only this field is embedded; decisions read the typed columns below.
-    rag_text: Mapped[str] = mapped_column(Text)
-    embedding: Mapped[list] = mapped_column(JSON, default=list)
-    embedding_profile_id: Mapped[str] = mapped_column(String(36), index=True)
 
 
 class IngredientSubstitution(TimestampMixin, StructuredKnowledgeMixin, Base):
@@ -419,3 +478,27 @@ class FoodRiskRule(TimestampMixin, StructuredKnowledgeMixin, Base):
     ingredient_keys: Mapped[list] = mapped_column(JSON, default=list)
     advice: Mapped[str] = mapped_column(Text, default="")
     evidence_level: Mapped[str] = mapped_column(String(24), default="unverified")
+
+
+class FridgeObservation(TimestampMixin, Base):
+    """One still photo and its unconfirmed SAM detections. Inventory is written later."""
+
+    __tablename__ = "fridge_observations"
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('pending', 'confirmed', 'discarded')",
+            name="ck_fridge_observation_status",
+        ),
+        Index("ix_fridge_observations_workspace_status", "workspace_id", "status"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    workspace_id: Mapped[str] = mapped_column(ForeignKey("workspaces.id"))
+    created_by: Mapped[str] = mapped_column(ForeignKey("users.id"))
+    status: Mapped[str] = mapped_column(String(16), default="pending")
+    storage_key: Mapped[str] = mapped_column(String(300))
+    content_type: Mapped[str] = mapped_column(String(40))
+    width: Mapped[int] = mapped_column(Integer)
+    height: Mapped[int] = mapped_column(Integer)
+    items: Mapped[list] = mapped_column(JSON)
+    confirmed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

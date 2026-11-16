@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('Check', 'Upgrade', 'Import', 'ImportSkills', 'ImportStructured', 'Api', 'Worker', 'Stop')]
+    [ValidateSet('Check', 'Upgrade', 'Import', 'ImportSkills', 'ImportStructured', 'Rebuild', 'Api', 'Worker', 'Stop')]
     [string]$Mode = 'Check',
     [string]$Source,
     [string]$EmbeddingModel = 'BAAI/bge-small-zh-v1.5',
@@ -64,6 +64,8 @@ try {
     } elseif ($Mode -eq 'ImportStructured') {
         if (-not $Source) { throw '-Source is required for ImportStructured' }
         & $Python "$repo\scripts\import_structured_food_knowledge.py" --source $Source --apply
+    } elseif ($Mode -eq 'Rebuild') {
+        & $Python "$repo\scripts\rebuild_rag_index.py"
     } else {
         & $Python -m alembic current
         if ($LASTEXITCODE -ne 0) { throw 'Migration status check failed' }

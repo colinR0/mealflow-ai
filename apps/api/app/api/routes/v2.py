@@ -2,21 +2,38 @@
 
 import asyncio
 import json
+from dataclasses import asdict
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, Response
-from fastapi.responses import StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from sqlalchemy import func, or_, select
 
 from app.core.config import get_settings
 from app.db.models import User
 from app.db.session import SessionLocal
-from app.db.v2_models import AgentEvent, AuthSession, InventoryLot, ShoppingItem
-from app.services import ingredient_catalog, inventory_lots, turn_history
+from app.db.v2_models import (
+    AgentEvent,
+    AuthSession,
+    CookingLogPhoto,
+    InventoryLot,
+    ShoppingItem,
+)
+from app.services import cooking_logs as cooking_log_service
+from app.services import fridge_observations, fridge_vision
+from app.services import (
+    ingredient_catalog,
+    inventory_lots,
+    offline_bundle,
+    photo_store,
+    recipe_actions,
+    turn_history,
+)
 from app.services import v2_runtime as runtime
+from app.services.food_constraints import household_constraints
 from app.services.household_profiles import (
     ProfileCreate,
     ProfileUpdate,
@@ -56,6 +73,45 @@ class Decision(Input):
 
 class InviteAcceptance(Input):
     token: str = Field(min_length=1, max_length=200)
+
+
+class CookingDishInput(Input):
+    recipe_id: str | None = Field(default=None, max_length=36)
+    name: str = Field(min_length=1, max_length=120)
+    note: str = Field(default="", max_length=500)
+
+
+class CookingLogCreate(Input):
+    title: str = Field(min_length=1, max_length=120)
+    cooked_at: datetime
+    notes: str = Field(default="", max_length=2000)
+    allow_assistant_citation: bool = False
+    dishes: list[CookingDishInput] = Field(default_factory=list, max_length=30)
+
+    @model_validator(mode="after")
+    def _timezone(self):
+        if self.cooked_at.tzinfo is None:
+            raise ValueError("cooked_at must include timezone")
+        return self
+
+
+class CookingLogPatch(Input):
+    expected_version: int = Field(ge=1)
+    title: str | None = Field(default=None, min_length=1, max_length=120)
+    cooked_at: datetime | None = None
+    notes: str | None = Field(default=None, max_length=2000)
+    allow_assistant_citation: bool | None = None
+    dishes: list[CookingDishInput] | None = Field(default=None, max_length=30)
+
+    @model_validator(mode="after")
+    def _timezone(self):
+        if self.cooked_at is not None and self.cooked_at.tzinfo is None:
+            raise ValueError("cooked_at must include timezone")
+        return self
+
+
+class CookingCommentInput(Input):
+    body: str = Field(min_length=1, max_length=1000)
 
 
 # Match Numeric(12, 3) before writing; excess fractional digits must never be rounded.
@@ -118,6 +174,16 @@ class InventoryPatch(Input):
 
 class InventoryTransition(Input):
     expected_version: int = Field(ge=1)
+
+
+class ObservationItemEdit(Input):
+    id: str = Field(min_length=1, max_length=36)
+    name: str = Field(min_length=1, max_length=40)
+    kept: bool = True
+
+
+class ObservationConfirm(Input):
+    items: list[ObservationItemEdit] = Field(min_length=1, max_length=30)
 
 
 def check_origin(request: Request) -> None:
@@ -255,7 +321,9 @@ def ingredients(actor: Identity, search: str = Query(default=""),
     with SessionLocal() as session:
         # Auth gate only; catalog is shared and not household-scoped.
         _ = actor
-        if ingredient_catalog.ensure_preset_aliases(session):
+        presets = ingredient_catalog.ensure_dictionary_presets(session)
+        aliases = ingredient_catalog.ensure_preset_aliases(session)
+        if presets or aliases:
             session.commit()
         rows = ingredient_catalog.search_ingredients(session, search, limit)
         return [ingredient_catalog.ingredient_view(row, session) for row in rows]
@@ -571,3 +639,363 @@ def events(run_id: str, request: Request, actor: Identity):
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
+
+
+class QuickActionInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    action: Literal["inventory", "restrictions", "skills"]
+    query: str = Field(default="", max_length=200)
+    offline: bool = False
+
+
+@router.post("/households/{household_id}/assistant/quick-actions")
+async def assistant_quick_action(
+    household_id: str, body: QuickActionInput, actor: Identity
+):
+    with SessionLocal() as session:
+        runtime.authorized_workspace(session, actor[0], household_id)
+        result = recipe_actions.quick_action(
+            session, household_id, body.action, body.query, offline=body.offline
+        )
+        fallback = (
+            body.action == "restrictions"
+            and not body.offline
+            and result.fallback_allowed
+        )
+        constraints = household_constraints(session, household_id) if fallback else []
+    if fallback:
+        supplement = await recipe_actions.llm_recipe_action(
+            constraints, body.query, version=result.data_version or ""
+        )
+        if supplement is not None:
+            result = supplement
+    payload = asdict(result)
+    payload["household_id"] = household_id
+    return payload
+
+
+@router.get("/households/{household_id}/offline-bundle")
+def household_offline_bundle(
+    household_id: str, response: Response, actor: Identity
+):
+    with SessionLocal() as session:
+        runtime.authorized_workspace(session, actor[0], household_id)
+        bundle = offline_bundle.build_bundle(session, household_id)
+    response.headers["ETag"] = f'"{bundle["data_version"]}"'
+    response.headers["Cache-Control"] = "private, max-age=300"
+    return bundle
+
+
+@router.get("/households/{household_id}/recipes")
+def household_recipes(
+    household_id: str,
+    actor: Identity,
+    query: str = Query(default="", max_length=100),
+    limit: int = Query(default=100, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
+):
+    with SessionLocal() as session:
+        runtime.authorized_workspace(session, actor[0], household_id)
+        return recipe_actions.browse_recipes(
+            session, query=query, limit=limit, offset=offset
+        )
+
+
+@router.get("/households/{household_id}/recipes/{recipe_id}")
+def household_recipe_detail(household_id: str, recipe_id: str, actor: Identity):
+    with SessionLocal() as session:
+        runtime.authorized_workspace(session, actor[0], household_id)
+        recipe = recipe_actions.get_recipe(session, recipe_id)
+    if recipe is None:
+        raise HTTPException(404, detail={"code": "RECIPE_NOT_FOUND"})
+    return recipe
+
+
+def _cooking_error(exc: cooking_log_service.CookingLogError) -> None:
+    detail: dict = {"code": exc.code}
+    if exc.detail:
+        detail["current_version"] = int(exc.detail)
+    raise HTTPException(exc.status, detail=detail)
+
+
+@router.get("/households/{household_id}/cooking-logs")
+def cooking_log_list(
+    household_id: str,
+    actor: Identity,
+    limit: int = Query(default=30, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+    mine: bool = Query(default=False),
+):
+    with SessionLocal() as session:
+        runtime.authorized_workspace(session, actor[0], household_id)
+        return {
+            "items": cooking_log_service.list_logs(
+                session,
+                household_id,
+                actor[0],
+                limit=limit,
+                offset=offset,
+                creator_id=actor[0] if mine else None,
+            )
+        }
+
+
+@router.post("/households/{household_id}/cooking-logs", status_code=201)
+def cooking_log_create(household_id: str, body: CookingLogCreate, actor: Identity):
+    with SessionLocal() as session:
+        runtime.authorized_workspace(session, actor[0], household_id)
+        try:
+            return cooking_log_service.create_log(
+                session,
+                workspace_id=household_id,
+                creator_id=actor[0],
+                title=body.title,
+                cooked_at=body.cooked_at,
+                notes=body.notes,
+                allow_assistant_citation=body.allow_assistant_citation,
+                dishes=[item.model_dump() for item in body.dishes],
+            )
+        except cooking_log_service.CookingLogError as exc:
+            _cooking_error(exc)
+
+
+@router.get("/households/{household_id}/cooking-logs/{log_id}")
+def cooking_log_detail(household_id: str, log_id: str, actor: Identity):
+    with SessionLocal() as session:
+        runtime.authorized_workspace(session, actor[0], household_id)
+        try:
+            return cooking_log_service.get_log(session, household_id, log_id, actor[0])
+        except cooking_log_service.CookingLogError as exc:
+            _cooking_error(exc)
+
+
+@router.patch("/households/{household_id}/cooking-logs/{log_id}")
+def cooking_log_update(
+    household_id: str, log_id: str, body: CookingLogPatch, actor: Identity
+):
+    changes = body.model_dump(exclude_unset=True)
+    expected_version = changes.pop("expected_version")
+    with SessionLocal() as session:
+        runtime.authorized_workspace(session, actor[0], household_id)
+        try:
+            return cooking_log_service.update_log(
+                session,
+                workspace_id=household_id,
+                log_id=log_id,
+                editor_id=actor[0],
+                expected_version=expected_version,
+                **changes,
+            )
+        except cooking_log_service.CookingLogError as exc:
+            _cooking_error(exc)
+
+
+@router.post("/households/{household_id}/cooking-logs/{log_id}/comments", status_code=201)
+def cooking_log_comment(
+    household_id: str, log_id: str, body: CookingCommentInput, actor: Identity
+):
+    with SessionLocal() as session:
+        runtime.authorized_workspace(session, actor[0], household_id)
+        try:
+            return cooking_log_service.add_comment(
+                session,
+                workspace_id=household_id,
+                log_id=log_id,
+                author_id=actor[0],
+                body=body.body,
+            )
+        except cooking_log_service.CookingLogError as exc:
+            _cooking_error(exc)
+
+
+@router.post("/households/{household_id}/cooking-logs/{log_id}/photos", status_code=201)
+async def cooking_log_photo_upload(
+    household_id: str, log_id: str, request: Request, actor: Identity
+):
+    data = await request.body()
+    with SessionLocal() as session:
+        runtime.authorized_workspace(session, actor[0], household_id)
+        try:
+            return cooking_log_service.add_photo(
+                session,
+                workspace_id=household_id,
+                log_id=log_id,
+                editor_id=actor[0],
+                data=data,
+            )
+        except cooking_log_service.CookingLogError as exc:
+            _cooking_error(exc)
+        except photo_store.PhotoRejected as exc:
+            raise HTTPException(
+                400, detail={"code": "PHOTO_REJECTED", "message": str(exc)}
+            ) from exc
+
+
+@router.delete("/households/{household_id}/cooking-logs/{log_id}/photos/{photo_id}")
+def cooking_log_photo_delete(
+    household_id: str, log_id: str, photo_id: str, actor: Identity
+):
+    with SessionLocal() as session:
+        runtime.authorized_workspace(session, actor[0], household_id)
+        try:
+            return cooking_log_service.delete_photo(
+                session,
+                workspace_id=household_id,
+                log_id=log_id,
+                photo_id=photo_id,
+                editor_id=actor[0],
+            )
+        except cooking_log_service.CookingLogError as exc:
+            _cooking_error(exc)
+
+
+@router.get("/households/{household_id}/cooking-logs/{log_id}/photos/{photo_id}")
+def cooking_log_photo(
+    household_id: str, log_id: str, photo_id: str, actor: Identity
+):
+    with SessionLocal() as session:
+        runtime.authorized_workspace(session, actor[0], household_id)
+        try:
+            cooking_log_service.active_log(session, household_id, log_id)
+        except cooking_log_service.CookingLogError as exc:
+            _cooking_error(exc)
+        photo = session.get(CookingLogPhoto, photo_id)
+        if photo is None or photo.log_id != log_id:
+            raise HTTPException(404, detail={"code": "COOKING_LOG_PHOTO_NOT_FOUND"})
+        try:
+            path = photo_store.path_for(photo.storage_key)
+        except photo_store.PhotoRejected as exc:
+            raise HTTPException(
+                404, detail={"code": "COOKING_LOG_PHOTO_NOT_FOUND"}
+            ) from exc
+        if not path.is_file():
+            raise HTTPException(404, detail={"code": "COOKING_LOG_PHOTO_NOT_FOUND"})
+        return FileResponse(
+            path,
+            media_type=photo.content_type,
+            headers={
+                "Cache-Control": "private, max-age=3600",
+                "X-Content-Type-Options": "nosniff",
+            },
+        )
+
+
+def _observation_http(exc: fridge_observations.ObservationError) -> None:
+    status = {
+        "OBSERVATION_NOT_FOUND": 404,
+        "OBSERVATION_CLOSED": 409,
+        "OBSERVATION_EMPTY": 422,
+        "INVALID_NAME": 422,
+    }.get(exc.code, 400)
+    raise HTTPException(status, detail={"code": exc.code, "message": exc.message})
+
+
+def _vision_http(exc: fridge_vision.VisionError) -> None:
+    status = 503 if isinstance(exc, fridge_vision.VisionUnavailable) else 502
+    raise HTTPException(status, detail={"code": exc.code, "message": exc.message})
+
+
+@router.post("/households/{household_id}/fridge-observations", status_code=201)
+async def create_fridge_observation(household_id: str, request: Request, actor: Identity):
+    data = await request.body()
+    with SessionLocal() as session:
+        runtime.authorized_workspace(session, actor[0], household_id)
+    try:
+        stored = photo_store.store(data, prefix="fridge")
+        clean = photo_store.path_for(stored["storage_key"]).read_bytes()
+        detected = fridge_vision.segment_image(clean, stored["content_type"])
+    except photo_store.PhotoRejected as exc:
+        raise HTTPException(400, detail={"code": "PHOTO_REJECTED", "message": str(exc)}) from exc
+    except fridge_vision.VisionError as exc:
+        if "stored" in locals() and stored.get("created"):
+            photo_store.remove(stored["storage_key"])
+        _vision_http(exc)
+    with SessionLocal() as session:
+        runtime.authorized_workspace(session, actor[0], household_id)
+        try:
+            return fridge_observations.save_observation(
+                session,
+                workspace_id=household_id,
+                actor_id=actor[0],
+                stored=stored,
+                detected=detected,
+            )
+        except Exception:
+            if stored.get("created"):
+                fridge_observations.drop_if_unreferenced(session, stored["storage_key"])
+            raise
+
+
+@router.get("/households/{household_id}/fridge-observations")
+def list_fridge_observations(
+    household_id: str,
+    actor: Identity,
+    status: Literal["pending", "confirmed", "discarded"] = "pending",
+):
+    with SessionLocal() as session:
+        runtime.authorized_workspace(session, actor[0], household_id)
+        return {"items": fridge_observations.list_observations(
+            session, household_id, status=status
+        )}
+
+
+@router.get("/households/{household_id}/fridge-observations/{observation_id}")
+def fridge_observation_detail(household_id: str, observation_id: str, actor: Identity):
+    with SessionLocal() as session:
+        runtime.authorized_workspace(session, actor[0], household_id)
+        try:
+            return fridge_observations.view(
+                fridge_observations.get_observation(session, household_id, observation_id)
+            )
+        except fridge_observations.ObservationError as exc:
+            _observation_http(exc)
+
+
+@router.get("/households/{household_id}/fridge-observations/{observation_id}/image")
+def fridge_observation_image(household_id: str, observation_id: str, actor: Identity):
+    with SessionLocal() as session:
+        runtime.authorized_workspace(session, actor[0], household_id)
+        try:
+            row = fridge_observations.get_observation(session, household_id, observation_id)
+        except fridge_observations.ObservationError as exc:
+            _observation_http(exc)
+        try:
+            path = photo_store.path_for(row.storage_key)
+        except photo_store.PhotoRejected as exc:
+            raise HTTPException(404, detail={"code": "OBSERVATION_NOT_FOUND"}) from exc
+        if not path.is_file():
+            raise HTTPException(404, detail={"code": "OBSERVATION_NOT_FOUND"})
+        return FileResponse(
+            path,
+            media_type=row.content_type,
+            headers={"Cache-Control": "private, max-age=3600", "X-Content-Type-Options": "nosniff"},
+        )
+
+
+@router.post("/households/{household_id}/fridge-observations/{observation_id}/confirm")
+def confirm_fridge_observation(
+    household_id: str, observation_id: str, body: ObservationConfirm, actor: Identity
+):
+    with SessionLocal() as session:
+        runtime.authorized_workspace(session, actor[0], household_id)
+        try:
+            return fridge_observations.confirm_observation(
+                session,
+                workspace_id=household_id,
+                actor_id=actor[0],
+                observation_id=observation_id,
+                edits=[item.model_dump() for item in body.items],
+            )
+        except fridge_observations.ObservationError as exc:
+            _observation_http(exc)
+
+
+@router.post("/households/{household_id}/fridge-observations/{observation_id}/discard")
+def discard_fridge_observation(household_id: str, observation_id: str, actor: Identity):
+    with SessionLocal() as session:
+        runtime.authorized_workspace(session, actor[0], household_id)
+        try:
+            return fridge_observations.discard_observation(session, household_id, observation_id)
+        except fridge_observations.ObservationError as exc:
+            _observation_http(exc)

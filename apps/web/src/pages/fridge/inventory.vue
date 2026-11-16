@@ -378,7 +378,7 @@ export default defineComponent({
 .modal-mask { position: fixed; inset: 0; z-index: 20; display: flex; align-items: flex-end; justify-content: center; background: #0006; }
 .modal { width: 100%; max-height: 80vh; padding: 18px 16px calc(18px + env(safe-area-inset-bottom)); border-radius: 18px 18px 0 0; overflow: auto; }
 .modal-title { display: block; margin-bottom: 12px; font-size: 17px; font-weight: 650; }
-.modal input { width: 100%; margin: 8px 0; padding: 10px 12px; border-radius: 10px; background: #f3f4f6; }
+.modal input { width: 100%; height: 44px; margin: 8px 0; padding: 0 12px; border-radius: 10px; background: #f3f4f6; }
 .segmented, .edit-quantity, .modal-actions { display: flex; gap: 8px; margin: 8px 0; }
 .segmented text { flex: 1; padding: 10px; border-radius: 8px; text-align: center; background: #f3f4f6; color: #52525b; }
 .segmented text.selected { background: #eff6ff; color: #1d4ed8; }

@@ -44,6 +44,7 @@ export default defineComponent({
     name(value: string) {
       if (this.selected && this.selected.name !== value.trim()) this.selected = null
       clearTimeout(this.searchTimer)
+      if (this.selected) { this.suggestions = []; return }
       this.searchTimer = setTimeout(() => void this.searchDictionary(value), 200)
     },
   },
@@ -56,9 +57,10 @@ export default defineComponent({
       const query = term.trim()
       if (!query) { this.suggestions = []; return }
       try {
-        this.suggestions = await request<IngredientDictItem[]>(`/ingredients?search=${encodeURIComponent(query)}&limit=8`)
+        const rows = await request<IngredientDictItem[]>(`/ingredients?search=${encodeURIComponent(query)}&limit=8`)
+        if (this.name.trim() === query && !this.selected) this.suggestions = rows
       } catch {
-        this.suggestions = []
+        if (this.name.trim() === query && !this.selected) this.suggestions = []
       }
     },
     pickIngredient(item: IngredientDictItem) {
@@ -121,7 +123,6 @@ export default defineComponent({
               <text class="suggest-meta">{{ item.category }} · 默认 {{ item.default_unit }}</text>
             </view>
           </view>
-          <text v-if="selected" class="selected-hint">已选择字典食材，保存时使用稳定 ingredient_id</text>
         </view>
         <view class="form-section">
           <text class="field-label">数量状态</text>
@@ -170,12 +171,13 @@ export default defineComponent({
 .form-section { padding-top: 14px; }
 .field-label { display: block; margin-bottom: 9px; color: #52525b; font-size: 14px; }
 .form-section input, .form-section textarea { width: 100%; padding: 11px; border-radius: 8px; background: #f3f4f6; font-size: 14px; }
+.form-section input { height: 44px; padding: 0 11px; }
 .form-section textarea { min-height: 76px; }
 .segmented { display: flex; gap: 8px; }
 .segmented text { flex: 1; padding: 11px 8px; border: 1px solid #d1d5db; border-radius: 8px; color: #52525b; text-align: center; font-size: 14px; }
 .segmented .selected { border-color: #2563eb; background: #eff6ff; color: #1d4ed8; }
 .quantity-field { display: flex; align-items: center; gap: 8px; }
-.quantity-field input { width: 96px; padding: 9px; border-radius: 8px; background: #f3f4f6; text-align: right; }
+.quantity-field input { width: 96px; height: 44px; padding: 0 9px; border-radius: 8px; background: #f3f4f6; text-align: right; }
 .unknown-hint, .selected-hint { margin-top: 12px; padding: 11px; border-radius: 8px; background: #fef3c7; color: #92400e; font-size: 13px; line-height: 1.5; }
 .selected-hint { background: #ecfdf5; color: #047857; }
 .suggest-list { margin-top: 8px; border: 1px solid #e5e7eb; border-radius: 10px; overflow: hidden; }

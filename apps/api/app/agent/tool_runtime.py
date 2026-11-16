@@ -128,7 +128,7 @@ async def run_loop(
 
 def merge_constraints(previous: dict, explicit: dict, permanent: list[str]) -> dict:
     """Only explicit fields change; immutable server restrictions are always re-applied."""
-    allowed = {"diners", "excluded_ingredients", "dish_ids"}
+    allowed = {"diners", "excluded_ingredients", "dish_ids", "dietary_style"}
     if set(explicit) - allowed:
         raise ValueError("unknown constraint")
     result = json.loads(json.dumps(previous))
@@ -136,7 +136,7 @@ def merge_constraints(previous: dict, explicit: dict, permanent: list[str]) -> d
         diners = explicit["diners"]
         if type(diners) is not int or not 1 <= diners <= 30:
             raise ValueError("invalid diners")
-    for field in ("excluded_ingredients", "dish_ids"):
+    for field in ("excluded_ingredients", "dish_ids", "dietary_style"):
         if field in explicit and (
             not isinstance(explicit[field], list)
             or not all(isinstance(value, str) for value in explicit[field])
@@ -146,4 +146,6 @@ def merge_constraints(previous: dict, explicit: dict, permanent: list[str]) -> d
     result["excluded_ingredients"] = sorted(
         set(result.get("excluded_ingredients", [])) | set(permanent)
     )
+    if "dietary_style" in result:
+        result["dietary_style"] = sorted(set(result["dietary_style"]))
     return result

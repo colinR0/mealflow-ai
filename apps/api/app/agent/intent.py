@@ -13,6 +13,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.llm.provider import LLMProvider
 from app.services.context_loader import PlanningContext, RecipeContext, RecipeIngredientLine
+from app.services.ingredient_labels import clean_ingredient_names
 
 
 class PreferenceUpdate(BaseModel):
@@ -171,6 +172,7 @@ async def generate_recipe(
         "你是家庭菜谱结构化生成器。只输出 JSON，字段为 name、servings、duration_minutes、"
         "ingredients[{name,quantity,unit,optional}]、steps、meal_role、staple_type、"
         "protein_sources、taste_tags、allergens。用量必须为正数；步骤至少两条；"
+        "ingredients 的 name 只写单个食材名，不得带括号说明、用量、促销或替代说明；"
         "meal_role 只能是 protein_dish、vegetable_dish、mixed_dish、soup、"
         "staple_side、complete_meal。"
         f"{target}人数：{diners}。"
@@ -215,12 +217,18 @@ async def generate_recipe(
             known[line.name.strip().lower()] = (line.key, line.name)
     lines: list[RecipeIngredientLine] = []
     for ingredient in parsed.ingredients:
-        match = known.get(ingredient.name.strip().lower())
+        # The model supplies free text; only a single food name may become a line,
+        # otherwise the descriptor reaches the missing-ingredient procurement draft.
+        cleaned = clean_ingredient_names(ingredient.name)
+        if not cleaned:
+            continue
+        name = cleaned[0]
+        match = known.get(name.strip().lower())
         if match:
             key, canonical_name = match
         else:
-            digest = hashlib.sha1(ingredient.name.encode("utf-8")).hexdigest()[:12]
-            key, canonical_name = f"generated:{digest}", ingredient.name
+            digest = hashlib.sha1(name.encode("utf-8")).hexdigest()[:12]
+            key, canonical_name = f"generated:{digest}", name
         lines.append(
             RecipeIngredientLine(
                 key=key,
@@ -230,6 +238,9 @@ async def generate_recipe(
                 optional=ingredient.optional,
             )
         )
+    if not lines:
+        # Every name was a note or kitchenware; do not fabricate a recipe.
+        return None
     recipe_id = "generated:" + hashlib.sha1(parsed.name.encode("utf-8")).hexdigest()[:16]
     return RecipeContext(
         id=recipe_id,

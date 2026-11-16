@@ -26,6 +26,11 @@ class Settings(BaseSettings):
     )
     cors_origins: Annotated[list[str], NoDecode] = ["http://localhost:5173"]
     demo_mode: bool = True
+    # 做饭记录照片先写入本地目录；生产对象存储通过该适配点替换。
+    cooking_photo_dir: str = "data/cooking_photos"
+    # 本地 SAM 3 只认静态照片。空地址表示未配置，接口会明确拒绝而不是伪造结果。
+    fridge_vision_url: str = "http://127.0.0.1:8091"
+    fridge_vision_timeout_seconds: float = Field(default=180, gt=0, le=300)
 
     llm_provider: str = "qwen"
     llm_api_style: str = "chat_completions"
@@ -57,8 +62,21 @@ class Settings(BaseSettings):
     retrieval_embedding_query_prefix: str = "为这个句子生成表示以用于检索相关文章："
     retrieval_embedding_local_files_only: bool = False
     retrieval_embedding_max_seq_length: int | None = Field(default=None, ge=1)
-    knowledge_web_search_enabled: bool = True
+    # 查询期 cosine 相似度下限，只影响召回，不参与 embedding profile 身份。
+    # 0.40 来自 bge-small-zh-v1.5 实测：相关 top1 >= 0.4307，无关 top1 <= 0.3834。
+    retrieval_min_similarity: float = Field(default=0.41, ge=0.0, le=1.0)
+    # 关键字通道的下限相对系数。精确词命中与语义相似度不是同一个尺度：真的烹饪
+    # 问题可能命中正文度 0.34-0.40 的相关文档，而完全无关的正文约在 0.22。
+    # 因此关键字命中只需越过 0.41 * 0.5 ≈ 0.21 这个"明显无关"区。
+    keyword_similarity_ratio: float = Field(default=0.5, ge=0.0, le=1.0)
+    # DuckDuckGo HTML is not a stable production provider. Enable only after
+    # configuring a reliable search endpoint; local knowledge remains available.
+    knowledge_web_search_enabled: bool = False
     knowledge_web_search_timeout_seconds: float = Field(default=6, gt=0, le=15)
+    # Named-dish fallback scrapes a recipe site when the local library misses.
+    # It is independent from the knowledge web-search switch above, because a
+    # named dish must still get a tutorial when cooking-skill search is offline.
+    recipe_web_fallback_enabled: bool = True
     kiosk_token_secret: str = "replace-in-real-environment"
 
     @field_validator("database_url", mode="after")

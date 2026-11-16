@@ -11,6 +11,7 @@ export default defineComponent({
   methods: {
     openPeople() { uni.navigateTo({ url: '/pages/family/people' }) },
     openHousehold() { uni.navigateTo({ url: '/pages/family/household' }) },
+    openCooking() { uni.navigateTo({ url: '/pages/cooking/index' }) },
     signOut() {
       uni.showModal({ title: '退出登录', content: '确定退出当前账号吗？', success: (result) => {
         if (!result.confirm || this.busy) return
@@ -31,6 +32,7 @@ export default defineComponent({
     <view class="menu-group">
       <button class="menu-row" @tap="openPeople"><text class="menu-icon">♙</text><text class="menu-label">人员信息</text><text class="arrow">›</text></button>
       <button class="menu-row" @tap="openHousehold"><text class="menu-icon">⌂</text><text class="menu-label">我的家庭</text><text class="arrow">›</text></button>
+      <button class="menu-row" @tap="openCooking"><text class="menu-icon">♨</text><text class="menu-label">我的做饭记录</text><text class="arrow">›</text></button>
     </view>
     <view class="menu-group">
       <view class="menu-row"><text class="menu-icon">ⓘ</text><text class="menu-label">当前版本</text><text class="value">v{{ version }}</text></view>

@@ -10,11 +10,13 @@ from app.services.chat_service import (
     _DishTagFilter,
     _constraint_warnings_for_text,
     _dish_name_from_text,
+    _extract_diners,
     _fallback_general_text,
     _fallback_route,
     _filter_constraints,
     _format_warning_block,
     _looks_like_inventory_menu,
+    _normalize_request_text,
     _wants_non_library_recipe,
 )
 from app.services.context_loader import InventoryLine, MemberConstraint, PlanningContext
@@ -124,6 +126,13 @@ async def test_golden_sample_a_named_dish_with_budget() -> None:
 
     text = next(data for name, data in events if name == "text")["delta"]
     assert "辣子鸡" in text
+
+
+def test_chat_diner_parser_accepts_ge_before_person() -> None:
+    assert _extract_diners("2个人，你给我推荐吧") == 2
+    assert _extract_diners("两个人") == 2
+    assert _extract_diners("2个菜") is None
+    assert _normalize_request_text("2个人") == "2人"
 
 
 def test_chat_route_separates_general_and_kitchen_topics() -> None:

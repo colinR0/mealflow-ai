@@ -173,6 +173,7 @@ class Ingredient(TimestampMixin, Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)  # 食材唯一 ID
     key: Mapped[str] = mapped_column(String(80), unique=True, index=True)  # 程序使用的稳定食材 key
     name: Mapped[str] = mapped_column(String(80))  # 食材展示名称
+    catalog_source: Mapped[str] = mapped_column(String(24), default="preset")
     category: Mapped[str] = mapped_column(String(60))  # 食材分类
     default_unit: Mapped[str] = mapped_column(String(20))  # 默认计量单位
     # 采购成本按市区大型超市参考价计算,金额输出必须携带来源标注
@@ -235,12 +236,19 @@ class Recipe(TimestampMixin, Base):
 
 class RecipeIngredient(TimestampMixin, Base):
     __tablename__ = "recipe_ingredients"
+    __table_args__ = (
+        UniqueConstraint(
+            "recipe_id", "ingredient_id",
+            name="uq_recipe_ingredients_recipe_ingredient",
+        ),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)  # 配方明细唯一 ID
     recipe_id: Mapped[str] = mapped_column(ForeignKey("recipes.id"), index=True)  # 所属菜谱 ID
     ingredient_id: Mapped[str] = mapped_column(ForeignKey("ingredients.id"), index=True)  # 使用食材 ID
-    quantity: Mapped[Decimal] = mapped_column(Numeric(12, 3))  # 此菜谱所需食材数量
-    unit: Mapped[str] = mapped_column(String(20))  # 此用量的单位
+    # Cleaned recipe sources often omit amounts; keep unknown explicit rather than writing 0.
+    quantity: Mapped[Decimal | None] = mapped_column(Numeric(12, 3), nullable=True)  # 此菜谱所需食材数量
+    unit: Mapped[str | None] = mapped_column(String(20), nullable=True)  # 此用量的单位
     optional: Mapped[bool] = mapped_column(Boolean, default=False)  # 是否为可选食材
 
 

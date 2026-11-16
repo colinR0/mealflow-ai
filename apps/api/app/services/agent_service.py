@@ -33,7 +33,7 @@ from app.services.context_loader import (
 
 
 def _extract_constraints(text: str, context: PlanningContext) -> PlanningConstraints:
-    diner_match = re.search(r"(\d+)\s*人", text)
+    diner_match = re.search(r"(\d+)\s*(?:个|口)?\s*[人位]", text)
     budget_match = re.search(r"预算\s*(\d+)\s*元", text)
     preferred_dishes = [recipe.name for recipe in context.recipes if recipe.name in text]
     if "焖面" in text and not any("焖面" in name for name in preferred_dishes):

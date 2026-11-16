@@ -209,7 +209,7 @@ def _extract_diners(text: str) -> int | None:
         return 2
     if re.search(r"就我自己|我自己|一个人|我一人|单独", text):
         return 1
-    match = re.search(r"(\d+)\s*人", text)
+    match = re.search(r"(\d+)\s*(?:个|口)?\s*[人位]", text)
     return int(match.group(1)) if match else None
 
 
@@ -224,6 +224,7 @@ def _normalize_request_text(text: str) -> str:
     """把家庭口语归一成 create_run 规则解析能识别的表达(我们俩→2人,60块→预算60元)。"""
     normalized = re.sub(r"我们俩|两个人|我俩|两人", "2人", text)
     normalized = re.sub(r"就我自己|我自己|一个人|我一人|单独", "1人", normalized)
+    normalized = re.sub(r"(\d+)\s*(?:个|口)?\s*[人位]", r"\1人", normalized)
     normalized = re.sub(r"(\d+(?:\.\d+)?)\s*块", r"\1元", normalized)
     normalized = re.sub(r"预算\s*(\d+(?:\.\d+)?)\s*元", r"预算\1元", normalized)
     normalized = re.sub(r"(?<!预算)(?<!\d)(\d+(?:\.\d+)?)\s*元", r"预算\1元", normalized)

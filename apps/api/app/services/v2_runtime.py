@@ -31,6 +31,7 @@ from app.db.v2_models import (
     TurnSession,
 )
 from app.services import ingredient_catalog, inventory_lots
+from app.services.ingredient_labels import clean_purchase_names
 
 
 def utc_now() -> datetime:
@@ -428,7 +429,33 @@ def append_event(session: Session, run: TurnRun, kind: str, payload: dict) -> No
     )
 
 
+def normalize_action_payload(kind: str, payload: dict) -> dict:
+    """Canonicalize model-supplied item names before they are stored or shown.
+
+    The confirmation card and the persisted row must agree, so cleaning happens
+    here rather than at write time. An item whose name is only a note is dropped;
+    if nothing survives, ``validate_action`` rejects the payload.
+    """
+    if kind not in {"add_procurement", "add_inventory"}:
+        return payload
+    if kind == "add_procurement" and "items" in payload:
+        if not isinstance(payload["items"], list):
+            return payload  # validate_action reports the shape error
+        items = []
+        for item in payload["items"]:
+            if not isinstance(item, dict):
+                items.append(item)  # keep it so validate_action still rejects
+                continue
+            names = clean_purchase_names(item.get("name"))
+            if names:
+                items.append({**item, "name": names[0]})
+        return {**payload, "items": items}
+    names = clean_purchase_names(payload.get("name"))
+    return {**payload, "name": names[0] if names else ""}
+
+
 def prepare_action(user_id: str, workspace_id: str, kind: str, payload: dict) -> dict:
+    payload = normalize_action_payload(kind, payload)
     validate_action(kind, payload)
     with SessionLocal() as session, session.begin():
         authorized_workspace(session, user_id, workspace_id)
@@ -456,6 +483,34 @@ def prepare_action(user_id: str, workspace_id: str, kind: str, payload: dict) ->
         }
 
 
+def _procurement_items(payload: dict) -> list[dict]:
+    """Return a batch payload's items, or the legacy single-item payload."""
+    if "items" not in payload:
+        return [payload]
+    items = payload["items"]
+    if not isinstance(items, list):
+        raise HTTPException(422, detail={"code": "INVALID_ACTION_PAYLOAD"})
+    return items
+
+
+def _quantity_is_valid(payload: dict) -> bool:
+    status = payload.get("quantity_status", "unknown")
+    quantity, unit = payload.get("quantity"), payload.get("unit")
+    from decimal import Decimal, InvalidOperation
+
+    try:
+        return (status == "unknown" and quantity is None and unit is None) or (
+            status == "known"
+            and quantity is not None
+            and Decimal(str(quantity)).is_finite()
+            and Decimal(str(quantity)) >= 0
+            and isinstance(unit, str)
+            and bool(unit.strip())
+        )
+    except InvalidOperation:  # Report invalid decimal input as a quantity validation error.
+        return False
+
+
 def validate_action(kind: str, payload: dict) -> None:
     if kind not in {"add_procurement", "add_inventory", "save_preference"}:
         raise HTTPException(422, detail={"code": "UNSUPPORTED_ACTION"})
@@ -467,24 +522,25 @@ def validate_action(kind: str, payload: dict) -> None:
         ):
             raise HTTPException(422, detail={"code": "INVALID_ACTION_PAYLOAD"})
         return
+    if kind == "add_procurement" and "items" in payload:
+        items = _procurement_items(payload)
+        if not items or len(items) > 50:
+            raise HTTPException(422, detail={"code": "INVALID_ACTION_PAYLOAD"})
+        for item in items:
+            if not isinstance(item, dict):
+                raise HTTPException(422, detail={"code": "INVALID_ACTION_PAYLOAD"})
+            if not isinstance(item.get("name"), str) or not item["name"].strip():
+                raise HTTPException(422, detail={"code": "INVALID_ACTION_PAYLOAD"})
+            if "ingredient_key" in item and not isinstance(item["ingredient_key"], str):
+                raise HTTPException(422, detail={"code": "INVALID_ACTION_PAYLOAD"})
+            if not _quantity_is_valid(item):
+                raise HTTPException(422, detail={"code": "INVALID_QUANTITY"})
+        return
     if not isinstance(payload.get("name"), str) or not payload["name"].strip():
         raise HTTPException(422, detail={"code": "INVALID_ACTION_PAYLOAD"})
-    status = payload.get("quantity_status", "unknown")
-    quantity, unit = payload.get("quantity"), payload.get("unit")
-    from decimal import Decimal, InvalidOperation
-
-    try:
-        valid = (status == "unknown" and quantity is None and unit is None) or (
-            status == "known"
-            and quantity is not None
-            and Decimal(str(quantity)).is_finite()
-            and Decimal(str(quantity)) >= 0
-            and isinstance(unit, str)
-            and bool(unit.strip())
-        )
-    except InvalidOperation:  # Report invalid decimal input as a quantity validation error.
-        valid = False
-    if not valid or (kind == "add_inventory" and not payload.get("ingredient_key")):
+    if not _quantity_is_valid(payload) or (
+        kind == "add_inventory" and not payload.get("ingredient_key")
+    ):
         raise HTTPException(422, detail={"code": "INVALID_QUANTITY"})
 
 
@@ -533,25 +589,37 @@ def decide_action(
         if action.payload_hash != canonical_hash(action.payload):
             raise HTTPException(409, detail={"code": "ACTION_STALE"})
         validate_action(action.type, action.payload)
+        # Rows pending from before normalization are cleaned here too: a dirty
+        # name would otherwise be persisted, and add_inventory would create a
+        # polluted ingredient dictionary entry.
+        payload = normalize_action_payload(action.type, action.payload)
         result: dict[str, Any] = {"action_id": action.id, "status": "rejected"}
         if accept and action.type == "add_procurement":
-            body = action.payload
-            item = ShoppingItem(
-                workspace_id=action.workspace_id,
-                name=body["name"],
-                ingredient_key=body.get("ingredient_key", "unknown"),
-                quantity_status=body.get("quantity_status", "unknown"),
-                quantity=body.get("quantity"),
-                unit=body.get("unit"),
-                note=body.get("note", ""),
-                status="pending",
-                sources=[],
-            )
-            session.add(item)
-            session.flush()
-            result = {"action_id": action.id, "status": "confirmed", "shopping_item_id": item.id}
+            item_ids: list[str] = []
+            for body in _procurement_items(payload):
+                item = ShoppingItem(
+                    workspace_id=action.workspace_id,
+                    name=body["name"].strip()[:120],
+                    ingredient_key=str(body.get("ingredient_key") or "unknown")[:80],
+                    quantity_status=body.get("quantity_status", "unknown"),
+                    quantity=body.get("quantity"),
+                    unit=body.get("unit"),
+                    note=str(body.get("note") or "")[:300],
+                    status="pending",
+                    sources=[],
+                )
+                session.add(item)
+                session.flush()
+                item_ids.append(item.id)
+            result = {
+                "action_id": action.id,
+                "status": "confirmed",
+                "shopping_item_ids": item_ids,
+            }
+            if len(item_ids) == 1:  # Keep the legacy single-item response shape.
+                result["shopping_item_id"] = item_ids[0]
         elif accept and action.type == "add_inventory":
-            body = action.payload
+            body = payload
             existing = session.scalar(
                 select(InventoryLot).where(
                     InventoryLot.workspace_id == action.workspace_id,

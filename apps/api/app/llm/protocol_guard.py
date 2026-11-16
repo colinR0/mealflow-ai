@@ -17,6 +17,7 @@ DEFAULT_TOOLS = {
     "find_ingredient_substitute",
     "get_flavor_template",
     "check_food_risk",
+    "check_web_recipe",
     "get_recipe_detail",
     "check_recipe_availability",
     "get_preference_summary",
@@ -29,6 +30,7 @@ _REQUIRED_TEXT = {
     "find_ingredient_substitute": "query",
     "get_flavor_template": "query",
     "check_food_risk": "query",
+    "check_web_recipe": "title",
     "get_recipe_detail": "recipe",
     "check_recipe_availability": "recipe",
 }
@@ -41,6 +43,7 @@ _ALIAS_KEYS = {
     "findsubstitute": "find_ingredient_substitute",
     "getflavortemplate": "get_flavor_template",
     "checkfoodrisk": "check_food_risk",
+    "checkwebrecipe": "check_web_recipe",
 }
 
 _LEAK = re.compile(

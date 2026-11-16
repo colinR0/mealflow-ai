@@ -41,6 +41,46 @@ def test_worker_action_is_preview_then_confirmed_once():
     assert error.value.status_code == 409
 
 
+def test_batch_procurement_action_confirms_all_items_once():
+    user, household = actor()
+    action = runtime.prepare_action(
+        user,
+        household,
+        "add_procurement",
+        {
+            "items": [
+                {
+                    "name": "五花肉",
+                    "ingredient_key": "pork_belly",
+                    "quantity_status": "unknown",
+                    "required": "150克",
+                    "note": "菜谱所需：150克",
+                },
+                {
+                    "name": "芹菜",
+                    "ingredient_key": "celery",
+                    "quantity_status": "unknown",
+                    "required": "1把",
+                    "note": "菜谱所需：1把",
+                },
+            ]
+        },
+    )
+    first = runtime.decide_action(user, action["id"], True, "batch-key")
+    assert first["status"] == "confirmed"
+    assert len(first["shopping_item_ids"]) == 2
+    with SessionLocal() as session:
+        items = session.scalars(
+            select(ShoppingItem).where(ShoppingItem.workspace_id == household)
+        ).all()
+        assert {item.name for item in items} == {"五花肉", "芹菜"}
+        assert all(item.status == "pending" for item in items)
+        assert all(item.quantity_status == "unknown" for item in items)
+        assert all(item.quantity is None and item.unit is None for item in items)
+        assert {item.note for item in items} == {"菜谱所需：150克", "菜谱所需：1把"}
+    assert runtime.decide_action(user, action["id"], True, "batch-key") == first
+
+
 def test_http_decision_resolves_run_restore_and_sse_without_duplicate_events(monkeypatch):
     user, household = actor()
     monkeypatch.setattr(runtime, "authenticate", lambda token: (user, "session"))
@@ -179,6 +219,14 @@ def test_action_stale_invalid_unknown_and_expired():
                 "quantity": 0,
             },
         )
+    for invalid_items in (
+        [],
+        [{"name": "番茄", "quantity_status": "unknown", "quantity": 1}],
+    ):
+        with pytest.raises(HTTPException):
+            runtime.prepare_action(
+                user, household, "add_procurement", {"items": invalid_items}
+            )
     action = runtime.prepare_action(user, household, "add_procurement", {"name": "番茄"})
     with pytest.raises(HTTPException) as error:
         runtime.decide_action(user, action["id"], True, "key", expected_version=2)

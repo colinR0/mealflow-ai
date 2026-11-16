@@ -56,7 +56,7 @@ export function request<T>(path: string, data?: unknown, authenticated = true, e
             handleExpiredSession()
           }
           const code = (response.data as { detail?: { code?: string } })?.detail?.code
-          const codes: Record<string, string> = { INVENTORY_VERSION_CONFLICT: '记录已变化，请刷新后重新确认', INVENTORY_STATE_CONFLICT: '当前状态不可执行该操作', INGREDIENT_NOT_FOUND: '所选食材无效，请重新选择', RUN_BUSY: '对话仍在执行，请先停止或等待完成', SESSION_NOT_FOUND: '对话已不存在，请新建对话', ACTION_STALE: '操作内容已变化，请刷新对话后核对', ACTION_EXPIRED: '操作已过期，请重新发起', HOUSEHOLD_RUN_LIMIT: '家庭任务正在处理中，请稍后再试', QUEUE_FULL: '服务繁忙，请稍后再试' }
+          const codes: Record<string, string> = { INVENTORY_VERSION_CONFLICT: '记录已变化，请刷新后重新确认', INVENTORY_STATE_CONFLICT: '当前状态不可执行该操作', INGREDIENT_NOT_FOUND: '所选食材无效，请重新选择', RUN_BUSY: '对话仍在执行，请先停止或等待完成', SESSION_NOT_FOUND: '对话已不存在，请新建对话', ACTION_STALE: '操作内容已变化，请刷新对话后核对', ACTION_EXPIRED: '操作已过期，请重新发起', HOUSEHOLD_RUN_LIMIT: '家庭任务正在处理中，请稍后再试', QUEUE_FULL: '服务繁忙，请稍后再试', VISION_UNAVAILABLE: '识别服务未启动，请先在本机启动 SAM 3', VISION_REJECTED: '识别结果无法使用，请换一张照片', PHOTO_REJECTED: '只接受 8MB 以内的 JPEG 或 PNG', OBSERVATION_CLOSED: '这份识别结果已经处理过', OBSERVATION_EMPTY: '请至少保留一种食材', INVALID_NAME: '请保留单一食材名' }
           const messages: Record<number, string> = { 401: '登录已失效，请重新登录', 403: '无法访问当前家庭，请重新选择家庭', 404: '记录已不存在，请刷新后重试', 409: '记录已变化，请刷新后重试', 422: '填写内容有误，请检查输入' }
           reject(new ApiError((code && codes[code]) || messages[response.statusCode] || '请求未完成，请稍后重试', response.statusCode))
           return
@@ -64,6 +64,35 @@ export function request<T>(path: string, data?: unknown, authenticated = true, e
         resolve(response.data as T)
       },
       fail: () => reject(new ApiError('网络连接失败，请检查服务地址和网络', 0)),
+    })
+  })
+}
+
+export function requestBytes<T>(path: string, data: ArrayBuffer, contentType: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    uni.request({
+      url: `${API_BASE}${path}`,
+      method: 'POST',
+      data,
+      timeout: 180000,
+      header: {
+        'Content-Type': contentType,
+        ...(session.csrfToken ? { 'X-CSRF-Token': session.csrfToken } : {}),
+        ...(session.accessToken ? { Authorization: `Bearer ${session.accessToken}` } : {}),
+      },
+      withCredentials: true,
+      success: (response) => {
+        if (response.statusCode < 200 || response.statusCode >= 300) {
+          if (response.statusCode === 401) handleExpiredSession()
+          const code = (response.data as { detail?: { code?: string } })?.detail?.code
+          const codes: Record<string, string> = { VISION_UNAVAILABLE: '识别服务未启动，请先在本机启动 SAM 3', VISION_REJECTED: '识别结果无法使用，请换一张照片', PHOTO_REJECTED: '只接受 8MB 以内的 JPEG 或 PNG' }
+          const messages: Record<number, string> = { 401: '登录已失效，请重新登录', 403: '无法访问当前家庭，请重新选择家庭', 503: '识别服务未启动，请先在本机启动 SAM 3' }
+          reject(new ApiError((code && codes[code]) || messages[response.statusCode] || '识别未完成，请稍后重试', response.statusCode))
+          return
+        }
+        resolve(response.data as T)
+      },
+      fail: () => reject(new ApiError('识别超时或网络中断，请稍后重试', 0)),
     })
   })
 }

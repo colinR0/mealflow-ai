@@ -4,9 +4,27 @@ from openai import OpenAIError
 
 from app.core.config import get_settings
 from app.llm.factory import build_llm_provider
+from app.llm.model_catalog import resolve_model_profile
 
 
 class ConfiguredProvider:
+    @staticmethod
+    def ready() -> bool:
+        """Whether a model profile is configured, without building a client."""
+        return resolve_model_profile(get_settings(), None) is not None
+
+    async def chat(self, *, messages):
+        provider = build_llm_provider(get_settings())
+        if provider is None:
+            raise RuntimeError("MODEL_NOT_CONFIGURED")
+        try:
+            return await provider.chat(messages=messages)
+        except OpenAIError as exc:
+            raise RuntimeError("MODEL_REQUEST_FAILED") from exc
+        finally:
+            # Each graph decision uses asyncio.run; close connections on their owning loop.
+            await provider.client.close()
+
     async def chat_with_tools(self, *, messages, tools):
         provider = build_llm_provider(get_settings())
         if provider is None:
