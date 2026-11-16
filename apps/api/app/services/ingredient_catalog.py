@@ -5,7 +5,7 @@ from __future__ import annotations
 from hashlib import sha256
 from uuid import UUID, uuid5
 
-from sqlalchemy import or_, select
+from sqlalchemy import or_, select, text
 from sqlalchemy.orm import Session
 
 from app.db.models import Ingredient, IngredientAlias
@@ -60,6 +60,27 @@ def custom_ingredient_key(normalized_name: str) -> str:
 
 def custom_ingredient_id(normalized_name: str) -> str:
     return str(uuid5(_CUSTOM_NS, f"mealflow.ingredient:{normalized_name}"))
+
+
+def ensure_dictionary_presets(session: Session) -> int:
+    """Seed only curated food names; recipe text never populates dictionary suggestions."""
+    from app.db.seed import INGREDIENTS
+
+    # Concurrent first dictionary requests must seed presets/aliases in one transaction.
+    session.execute(text("SELECT pg_advisory_xact_lock(74100321)"))
+    existing = set(session.scalars(select(Ingredient.key)))
+    created = 0
+    for key, name, category, unit, _price in INGREDIENTS:
+        if key in existing:
+            continue
+        session.add(Ingredient(
+            id=custom_ingredient_id("preset:" + key), key=key, name=name,
+            category=category, default_unit=unit, catalog_source="preset",
+        ))
+        created += 1
+    if created:
+        session.flush()
+    return created
 
 
 def ensure_preset_aliases(session: Session) -> int:
@@ -142,6 +163,8 @@ def resolve_ingredient(
     normalized = normalize_label(label)
     matched = _match_by_normalized_name(session, normalized)
     if matched is not None:
+        if matched.catalog_source == "recipe_import":
+            matched.catalog_source = "user"
         return matched
 
     key = custom_ingredient_key(normalized)
@@ -153,6 +176,7 @@ def resolve_ingredient(
         id=custom_ingredient_id(normalized),
         key=key,
         name=label,
+        catalog_source="user",
         category=(category or "其他").strip() or "其他",
         default_unit=(default_unit or "份").strip() or "份",
         price_source="用户自定义食材，暂无参考价",
@@ -163,7 +187,11 @@ def resolve_ingredient(
 
 
 def search_ingredients(session: Session, search: str = "", limit: int = 30) -> list[Ingredient]:
-    query = select(Ingredient).order_by(Ingredient.category, Ingredient.name).limit(limit)
+    visible = Ingredient.catalog_source.in_(["preset", "user"])
+    query = (
+        select(Ingredient).where(visible)
+        .order_by(Ingredient.category, Ingredient.name).limit(limit)
+    )
     term = search.strip()
     if term:
         pattern = f"%{term}%"
@@ -175,6 +203,7 @@ def search_ingredients(session: Session, search: str = "", limit: int = 30) -> l
         )
         query = (
             select(Ingredient)
+            .where(visible)
             .where(
                 or_(
                     Ingredient.name.ilike(pattern),
