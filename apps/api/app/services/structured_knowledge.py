@@ -1,30 +1,22 @@
-"""Isolated structured knowledge retrieval: vector recall, then typed rows.
+"""Typed SQL lookup for the three structured food-knowledge libraries.
 
-The three libraries share an embedding profile, but not their tables or decision
-fields. A vector hit is only a candidate ID/version; all substitution ratios,
-flavor proportions and risk rules come from the typed row loaded by that ID.
+These tables are small, reviewed decision tables rather than retrieval corpora.
+Queries read approved rows and match typed fields deterministically; there is no
+embedding channel and no reciprocal-rank fusion. Unknown input returns
+``no_result`` and must never be presented as "safe".
 """
 
 from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from types import SimpleNamespace
 from typing import Any
 
-from sqlalchemy import Connection, exists, select, text
+from sqlalchemy import Connection, select
 
 from app.agent.tool_runtime import ToolResult
-from app.core.config import Settings, get_settings
-from app.db.v2_models import EmbeddingProfile, FlavorTemplate, FoodRiskRule, IngredientSubstitution
-from app.services.hybrid_retrieval import cosine
-from app.services.native_retrieval import tokenize_chinese, vector_literal
-from app.services.retrieval_gateway import (
-    QueryEmbedder,
-    RetrievalUnavailable,
-    configured_embedder,
-    database_connection,
-)
+from app.db.v2_models import FlavorTemplate, FoodRiskRule, IngredientSubstitution
+from app.services.retrieval_gateway import database_connection
 
 logger = logging.getLogger(__name__)
 
@@ -45,215 +37,111 @@ STRUCTURED_KINDS = {
     "risk": StructuredSpec("food_risk_rules", FoodRiskRule, "food_risk", "risk"),
 }
 
-
-@dataclass(frozen=True)
-class StructuredHit:
-    id: str
-    version: int
-    score: float
-    keyword_hit: bool
-    distance: float | None = None
-
-
-def structured_profile(connection, settings: Settings, provider: QueryEmbedder) -> dict:
-    """Find the non-generation-bound embedding profile used by structured rows."""
-    row = (
-        connection.execute(
-            select(
-                EmbeddingProfile.id,
-                EmbeddingProfile.model,
-                EmbeddingProfile.dimensions,
-                EmbeddingProfile.template_version,
-                EmbeddingProfile.tokenizer_version,
-                EmbeddingProfile.is_fake,
-            )
-            .where(
-                EmbeddingProfile.model == provider.model,
-                EmbeddingProfile.dimensions == provider.dimensions,
-                EmbeddingProfile.template_version == provider.template_version,
-                EmbeddingProfile.tokenizer_version == provider.tokenizer_version,
-                EmbeddingProfile.is_fake == provider.fake,
-            )
-            .order_by(EmbeddingProfile.created_at.desc(), EmbeddingProfile.id)
-            .limit(1)
-        )
-        .mappings()
-        .first()
-    )
-    if row is None:
-        raise RetrievalUnavailable("NO_EMBEDDING_PROFILE")
-    expected = (
-        settings.retrieval_embedding_model,
-        settings.retrieval_embedding_dimensions,
-        settings.retrieval_template_version,
-        settings.retrieval_tokenizer_version,
-    )
-    indexed = (row["model"], row["dimensions"], row["template_version"],
-               row["tokenizer_version"])
-    if indexed != expected or row["is_fake"] != provider.fake:
-        raise RetrievalUnavailable("EMBEDDING_PROFILE_MISMATCH")
-    if settings.retrieval_mode == "demo" and not provider.fake:
-        raise RetrievalUnavailable("DEMO_REQUIRES_FAKE_PROVIDER")
-    return {
-        "profile_id": row["id"],
-        "model": row["model"],
-        "dimensions": row["dimensions"],
-        "template_version": row["template_version"],
-        "tokenizer_version": row["tokenizer_version"],
-        "is_fake": row["is_fake"],
-    }
+# Fixed synonyms for reviewed applies_to keys. This is a lookup aid, not semantic
+# search: the terms themselves must still match.
+APPLIES_TO_TERMS = {
+    "general": ("一般人群", "全家", "成人"),
+    "infant": ("婴幼儿", "婴儿", "宝宝", "1岁以内", "一岁以内"),
+    "child": ("儿童", "孩子", "小孩"),
+    "pregnancy": ("孕期", "孕妇", "怀孕", "备孕"),
+    "disease": ("慢性病", "疾病", "病人"),
+    "gout": ("痛风", "高尿酸"),
+    "diabetes": ("糖尿病", "血糖"),
+    "hypertension": ("高血压",),
+    "kidney_disease": ("肾病", "肾脏"),
+}
+SEVERITY_RANK = {"danger": 3, "warning": 2, "info": 1}
 
 
-def search_ids_native(
-    connection: Connection,
-    spec: StructuredSpec,
-    query: str,
-    embedding: list[float],
-    *,
-    profile_id: str,
-    limit: int,
-) -> list[StructuredHit]:
-    params = {
-        "profile_id": profile_id,
-        "query": tokenize_chinese(query),
-        "vector": vector_literal(embedding),
-        "channel_limit": max(limit * 8, 40),
-        "limit": min(100, max(1, limit)),
-    }
-    # IDs and row versions are returned here; the structured row is loaded separately.
-    sql = text(f"""
-        WITH keyword AS (
-          SELECT id, version, row_number() OVER (
-            ORDER BY ts_rank(search_tsv, plainto_tsquery('simple', :query)) DESC, id
-          ) rank
-          FROM {spec.table}
-          WHERE review_status = 'approved'
-            AND embedding_profile_id = :profile_id
-            AND search_tsv @@ plainto_tsquery('simple', :query)
-        ), vector AS (
-          SELECT id, version, embedding_vector <=> CAST(:vector AS vector) distance,
-                 row_number() OVER (
-                   ORDER BY embedding_vector <=> CAST(:vector AS vector), id
-                 ) rank
-          FROM {spec.table}
-          WHERE review_status = 'approved'
-            AND embedding_profile_id = :profile_id
-            AND embedding_vector IS NOT NULL
-        ), candidates AS (
-          SELECT id, version, 'keyword'::text channel, 1.0 / (60 + rank) rrf,
-                 NULL::float distance
-          FROM keyword WHERE rank <= :channel_limit
-          UNION ALL
-          SELECT id, version, 'vector', 1.0 / (60 + rank), distance
-          FROM vector WHERE rank <= :channel_limit
-        )
-        SELECT id, version, sum(rrf) score,
-               bool_or(channel = 'keyword') keyword_hit, min(distance) distance
-        FROM candidates
-        GROUP BY id, version
-        ORDER BY score DESC, id
-        LIMIT :limit
-    """)
-    return [
-        StructuredHit(
-            id=row.id,
-            version=int(row.version),
-            score=float(row.score),
-            keyword_hit=bool(row.keyword_hit),
-            distance=float(row.distance) if row.distance is not None else None,
-        )
-        for row in connection.execute(sql, params).all()
-    ]
+def _text(value: Any) -> str:
+    return str(value or "").strip().lower()
 
 
-def search_ids_demo(
-    connection: Connection,
-    spec: StructuredSpec,
-    query: str,
-    embedding: list[float],
-    *,
-    profile_id: str,
-    limit: int,
-) -> list[StructuredHit]:
-    rows = [
-        SimpleNamespace(**row)
-        for row in connection.execute(
-            select(spec.model).where(
-                spec.model.review_status == "approved",
-                spec.model.embedding_profile_id == profile_id,
-            )
-        )
-        .mappings()
-        .all()
-    ]
-    terms = [term for term in tokenize_chinese(query).split() if term]
-    keyword: list[tuple[int, Any]] = []
-    vector: list[tuple[float, Any]] = []
+def _substitution_score(row: IngredientSubstitution, query: str) -> int:
+    from_name = _text(row.from_ingredient_name)
+    from_key = _text(row.from_ingredient_key)
+    score = 0
+    if from_name and from_name == query:
+        score = 6
+    elif from_name and from_name in query:
+        score = max(score, 5)
+    elif len(query) >= 2 and query in from_name:
+        score = max(score, 4)
+    if from_key and from_key == query:
+        score = max(score, 5)
+    elif from_key and from_key in query:
+        score = max(score, 4)
+    if _text(row.to_ingredient_name) in query:
+        score = max(score, 2)
+    return score
+
+
+def _flavor_score(row: FlavorTemplate, query: str) -> int:
+    name = _text(row.name)
+    score = 0
+    if name and name == query:
+        score = 6
+    elif name and name in query:
+        score = 5
+    elif len(query) >= 2 and query in name:
+        score = max(score, 4)
+    for raw_alias in row.aliases or []:
+        alias = _text(raw_alias)
+        if alias == query:
+            score = max(score, 5)
+        elif alias and alias in query:
+            score = max(score, 4)
+        elif len(query) >= 2 and alias and query in alias:
+            score = max(score, 3)
+    return score
+
+
+def _risk_score(row: FoodRiskRule, query: str) -> int:
+    title = _text(row.title)
+    risk_type = _text(row.risk_type)
+    score = 0
+    if title and title == query:
+        score = 6
+    elif title and (title in query or (len(query) >= 2 and query in title)):
+        score = 5
+    if risk_type and (risk_type == query or risk_type in query):
+        score = max(score, 4)
+    for raw_key in row.applies_to or []:
+        key = _text(raw_key)
+        if key and (key == query or key in query):
+            score = max(score, 4)
+        for term in APPLIES_TO_TERMS.get(key, ()):
+            if _text(term) in query:
+                score = max(score, 4)
+    for raw_term in [*(row.condition_tags or []), *(row.ingredient_keys or [])]:
+        term = _text(raw_term)
+        if term and term in query:
+            score = max(score, 3)
+    return score
+
+
+def _rank(
+    spec: StructuredSpec, rows: list[Any], query: str, limit: int
+) -> list[tuple[Any, int]]:
+    scored = []
     for row in rows:
-        rag_text = row.rag_text.lower()
-        overlap = sum(term in rag_text for term in terms)
-        if overlap:
-            keyword.append((overlap, row))
-        try:
-            similarity = cosine(embedding, row.embedding)
-        except (TypeError, ValueError):  # Skip rows with invalid demo vectors.
-            continue
-        if similarity > 0:
-            vector.append((similarity, row))
-    keyword.sort(key=lambda item: (-item[0], item[1].id))
-    vector.sort(key=lambda item: (-item[0], item[1].id))
-    scores: dict[str, float] = {}
-    versions: dict[str, int] = {}
-    keyword_hits: set[str] = set()
-    channel_limit = max(limit * 8, 40)
-    for channel, candidates in (("keyword", keyword), ("vector", vector)):
-        for rank, (_, row) in enumerate(candidates[:channel_limit], 1):
-            scores[row.id] = scores.get(row.id, 0.0) + 1.0 / (60 + rank)
-            versions[row.id] = row.version
-            if channel == "keyword":
-                keyword_hits.add(row.id)
-    ranked = sorted(scores, key=lambda row_id: (-scores[row_id], row_id))[:limit]
-    return [
-        StructuredHit(
-            id=row_id,
-            version=versions[row_id],
-            score=scores[row_id],
-            keyword_hit=row_id in keyword_hits,
+        if spec.kind == "substitution":
+            score = _substitution_score(row, query)
+        elif spec.kind == "flavor_template":
+            score = _flavor_score(row, query)
+        else:
+            score = _risk_score(row, query)
+        if score:
+            scored.append((row, score))
+    if spec.kind == "substitution":
+        scored.sort(key=lambda pair: (-pair[1], -(pair[0].priority or 0), pair[0].id))
+    elif spec.kind == "flavor_template":
+        scored.sort(key=lambda pair: (-pair[1], pair[0].name, pair[0].id))
+    else:
+        scored.sort(
+            key=lambda pair: (-pair[1], -SEVERITY_RANK.get(pair[0].severity, 0), pair[0].id)
         )
-        for row_id in ranked
-    ]
-
-
-def load_structured_rows(
-    connection: Connection,
-    spec: StructuredSpec,
-    hits: list[StructuredHit],
-    *,
-    profile_id: str,
-) -> list[tuple[Any, float]]:
-    if not hits:
-        return []
-    rows = [
-        SimpleNamespace(**row)
-        for row in connection.execute(
-            select(spec.model).where(spec.model.id.in_([hit.id for hit in hits]))
-        )
-        .mappings()
-        .all()
-    ]
-    by_id = {row.id: row for row in rows}
-    loaded = []
-    for hit in hits:
-        row = by_id.get(hit.id)
-        if (
-            row is None
-            or row.version != hit.version
-            or row.review_status != "approved"
-            or row.embedding_profile_id != profile_id
-        ):
-            raise RetrievalUnavailable("STRUCTURED_EVIDENCE_CHANGED")
-        loaded.append((row, hit.score))
-    return loaded
+    return scored[:limit]
 
 
 def evidence_item(spec: StructuredSpec, row: Any, score: float) -> dict:
@@ -320,8 +208,6 @@ def search_structured(
     *,
     sessions=None,
     connection: Connection | None = None,
-    settings: Settings | None = None,
-    provider: QueryEmbedder | None = None,
     limit: int = 8,
 ) -> ToolResult:
     spec = STRUCTURED_KINDS.get(kind)
@@ -331,103 +217,42 @@ def search_structured(
         return ToolResult(status="error", error_code="INVALID_QUERY")
     if type(limit) is not int or not 1 <= limit <= 100:
         return ToolResult(status="error", error_code="INVALID_LIMIT")
-    settings = settings or get_settings()
-    provider = provider or configured_embedder(settings)
+    normalized = query.strip().lower()
     try:
         with database_connection(sessions=sessions, connection=connection) as db:
-            if settings.retrieval_mode == "native" and db.dialect.name != "postgresql":
-                raise RetrievalUnavailable("NATIVE_REQUIRES_POSTGRESQL")
-            with db.begin():
-                profile = structured_profile(db, settings, provider)
-                if settings.retrieval_mode == "native":
-                    available = db.scalar(
-                        text("SELECT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'vector')")
-                    )
-                    if not available:
-                        raise RetrievalUnavailable("NATIVE_VECTOR_UNAVAILABLE")
-                empty_library = not db.scalar(
-                    select(
-                        exists().where(
-                            spec.model.review_status == "approved",
-                            spec.model.embedding_profile_id == profile["profile_id"],
-                        )
-                    )
+            rows = [
+                spec.model(**row._mapping)
+                for row in db.execute(
+                    select(spec.model).where(spec.model.review_status == "approved")
                 )
-            # No DB transaction spans a possibly remote/local embedding request.
-            try:
-                embedding = provider.embed_query(query)
-            except Exception as exc:
-                raise RetrievalUnavailable("EMBEDDING_PROVIDER_FAILED") from exc
-            if len(embedding) != provider.dimensions:
-                raise RetrievalUnavailable("EMBEDDING_DIMENSION_MISMATCH")
-            vector_literal(embedding)  # Reject bool, NaN, infinity and nonnumeric values.
-            with db.begin():
-                current = structured_profile(db, settings, provider)
-                if current != profile:
-                    raise RetrievalUnavailable("EMBEDDING_PROFILE_CHANGED")
-                if settings.retrieval_mode == "native":
-                    hits = search_ids_native(
-                        db,
-                        spec,
-                        query,
-                        embedding,
-                        profile_id=profile["profile_id"],
-                        limit=limit,
-                    )
-                else:
-                    hits = search_ids_demo(
-                        db,
-                        spec,
-                        query,
-                        embedding,
-                        profile_id=profile["profile_id"],
-                        limit=limit,
-                    )
-                if provider.fake:
-                    hits = [hit for hit in hits if hit.keyword_hit]
-                rows = load_structured_rows(
-                    db, spec, hits, profile_id=profile["profile_id"]
-                )
-                if structured_profile(db, settings, provider) != profile:
-                    raise RetrievalUnavailable("EMBEDDING_PROFILE_CHANGED")
-                evidence = [evidence_item(spec, row, score) for row, score in rows]
-            warnings = []
-            if provider.fake:
-                warnings.append("fake embedding 仅验证检索链路，不代表语义质量")
-                if not evidence:
-                    warnings.append("fake 检索只接受关键词命中候选")
-            if empty_library:
-                warnings.append("该库暂无已审核的结构化数据")
-            return ToolResult(
-                status="ok" if evidence else "no_result",
-                data={
-                    "evidence": evidence,
-                    "kind": kind,
-                    "mode": settings.retrieval_mode,
-                    "fake": provider.fake,
-                    "empty_library": empty_library,
-                    "search_stage": "ids_then_structured_rows",
-                },
-                evidence_ids=[item["id"] for item in evidence],
-                data_versions={
-                    "profile_id": profile["profile_id"],
-                    "model": provider.model,
-                    "dimensions": provider.dimensions,
-                    "template_version": provider.template_version,
-                    "tokenizer_version": provider.tokenizer_version,
-                },
-                warnings=warnings,
-            )
-    except RetrievalUnavailable as error:  # Preserve the structured retrieval failure code.
+            ]
+            evidence = [
+                evidence_item(spec, row, float(score))
+                for row, score in _rank(spec, rows, normalized, limit)
+            ]
+        empty_library = not rows
+        warnings = []
+        if empty_library:
+            warnings.append("该库暂无已审核的结构化数据")
+        elif not evidence:
+            warnings.append("没有匹配的结构化条目；这不代表饮食安全，请换用更具体的词")
         return ToolResult(
-            status="unavailable",
-            error_code=error.code,
-            data={"kind": kind, "mode": settings.retrieval_mode, "fake": provider.fake},
+            status="ok" if evidence else "no_result",
+            data={
+                "evidence": evidence,
+                "kind": kind,
+                "empty_library": empty_library,
+                "search_stage": "typed_lookup",
+            },
+            evidence_ids=[item["id"] for item in evidence],
+            data_versions={"table": spec.table, "retrieval": "typed_sql"},
+            warnings=warnings,
         )
-    except Exception:  # Never turn a storage failure into an empty or safe-looking result.
-        logger.exception("Structured knowledge retrieval failed for %s", kind)
+    except Exception:
+        # Never turn a storage failure into an empty or safe-looking result.
+        logger.exception("Structured knowledge lookup failed for %s", kind)
         return ToolResult(
             status="unavailable",
             error_code="STRUCTURED_RETRIEVAL_FAILED",
-            data={"kind": kind, "mode": settings.retrieval_mode, "fake": provider.fake},
+            data={"kind": kind},
         )

@@ -22,7 +22,7 @@ from app.db.v2_models import (
 )
 from app.services.hybrid_retrieval import fake_embedding
 from app.services.native_index_worker import process_index_job, rebuild_generation
-from app.services.native_retrieval import NativeRetriever, install_native_schema
+from app.services.native_retrieval import NativeRetriever, install_native_schema, tokenize_chinese
 
 
 @pytest.fixture
@@ -57,7 +57,9 @@ def native_pg():
                 cursor.execute(f'SET search_path TO "{schema}", public')
             dbapi_connection.autocommit = old
 
-        Base.metadata.create_all(engine)
+        # checkfirst would see the migrated public tables through search_path and
+        # skip creating this test schema; force isolated tables in the test schema.
+        Base.metadata.create_all(engine, checkfirst=False)
         with engine.begin() as connection:
             install_native_schema(connection, dimensions=64)
         with Session(engine) as session, session.begin():
@@ -116,7 +118,8 @@ def test_native_rrf_best_parent_and_coherent_evidence(native_pg):
         )
         assert [hit.recipe_id for hit in hits] == ["a", "b"]
         assert float(hits[0].score) == pytest.approx(2 / 61)
-        assert float(hits[1].score) == pytest.approx(2 / 63)
+        # Document-level ranks: doc-b is the second document, not the third chunk.
+        assert float(hits[1].score) == pytest.approx(2 / 62)
         assert (hits[0].chunk_id, hits[0].excerpt, hits[0].source_id) == ("a1", "zzz", "source")
         connection.rollback()
         with connection.begin():
@@ -131,6 +134,213 @@ def test_native_rrf_best_parent_and_coherent_evidence(native_pg):
             connection.execute(text("UPDATE knowledge_sources SET approval = 'revoked'"))
         assert NativeRetriever(connection, profile_id="profile").search(
             "tomato", [1.0] + [0.0] * 63,
+        ) == []
+
+
+def test_many_chunks_of_one_document_do_not_crowd_out_another(native_pg):
+    with native_pg.connect() as connection:
+        generation = rebuild_generation(connection, profile_id="profile")
+        with connection.begin():
+            connection.execute(text("DELETE FROM knowledge_chunks"))
+            vector = "[1," + ",".join(["0"] * 63) + "]"
+            for ordinal in range(45):
+                connection.execute(text("""
+                    INSERT INTO knowledge_chunks
+                      (id, document_id, content_version, generation_id, ordinal, text, embedding,
+                       embedding_vector, search_tsv, created_at, updated_at)
+                    VALUES (:id, 'doc-a', 1, :g, :ord, 'tomato a', '[]',
+                            CAST(:v AS vector), to_tsvector('simple', 'tomato'), now(), now())
+                """), {"id": f"a{ordinal}", "g": generation, "ord": ordinal, "v": vector})
+            connection.execute(text("""
+                INSERT INTO knowledge_chunks
+                  (id, document_id, content_version, generation_id, ordinal, text, embedding,
+                   embedding_vector, search_tsv, created_at, updated_at)
+                VALUES ('b0', 'doc-b', 1, :g, 0, 'tomato b', '[]',
+                        CAST(:v AS vector), to_tsvector('simple', 'tomato'), now(), now())
+            """), {"g": generation, "v": vector})
+        hits = NativeRetriever(connection, profile_id="profile").search(
+            "tomato", [1.0] + [0.0] * 63, limit=2,
+        )
+        assert [hit.recipe_id for hit in hits] == ["a", "b"]
+        assert float(hits[1].score) == pytest.approx(2 / 62)
+
+
+def test_native_vector_channel_honours_cosine_floor(native_pg):
+    with native_pg.connect() as connection:
+        generation = rebuild_generation(connection, profile_id="profile")
+        with connection.begin():
+            connection.execute(text("DELETE FROM knowledge_chunks"))
+            connection.execute(text("""
+                INSERT INTO knowledge_chunks
+                  (id, document_id, content_version, generation_id, ordinal, text, embedding,
+                   embedding_vector, search_tsv, created_at, updated_at)
+                VALUES ('floor-chunk', 'doc-a', 1, :g, 0, 'floor', '[]',
+                        CAST(:v AS vector), to_tsvector('simple', 'tomato'), now(), now())
+            """), {"g": generation, "v": "[1," + ",".join(["0"] * 63) + "]"})
+        query = [0.0, 1.0] + [0.0] * 62
+        retriever = NativeRetriever(connection, profile_id="profile")
+        # "zzz" has no lexical overlap, so only the vector channel can match it.
+        assert retriever.search("zzz", query)
+        assert retriever.search("zzz", query, min_similarity=0.5) == []
+        # The keyword channel is an exact-match signal and stays unfiltered.
+        assert retriever.search("tomato", query, min_similarity=0.5)
+
+
+def test_native_reports_both_channels_and_cosine(native_pg):
+    with native_pg.connect() as connection:
+        generation = rebuild_generation(connection, profile_id="profile")
+        with connection.begin():
+            connection.execute(text("DELETE FROM knowledge_chunks"))
+            connection.execute(text("""
+                INSERT INTO knowledge_chunks
+                  (id, document_id, content_version, generation_id, ordinal, text, embedding,
+                   embedding_vector, search_tsv, created_at, updated_at)
+                VALUES ('dual-chunk', 'doc-a', 1, :g, 0, 'dual', '[]',
+                        CAST(:v AS vector), to_tsvector('simple', 'tomato'), now(), now())
+            """), {"g": generation, "v": "[1," + ",".join(["0"] * 63) + "]"})
+        hit = NativeRetriever(connection, profile_id="profile").search(
+            "tomato", [1.0] + [0.0] * 63,
+        )[0]
+        # Both channels matched the same document, so RRF sums two ranks.
+        assert hit.channels == "keyword,vector"
+        assert float(hit.score) == pytest.approx(2 / 61)
+        assert hit.similarity == pytest.approx(1.0)
+
+
+def test_keyword_channel_requires_query_term_coverage(native_pg):
+    with native_pg.connect() as connection:
+        generation = rebuild_generation(connection, profile_id="profile")
+        with connection.begin():
+            connection.execute(text("DELETE FROM knowledge_chunks"))
+            # Only "filler" appears, so the OR query matches but coverage is 1/3.
+            connection.execute(text("""
+                INSERT INTO knowledge_chunks
+                  (id, document_id, content_version, generation_id, ordinal, text, embedding,
+                   embedding_vector, search_tsv, created_at, updated_at)
+                VALUES ('filler-chunk', 'doc-a', 1, :g, 0, 'filler', '[]',
+                        CAST(:v AS vector), to_tsvector('simple', 'filler'), now(), now())
+            """), {"g": generation, "v": "[0," + ",".join(["0"] * 62) + ",1]"})
+        retriever = NativeRetriever(connection, profile_id="profile")
+        # Orthogonal query vector: the cosine floor drops the vector channel so only
+        # the keyword channel can answer.
+        query = [1.0] + [0.0] * 63
+        # A single term is enough, which keeps a bare ingredient search working.
+        assert retriever.search("filler", query, min_similarity=0.5)
+        # A filler word inside a longer question must not surface the chunk.
+        assert retriever.search("红烧肉 filler 鸡蛋", query, min_similarity=0.5) == []
+
+
+def test_keyword_hit_is_judged_by_best_chunk_of_the_document(native_pg):
+    with native_pg.connect() as connection:
+        generation = rebuild_generation(connection, profile_id="profile")
+        with connection.begin():
+            connection.execute(text("DELETE FROM knowledge_chunks"))
+            near = "[1," + ",".join(["0"] * 63) + "]"
+            far = "[0,1," + ",".join(["0"] * 62) + "]"
+            # The lexical match lands on the far chunk, but a sibling chunk of the
+            # same document is the one that carries the semantics.
+            for chunk, ordinal, vector, text_body in (
+                ("doc-a-near", 0, near, "semantic"),
+                ("doc-a-lexical", 1, far, "tomato"),
+            ):
+                connection.execute(text("""
+                    INSERT INTO knowledge_chunks
+                      (id, document_id, content_version, generation_id, ordinal, text, embedding,
+                       embedding_vector, search_tsv, created_at, updated_at)
+                    VALUES (:id, 'doc-a', 1, :g, :ord, :body, '[]',
+                            CAST(:v AS vector), to_tsvector('simple', :body), now(), now())
+                """), {"id": chunk, "g": generation, "ord": ordinal, "body": text_body,
+                        "v": vector})
+        hits = NativeRetriever(connection, profile_id="profile").search(
+            "tomato", [1.0] + [0.0] * 63, min_similarity=0.5,
+        )
+        assert [hit.document_id for hit in hits] == ["doc-a"]
+        # The reported similarity is the document's best chunk, not the matched one.
+        assert hits[0].similarity == pytest.approx(1.0)
+
+
+def test_keyword_channel_puts_the_dish_named_by_the_title_first(native_pg):
+    with native_pg.connect() as connection:
+        generation = rebuild_generation(connection, profile_id="profile")
+        with connection.begin():
+            connection.execute(text("DELETE FROM knowledge_chunks"))
+            # Both chunks carry the query term, and doc-a sorts first, so without a
+            # title tier the order would degrade to document_id.
+            connection.execute(text(
+                "UPDATE knowledge_documents SET title = '简易红烧肉' WHERE id = 'doc-a'"
+            ))
+            connection.execute(text(
+                "UPDATE knowledge_documents SET title = '红烧肉' WHERE id = 'doc-b'"
+            ))
+            for chunk, doc in (("chunk-a", "doc-a"), ("chunk-b", "doc-b")):
+                connection.execute(text("""
+                    INSERT INTO knowledge_chunks
+                      (id, document_id, content_version, generation_id, ordinal, text,
+                       embedding, embedding_vector, search_tsv, created_at, updated_at)
+                    VALUES (:id, :doc, 1, :g, 0, '红烧肉', '[]',
+                            CAST(:v AS vector), to_tsvector('simple', :tokens),
+                            now(), now())
+                """), {"id": chunk, "doc": doc, "g": generation,
+                        "tokens": tokenize_chinese("红烧肉"),
+                        "v": "[0,1," + ",".join(["0"] * 62) + "]"})
+        hits = NativeRetriever(connection, profile_id="profile").search(
+            "红烧肉", [1.0] + [0.0] * 63, min_similarity=0.5,
+        )
+        # Orthogonal query vector keeps this to the keyword channel alone.
+        assert [hit.document_id for hit in hits] == ["doc-b", "doc-a"]
+
+
+def test_keyword_channel_recalls_library_wording_for_a_colloquial_dish(native_pg):
+    with native_pg.connect() as connection:
+        generation = rebuild_generation(connection, profile_id="profile")
+        with connection.begin():
+            connection.execute(text("DELETE FROM knowledge_chunks"))
+            # The user says 番茄炒蛋, the library says 西红柿炒鸡蛋; no lexeme is
+            # shared, so the alias group is the only way in.
+            for chunk, doc, body in (
+                ("chunk-a", "doc-a", "美式炒蛋"),
+                ("chunk-b", "doc-b", "西红柿炒鸡蛋"),
+            ):
+                connection.execute(text("""
+                    INSERT INTO knowledge_chunks
+                      (id, document_id, content_version, generation_id, ordinal, text,
+                       embedding, embedding_vector, search_tsv, created_at, updated_at)
+                    VALUES (:id, :doc, 1, :g, 0, :body, '[]',
+                            CAST(:v AS vector), to_tsvector('simple', :tokens),
+                            now(), now())
+                """), {"id": chunk, "doc": doc, "g": generation, "body": body,
+                        "tokens": tokenize_chinese(body),
+                        "v": "[0,1," + ",".join(["0"] * 62) + "]"})
+        hits = NativeRetriever(connection, profile_id="profile").search(
+            "番茄炒蛋", [1.0] + [0.0] * 63, min_similarity=0.5,
+        )
+        document_ids = [hit.document_id for hit in hits]
+        assert "doc-b" in document_ids
+        assert "doc-a" in document_ids
+
+
+def test_real_skill_vectors_match_without_shared_terms(native_pg):
+    with native_pg.connect() as connection:
+        generation = rebuild_generation(connection, profile_id="profile")
+        with connection.begin():
+            connection.execute(text(
+                "UPDATE knowledge_documents SET document_type = 'cooking_skill' WHERE id = 'doc-a'"
+            ))
+            connection.execute(text("DELETE FROM knowledge_chunks"))
+            connection.execute(text("""
+                INSERT INTO knowledge_chunks
+                  (id, document_id, content_version, generation_id, ordinal, text, embedding,
+                   embedding_vector, search_tsv, created_at, updated_at)
+                VALUES ('skill-chunk', 'doc-a', 1, :g, 0, 'zzz', '[]',
+                        CAST(:v AS vector), to_tsvector('simple', 'tomato'), now(), now())
+            """), {"g": generation, "v": "[1," + ",".join(["0"] * 63) + "]"})
+        query = [1.0] + [0.0] * 63
+        retriever = NativeRetriever(connection, profile_id="profile")
+        assert retriever.search(
+            "焯水", query, document_type="cooking_skill", skill_vector_lexical=False,
+        )
+        assert retriever.search(
+            "焯水", query, document_type="cooking_skill", skill_vector_lexical=True,
         ) == []
 
 

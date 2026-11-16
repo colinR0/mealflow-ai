@@ -114,9 +114,15 @@ def test_web_search_outcomes(monkeypatch, outcome, code):
                               text=body, request=httpx.Request("GET", url))
 
     monkeypatch.setattr(httpx.AsyncClient, "get", get)
-    result = asyncio.run(web.search_web("焯水", settings=Settings(_env_file=None)))
+    result = asyncio.run(web.search_web(
+        "焯水", settings=Settings(_env_file=None, knowledge_web_search_enabled=True)
+    ))
     assert result.error_code == code
     assert result.status == ("unavailable" if code else "ok" if outcome == "ok" else "no_result")
+
+
+def test_web_search_is_disabled_by_default():
+    assert Settings(_env_file=None).knowledge_web_search_enabled is False
 
 
 def test_web_disabled():

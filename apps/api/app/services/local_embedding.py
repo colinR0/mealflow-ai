@@ -73,6 +73,13 @@ class LocalEmbedding:
             self._model = model
             return model
 
+    def count_tokens(self, text: str) -> int:
+        """Count model input tokens, including [CLS]/[SEP]."""
+        if not isinstance(text, str):
+            raise TypeError("token input must be a string")
+        tokenizer = self._load_model().tokenizer
+        return len(tokenizer(text, add_special_tokens=True)["input_ids"])
+
     def _encode(self, texts: Sequence[str]) -> list[list[float]]:
         if not texts:
             return []

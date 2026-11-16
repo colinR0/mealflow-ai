@@ -19,7 +19,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "apps" / "api"))
 
 from app.core.config import get_settings
-from app.db.models import Recipe
+from app.db.models import Ingredient, Recipe, RecipeIngredient
 from app.db.schema_guard import ensure_schema_current
 from app.db.session import SessionLocal, engine
 from app.db.v2_models import (
@@ -93,13 +93,18 @@ def build_plan(source: Path) -> tuple[list[dict], dict]:
             stats["exact_duplicates_skipped"] += 1
             continue
         seen.add(identity)
-        pairs, facts, ingredients = [], [], []
+        pairs, facts, ingredients, ingredient_meta = [], [], [], {}
         for original in names:
-            key, canonical, category, _unit = _normalize_ingredient(original)
+            key, canonical, category, unit = _normalize_ingredient(original)
             pairs.append((original, key))
-            facts.append(IngredientFact(key, canonical, category, None, ""))
+            facts.append(IngredientFact(key, canonical, category, None, unit))
             ingredients.append({"name": original, "ingredient_key": key,
                                 "quantity": None, "unit": None})
+            # Keep the canonical catalog fields for the relational materialization.
+            ingredient_meta[key] = {
+                "key": key, "name": canonical, "category": category,
+                "default_unit": unit,
+            }
         tags = _tags(entry)
         classified = classify_recipe(name, tags, facts)
         # Names remain stable across content edits; variants use a content-derived ID.
@@ -125,6 +130,7 @@ def build_plan(source: Path) -> tuple[list[dict], dict]:
                    "difficulty": entry.get("difficulty") or "其他",
                    "defaults": {"servings": 2, "duration_minutes": "difficulty heuristic"}}
         plan.append({"key": key, "recipe": values, "content": content,
+                     "ingredient_meta": list(ingredient_meta.values()),
                      "search_text": " ".join([name, *names, *steps])})
         stats["ingredients"] += len(names)
         stats["default_role"] += values["meal_role"] == "其他"
@@ -166,6 +172,32 @@ def apply_plan(plan: list[dict]) -> dict:
               profile.tokenizer_version, profile.is_fake) != identity:
             raise RuntimeError("Existing embedding profile differs from configured provider")
         session.flush()
+        ingredient_meta = {
+            meta["key"]: meta
+            for item in plan
+            for meta in item.get("ingredient_meta", [])
+        }
+        ingredients_by_key: dict[str, Ingredient] = {}
+        if ingredient_meta:
+            ingredients_by_key = {
+                ingredient.key: ingredient
+                for ingredient in session.scalars(
+                    select(Ingredient).where(Ingredient.key.in_(ingredient_meta))
+                ).all()
+            }
+            for key, meta in ingredient_meta.items():
+                ingredient = ingredients_by_key.get(key)
+                if ingredient is None:
+                    ingredient = Ingredient(
+                        id=stable_id("ingredient:" + key), catalog_source="recipe_import", **meta
+                    )
+                    session.add(ingredient)
+                    ingredients_by_key[key] = ingredient
+                elif ingredient.catalog_source == "recipe_import":
+                    ingredient.name = meta["name"]
+                    ingredient.category = meta["category"]
+                    ingredient.default_unit = meta["default_unit"]
+            session.flush()
         for item in plan:
             recipe_id = stable_id("recipe:" + item["key"])
             recipe = session.get(Recipe, recipe_id)
@@ -177,10 +209,45 @@ def apply_plan(plan: list[dict]) -> dict:
                 for field, value in item["recipe"].items():
                     setattr(recipe, field, value)
             session.flush()
+            raw_ingredients = item["content"].get("ingredients") or []
+            if not raw_ingredients:
+                raise RuntimeError(f"Recipe has no ingredients: {item['recipe']['name']}")
+            desired_ingredients = {}
+            for raw in raw_ingredients:
+                key = str(raw.get("ingredient_key") or "").strip()
+                ingredient = ingredients_by_key.get(key)
+                if ingredient is not None:
+                    desired_ingredients[ingredient.id] = ingredient
+            existing_links = {
+                link.ingredient_id: link
+                for link in session.scalars(
+                    select(RecipeIngredient).where(RecipeIngredient.recipe_id == recipe_id)
+                ).all()
+            }
+            for ingredient_id, link in existing_links.items():
+                if ingredient_id not in desired_ingredients:
+                    session.delete(link)
+            for ingredient_id, ingredient in desired_ingredients.items():
+                link = existing_links.get(ingredient_id)
+                if link is None:
+                    session.add(RecipeIngredient(
+                        id=stable_id(f"recipe-ingredient:{recipe_id}:{ingredient.key}"),
+                        recipe_id=recipe_id,
+                        ingredient_id=ingredient_id,
+                        quantity=None,
+                        unit=None,
+                        optional=False,
+                    ))
+                else:
+                    link.quantity = None
+                    link.unit = None
+                    link.optional = False
+            session.flush()
             doc = session.get(KnowledgeDocument, stable_id("document:" + item["key"]))
             if doc is None:
                 session.add(KnowledgeDocument(id=stable_id("document:" + item["key"]),
                     recipe_id=recipe_id, source_id=stable_id("source"), published=True,
+                    title=item["recipe"]["name"],
                     content_version=1, capabilities={"ingredients": True, "steps": True,
                                                    "quantities": False},
                     content=item["content"], search_text=item["search_text"]))
@@ -188,6 +255,7 @@ def apply_plan(plan: list[dict]) -> dict:
                 doc.content, doc.search_text = item["content"], item["search_text"]
                 doc.content_version += 1
                 counts["updated"] += 1
+            doc.title = item["recipe"]["name"]
     return {**counts, "generation_id": ensure_generation()}
 
 
@@ -209,6 +277,7 @@ def ensure_generation() -> str:
                 embed=EMBED,
                 fake=PROVIDER.fake,
                 model=PROVIDER.model,
+                count_tokens=PROVIDER.count_tokens,
             )
     return generation
 
@@ -237,17 +306,20 @@ def verify(query: str) -> dict:
         index_counts = session.execute(text("""
             SELECT count(*) AS chunks,
               count(DISTINCT c.document_id) AS documents,
-              count(*) FILTER (WHERE c.ordinal=0 AND c.embedding_vector IS NOT NULL
-                AND vector_dims(c.embedding_vector)=:dimensions AND c.search_tsv IS NOT NULL
-                AND c.text=d.search_text AND c.content_version=d.content_version) AS valid
+              count(DISTINCT c.document_id) FILTER (
+                WHERE c.ordinal=0 AND c.embedding_vector IS NOT NULL
+                  AND vector_dims(c.embedding_vector)=:dimensions
+                  AND c.search_tsv IS NOT NULL AND c.text <> ''
+                  AND c.content_version=d.content_version
+              ) AS valid_documents
             FROM knowledge_chunks c JOIN index_generations g ON g.id=c.generation_id
             JOIN knowledge_documents d ON d.id=c.document_id
             WHERE g.active AND d.source_id=:source
         """), {"source": stable_id("source"), "dimensions": DIMENSIONS}).mappings().one()
-        if not (index_counts["chunks"] == index_counts["documents"]
-                == index_counts["valid"] == len(source_docs)):
+        if not (index_counts["documents"] == index_counts["valid_documents"]
+                == len(source_docs)):
             raise RuntimeError(
-                f"Expected one complete {DIMENSIONS}-dimensional chunk per document"
+                f"Expected a complete {DIMENSIONS}-dimensional chunk for every document"
             )
     return {"query": query, "gateway": result.status, "agent_tool": agent.status,
             "index": dict(index_counts),

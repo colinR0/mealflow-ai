@@ -48,10 +48,18 @@ class QueryEmbedder:
     tokenizer_version: str
     fake: bool
     embed_document: Callable[[str], Sequence[float]] | None = None
+    count_tokens: Callable[[str], int] | None = None
 
 
 FAKE_EMBEDDER = QueryEmbedder(
-    fake_embedding, "fake", 64, "v1", "v1", True, embed_document=fake_embedding
+    fake_embedding,
+    "fake",
+    64,
+    "v1",
+    "v1",
+    True,
+    embed_document=fake_embedding,
+    count_tokens=lambda text: max(1, len(text)),
 )
 
 
@@ -84,6 +92,7 @@ def _local_provider(
         tokenizer_version,
         False,
         embed_document=local.embed_document,
+        count_tokens=local.count_tokens,
     )
 
 
@@ -206,23 +215,31 @@ def demo_hits(rows, query, embedding, limit):
         if overlap:
             keyword.append((overlap, row))
         similarity = cosine(embedding, row["embedding"])
+        # Demo embeddings are hashed tokens. A skill still needs a shared term
+        # here; native search drops that requirement for a real embedding model.
         if similarity > 0 and (row["document_type"] != "cooking_skill" or overlap):
             vector.append((similarity, row))
     channels = []
     best = {}
     for candidates in (keyword, vector):
         candidates.sort(key=lambda item: (-item[0], item[1]["document_id"], item[1]["chunk_id"]))
-        hits = []
-        for rank, (score, row) in enumerate(candidates[:40], 1):
-            hits.append(
-                RetrievalHit(row["document_id"], row["chunk_id"], rank, score, row["excerpt"])
-            )
-            choice = (rank, row["chunk_id"])
-            if row["document_id"] not in best or choice < best[row["document_id"]][0]:
-                best[row["document_id"]] = (choice, row)
-        channels.append(hits)
+        ranked = []
+        seen = set()
+        for score, row in candidates:
+            if row["document_id"] in seen:
+                continue
+            seen.add(row["document_id"])
+            ranked.append((score, row))
+            best.setdefault(row["document_id"], row)
+            if len(ranked) >= 40:
+                break
+        channels.append([
+            RetrievalHit(row["document_id"], row["chunk_id"], rank, score, row["excerpt"])
+            for rank, (score, row) in enumerate(ranked, 1)
+        ])
     return [
-        (best[recipe_id][1], score) for recipe_id, score in reciprocal_rank_fusion(channels)[:limit]
+        (best[document_id], score)
+        for document_id, score in reciprocal_rank_fusion(channels)[:limit]
     ]
 
 
@@ -269,15 +286,36 @@ def search(
                 if current != profile:
                     raise RetrievalUnavailable("INDEX_CHANGED")
                 if settings.retrieval_mode == "native":
+                    # Fake embeddings keep keyword-gate semantics; real models get the
+                    # calibrated cosine floor so unrelated queries return no evidence.
+                    minimum = 0.0 if provider.fake else settings.retrieval_min_similarity
                     hits = NativeRetriever(
                         db, profile_id=profile["profile_id"], dimensions=profile["dimensions"]
-                    ).search(query, embedding, limit, document_type)
+                    ).search(
+                        query, embedding, limit, document_type, min_similarity=minimum,
+                        # Fake vectors collide across unrelated Chinese text. Real
+                        # embeddings rely on the cosine floor alone.
+                        skill_vector_lexical=provider.fake,
+                    )
                     rows = evidence_rows(
                         db, profile["generation_id"], [hit.chunk_id for hit in hits], document_type
                     )
                     by_chunk = {row["chunk_id"]: row for row in rows}
+                    # The 0.41 floor is calibrated for semantic recall, not for exact
+                    # terms: a genuine cooking question can match a real document at
+                    # 0.34-0.40. Keyword hits therefore only need to clear the range
+                    # that holds clearly unrelated text (~0.22).
+                    keyword_floor = (
+                        0.0 if provider.fake
+                        else settings.retrieval_min_similarity * settings.keyword_similarity_ratio
+                    )
                     ranked = []
                     for hit in hits:
+                        channels = getattr(hit, "channels", "") or "keyword,vector"
+                        similarity = getattr(hit, "similarity", None)
+                        if (similarity is not None and "vector" not in channels
+                                and similarity < keyword_floor):
+                            continue
                         row = by_chunk.get(hit.chunk_id)
                         if row is None or (
                             row["document_id"],
@@ -288,10 +326,14 @@ def search(
                         ) != (hit.document_id, hit.recipe_id, hit.source_id,
                               hit.content_version, hit.excerpt):
                             raise RetrievalUnavailable("EVIDENCE_CHANGED")
-                        ranked.append((row, float(hit.score)))
+                        ranked.append((row, float(hit.score), channels, similarity))
                 else:
+                    minimum = 0.0
                     rows = evidence_rows(db, profile["generation_id"], document_type=document_type)
-                    ranked = demo_hits(rows, query, embedding, limit)
+                    ranked = [
+                        (row, score, "keyword,vector", None)
+                        for row, score in demo_hits(rows, query, embedding, limit)
+                    ]
                 # Detect switches/revocation between SQL statements before returning evidence.
                 if active_profile(db, settings, provider) != profile:
                     raise RetrievalUnavailable("INDEX_CHANGED")
@@ -312,12 +354,15 @@ def search(
                         "content": row["content"],
                         "capabilities": row["capabilities"],
                         "score": score,
+                        "similarity": similarity,
+                        "channels": channels,
                     }
-                    for row, score in ranked
+                    for row, score, channels, similarity in ranked
                 ]
             return ToolResult(
                 status="ok" if evidence else "no_result",
-                data={"evidence": evidence, "mode": settings.retrieval_mode, "fake": provider.fake},
+                data={"evidence": evidence, "mode": settings.retrieval_mode,
+                      "fake": provider.fake, "min_similarity": minimum},
                 evidence_ids=[item["id"] for item in evidence],
                 data_versions={
                     "profile_id": profile["profile_id"],
@@ -327,7 +372,10 @@ def search(
                     "template_version": provider.template_version,
                     "tokenizer_version": provider.tokenizer_version,
                 },
-                warnings=["fake embedding 仅验证检索链路，不代表语义质量"] if provider.fake else [],
+                warnings=(
+                    ["fake embedding 仅验证检索链路，不代表语义质量"] if provider.fake
+                    else ([f"没有达到相关性下限 {minimum:.2f} 的文档"] if not evidence else [])
+                ),
             )
     except RetrievalUnavailable as error:  # Preserve the structured retrieval failure code.
         return ToolResult(

@@ -144,6 +144,12 @@ def test_no_index_and_native_retrieval_do_not_fallback():
         == "NO_ACTIVE_INDEX"
     )
     seed_demo()
+    with SessionLocal() as session:
+        has_vector = session.scalar(
+            text("SELECT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'vector')")
+        )
+    if has_vector:
+        pytest.skip("requires a disposable database without the pgvector extension")
     result = gateway.search(
         "番茄", sessions=SessionLocal, settings=options(retrieval_mode="native")
     )

@@ -12,9 +12,11 @@ from datetime import UTC, datetime
 from uuid import uuid4
 
 from sqlalchemy import Connection, text
+from sqlalchemy.orm import Session
 
 from app.services.hybrid_retrieval import fake_embedding
 from app.services.native_retrieval import tokenize_chinese, vector_literal
+from app.services.text_chunking import split_document
 
 EmbeddingProvider = Callable[[str], Sequence[float]]
 
@@ -62,6 +64,7 @@ def rebuild_generation(
     embed: EmbeddingProvider = fake_embedding,
     fake: bool = True,
     model: str | None = None,
+    count_tokens: Callable[[str], int] | None = None,
 ) -> str:
     """Build and atomically publish, retaining the previous generation on failure.
 
@@ -70,10 +73,11 @@ def rebuild_generation(
     """
     _require_idle(connection)
     with _session_lock(connection, "mealflow:s5:profile:" + profile_id):
-        return _build(connection, profile_id, embed, fake, model)
+        return _build(connection, profile_id, embed, fake, model, count_tokens=count_tokens)
 
 
-def _build(connection, profile_id, embed, fake, model, job_id=None):
+def _build(connection, profile_id, embed, fake, model, job_id=None, count_tokens=None):
+    count_tokens = count_tokens or (lambda text: max(1, len(text)))
     generation_id = str(uuid4())
     with connection.begin():
         profile = _profile(connection, profile_id)
@@ -83,7 +87,8 @@ def _build(connection, profile_id, embed, fake, model, job_id=None):
         if embed is fake_embedding and (not fake or profile[1] != 64 or provider_model != "fake"):
             raise ValueError("fake embedding requires a fake 64-dimensional profile")
         docs = connection.execute(text(
-            "SELECT id, content_version, search_text FROM knowledge_documents ORDER BY id"
+            "SELECT id, content_version, search_text, title, document_type, content "
+            "FROM knowledge_documents ORDER BY id"
         )).all()
         connection.execute(text("""
             INSERT INTO index_generations (id, profile_id, active, status, created_at, updated_at)
@@ -91,26 +96,37 @@ def _build(connection, profile_id, embed, fake, model, job_id=None):
         """), {"id": generation_id, "profile": profile_id, "now": datetime.now(UTC)})
     try:
         # Provider calls deliberately execute outside any database transaction.
-        for doc_id, version, content in docs:
-            content = content or ""
-            embedding = list(embed(content))
-            literal = vector_literal(embedding)
-            if len(embedding) != profile[1]:
-                raise ValueError("embedding dimension does not match profile")
-            tokens = tokenize_chinese(content)
-            with connection.begin():
-                connection.execute(text("""
-                    INSERT INTO knowledge_chunks
-                      (id, document_id, content_version, generation_id, ordinal, text, embedding,
-                       embedding_vector, search_tsv, created_at, updated_at)
-                    VALUES (:id, :doc, :version, :generation, 0, :text, CAST(:embedding AS json),
-                            CAST(:vector AS vector), to_tsvector('simple', :tokens), :now, :now)
-                """), {
-                    "id": str(uuid4()), "doc": doc_id, "version": version,
-                    "generation": generation_id, "text": content, "embedding": literal,
-                    "vector": literal,
-                    "tokens": tokens, "now": datetime.now(UTC),
-                })
+        for doc_id, version, body, title, document_type, payload in docs:
+            body = body or ""
+            payload = payload if isinstance(payload, dict) else {}
+            title = (title or payload.get("name") or payload.get("title") or "").strip()
+            chunks = split_document(
+                text=body,
+                title=title,
+                document_type=document_type,
+                content=payload,
+                count_tokens=count_tokens,
+            )
+            for ordinal, chunk in enumerate(chunks):
+                embedding = list(embed(chunk))
+                literal = vector_literal(embedding)
+                if len(embedding) != profile[1]:
+                    raise ValueError("embedding dimension does not match profile")
+                tokens = tokenize_chinese(chunk)
+                with connection.begin():
+                    connection.execute(text("""
+                        INSERT INTO knowledge_chunks
+                          (id, document_id, content_version, generation_id, ordinal, text,
+                           embedding, embedding_vector, search_tsv, created_at, updated_at)
+                        VALUES (:id, :doc, :version, :generation, :ordinal, :text,
+                                CAST(:embedding AS json), CAST(:vector AS vector),
+                                to_tsvector('simple', :tokens), :now, :now)
+                    """), {
+                        "id": str(uuid4()), "doc": doc_id, "version": version,
+                        "generation": generation_id, "ordinal": ordinal, "text": chunk,
+                        "embedding": literal, "vector": literal,
+                        "tokens": tokens, "now": datetime.now(UTC),
+                    })
         with connection.begin():
             connection.execute(text(
                 "SELECT pg_advisory_xact_lock(hashtextextended('mealflow:s5:activate', 0))"
@@ -138,9 +154,36 @@ def _build(connection, profile_id, embed, fake, model, job_id=None):
         raise
 
 
+def enqueue_rebuild(
+    session: Session, profile_id: str, *, dedupe_key: str | None = None,
+) -> str:
+    """Queue one rebuild per profile, reusing a runnable failed/queued job."""
+    existing = session.execute(text("""
+        SELECT id FROM background_jobs
+        WHERE kind = 'knowledge_rebuild' AND business_id = :profile
+          AND status IN ('queued', 'running', 'failed') AND attempts < 3
+        ORDER BY created_at DESC LIMIT 1
+    """), {"profile": profile_id}).scalar()
+    if existing:
+        return str(existing)
+    job_id = str(uuid4())
+    session.execute(text("""
+        INSERT INTO background_jobs
+          (id, kind, business_id, dedupe_key, status, attempts, next_run_at,
+           created_at, updated_at)
+        VALUES (:id, 'knowledge_rebuild', :profile, :dedupe, 'queued', 0, :now,
+                :now, :now)
+    """), {
+        "id": job_id, "profile": profile_id,
+        "dedupe": dedupe_key or f"knowledge_rebuild:{profile_id}:{job_id}",
+        "now": datetime.now(UTC),
+    })
+    return job_id
+
+
 def process_index_job(
     connection: Connection, job_id: str, *, embed=fake_embedding, fake: bool = True,
-    model: str | None = None,
+    model: str | None = None, count_tokens: Callable[[str], int] | None = None,
 ) -> str:
     """Deduplicate by job lock; retry failed/crashed claims, return completed result.
 
@@ -168,7 +211,10 @@ def process_index_job(
             ), {"id": job_id, "now": datetime.now(UTC)})
         try:
             with _session_lock(connection, "mealflow:s5:profile:" + job.business_id):
-                return _build(connection, job.business_id, embed, fake, model, job_id)
+                return _build(
+                    connection, job.business_id, embed, fake, model, job_id,
+                    count_tokens=count_tokens,
+                )
         except BaseException:  # Release the job lease and persist failure before re-raising.
             with connection.begin():
                 connection.execute(text(

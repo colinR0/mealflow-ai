@@ -1,8 +1,8 @@
 """Import structured substitution, flavor-template and food-risk rows.
 
-The input is JSON with three arrays. Every row keeps typed decision fields plus a
-separate rag_text used only for embedding. Approved rows require a named source;
-risk rows with unverified evidence cannot be approved by this importer.
+The input is JSON with three arrays. Every row keeps only typed decision fields;
+the libraries are read by deterministic SQL lookup, not vector search. Approved
+rows require a named source; risk rows with unverified evidence cannot be approved.
 """
 
 from __future__ import annotations
@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any
 from uuid import NAMESPACE_URL, uuid5
@@ -21,13 +22,10 @@ sys.path.insert(0, str(ROOT / "apps" / "api"))
 
 from app.db.session import SessionLocal
 from app.db.v2_models import (
-    EmbeddingProfile,
     FlavorTemplate,
     FoodRiskRule,
     IngredientSubstitution,
 )
-from app.services.native_retrieval import tokenize_chinese, vector_literal
-from import_howtocook_rag import DIMENSIONS, EMBED, PROFILE, PROVIDER, prepare_import
 
 REVIEW_STATUSES = {"draft", "approved", "revoked"}
 MODELS = {
@@ -88,20 +86,15 @@ def _substitution(raw: dict) -> dict:
     to_key = _text(raw.get("to_ingredient_key"), "to_ingredient_key", required=True)
     from_name = _text(raw.get("from_ingredient_name"), "from_ingredient_name", required=True)
     to_name = _text(raw.get("to_ingredient_name"), "to_ingredient_name", required=True)
+    # The column is Numeric(6, 4); parse as Decimal so a re-import compares equal
+    # instead of bumping the version on float/Decimal representation drift.
     try:
-        factor = float(raw.get("conversion_factor", 1))
-    except (TypeError, ValueError):
+        factor = Decimal(str(raw.get("conversion_factor", 1)))
+    except (InvalidOperation, TypeError, ValueError):
         raise ValueError(f"invalid conversion_factor for {from_key}") from None
-    if factor <= 0:
+    if not factor.is_finite() or factor <= 0:
         raise ValueError(f"conversion_factor must be positive for {from_key}")
     unit = _text(raw.get("unit") or "份", "unit")
-    rag_text = _text(raw.get("rag_text"), "rag_text")
-    if not rag_text:
-        rag_text = (
-            f"食材替换：{from_name} 可以替换为 {to_name}。"
-            f"换算系数 {factor:g}，单位 {unit}。"
-            f"风味影响：{_text(raw.get('flavor_impact'), 'flavor_impact')}。"
-        )
     return {
         **common,
         "from_ingredient_key": from_key,
@@ -114,7 +107,6 @@ def _substitution(raw: dict) -> dict:
         "exclude_tags": _list(raw.get("exclude_tags"), "exclude_tags"),
         "flavor_impact": _text(raw.get("flavor_impact"), "flavor_impact"),
         "priority": int(raw.get("priority", 0)),
-        "rag_text": rag_text,
     }
 
 
@@ -145,12 +137,6 @@ def _flavor(raw: dict) -> dict:
     ratio_basis = _text(raw.get("ratio_basis") or "parts", "ratio_basis")
     if ratio_basis not in {"parts", "weight", "volume"}:
         raise ValueError(f"invalid ratio_basis for {name}")
-    rag_text = _text(raw.get("rag_text"), "rag_text")
-    if not rag_text:
-        ratio = "；".join(
-            f"{item['name']} {item['parts']:g}{item['unit']}" for item in normalized
-        ) or "待补充审核比例"
-        rag_text = f"风味模板：{name}。固定配比：{ratio}。基准：{ratio_basis}。"
     return {
         **common,
         "name": name,
@@ -160,7 +146,6 @@ def _flavor(raw: dict) -> dict:
         "ratio_basis": ratio_basis,
         "usage": _text(raw.get("usage"), "usage"),
         "cautions": _list(raw.get("cautions"), "cautions"),
-        "rag_text": rag_text,
     }
 
 
@@ -179,13 +164,6 @@ def _risk(raw: dict) -> dict:
     applies_to = _list(raw.get("applies_to"), "applies_to")
     if common["review_status"] == "approved" and not applies_to:
         raise ValueError(f"approved risk {title} requires applies_to")
-    rag_text = _text(raw.get("rag_text"), "rag_text")
-    if not rag_text:
-        rag_text = (
-            f"食品安全风险：{title}。类型：{risk_type}。等级：{severity}。"
-            f"适用人群：{', '.join(map(str, applies_to)) or '未指定'}。"
-            f"建议：{_text(raw.get('advice'), 'advice')}。"
-        )
     return {
         **common,
         "risk_type": risk_type,
@@ -198,7 +176,6 @@ def _risk(raw: dict) -> dict:
         "ingredient_keys": _list(raw.get("ingredient_keys"), "ingredient_keys"),
         "advice": _text(raw.get("advice"), "advice"),
         "evidence_level": evidence,
-        "rag_text": rag_text,
     }
 
 
@@ -235,7 +212,7 @@ def _apply_row(session, item: dict) -> tuple[bool, bool]:
     row = session.get(model, item["id"])
     created = row is None
     if created:
-        row = model(id=item["id"], embedding_profile_id=PROFILE, version=1, **payload)
+        row = model(id=item["id"], version=1, **payload)
         session.add(row)
         changed = True
     else:
@@ -244,42 +221,14 @@ def _apply_row(session, item: dict) -> tuple[bool, bool]:
             row.version += 1
             for key, value in payload.items():
                 setattr(row, key, value)
-    row.embedding_profile_id = PROFILE
-    row.embedding = list(EMBED(row.rag_text))
     session.flush()
-    session.execute(
-        text(f"""
-            UPDATE {MODELS[section].__tablename__}
-            SET embedding_vector = CAST(:vector AS vector),
-                search_tsv = to_tsvector('simple', :tokens)
-            WHERE id = :id
-        """),
-        {
-            "vector": vector_literal(row.embedding),
-            "tokens": tokenize_chinese(row.rag_text),
-            "id": row.id,
-        },
-    )
     return created, changed and not created
 
 
 def apply_plan(plan: list[dict]) -> dict:
-    prepare_import()
     counts = {"created": 0, "updated": 0}
     with SessionLocal.begin() as session:
         session.execute(text("SELECT pg_advisory_xact_lock(hashtext('structured-food-import'))"))
-        profile = session.get(EmbeddingProfile, PROFILE)
-        identity = (PROVIDER.model, PROVIDER.dimensions, PROVIDER.template_version,
-                    PROVIDER.tokenizer_version, PROVIDER.fake)
-        if profile is None:
-            session.add(EmbeddingProfile(
-                id=PROFILE, model=PROVIDER.model, dimensions=PROVIDER.dimensions,
-                template_version=PROVIDER.template_version,
-                tokenizer_version=PROVIDER.tokenizer_version, is_fake=PROVIDER.fake,
-            ))
-        elif (profile.model, profile.dimensions, profile.template_version,
-              profile.tokenizer_version, profile.is_fake) != identity:
-            raise RuntimeError("Existing embedding profile differs from configured provider")
         for item in plan:
             created, updated = _apply_row(session, item)
             counts["created"] += int(created)
@@ -291,21 +240,12 @@ def verify() -> dict:
     with SessionLocal() as session:
         result = {}
         for section, model in MODELS.items():
-            total, approved, valid = session.execute(text(f"""
+            total, approved = session.execute(text(f"""
                 SELECT count(*),
-                       count(*) FILTER (WHERE review_status = 'approved'),
-                       count(*) FILTER (
-                         WHERE embedding_vector IS NOT NULL
-                           AND vector_dims(embedding_vector) = :dimensions
-                           AND search_tsv IS NOT NULL
-                       )
+                       count(*) FILTER (WHERE review_status = 'approved')
                 FROM {model.__tablename__}
-            """), {"dimensions": DIMENSIONS}).one()
-            result[section] = {
-                "rows": total,
-                "approved": approved,
-                f"indexed_{DIMENSIONS}d": valid,
-            }
+            """)).one()
+            result[section] = {"rows": total, "approved": approved}
         return result
 
 
@@ -327,7 +267,7 @@ def main() -> None:
     }
     if args.apply:
         report["import"] = apply_plan(plan)
-        report["index"] = verify()
+        report["verify"] = verify()
     if args.report:
         args.report.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
     print(json.dumps(report, ensure_ascii=False, indent=2))

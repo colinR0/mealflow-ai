@@ -64,7 +64,9 @@ def test_native_rag_turn_persists_steps_and_inline_citation(rag_turn):
     result = graph.compute(sessions, snapshot, RecipeProvider())
     assert result["status"] == "succeeded"
     assert "洗净番茄。\n煮熟后盛出。" in result["text"]
+    assert "[recipe:" not in result["text"]
     assert result["citations"] == [result["evidence"][0]["id"]]
+    assert result["thinking_steps"]
     assert any("fake embedding" in warning for warning in result["warnings"])
     worker.finish(snapshot, result)
     with sessions() as session:
